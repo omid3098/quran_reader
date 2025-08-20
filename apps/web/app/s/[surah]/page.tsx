@@ -47,6 +47,9 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
   const [isTranslationsOpen, setTranslationsOpen] = useState(false)
   const translationsRef = useRef<HTMLDivElement>(null)
   const [surahs, setSurahs] = useState<SurahMeta[]>([])
+  const [isSurahOpen, setSurahOpen] = useState(false)
+  const [surahQuery, setSurahQuery] = useState('')
+  const surahDropdownRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -66,11 +69,12 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
       .catch(() => setSurahs([]))
   }, [])
 
-  // Close dropdown on outside click
+  // Close dropdowns on outside click
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
-      if (!translationsRef.current) return
-      if (!translationsRef.current.contains(e.target as Node)) setTranslationsOpen(false)
+      const target = e.target as Node
+      if (translationsRef.current && !translationsRef.current.contains(target)) setTranslationsOpen(false)
+      if (surahDropdownRef.current && !surahDropdownRef.current.contains(target)) setSurahOpen(false)
     }
     document.addEventListener('mousedown', onDocClick)
     return () => document.removeEventListener('mousedown', onDocClick)
@@ -116,28 +120,58 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
         <div className="header-inner">
           <div className="brand">OQR — Surah {surah}</div>
           <nav className="toolbar" aria-label="Reader controls">
-            <select
-              className="select"
-              value={String(surah)}
-              onChange={(e) => {
-                const nextSurah = Number(e.target.value)
-                try { localStorage.setItem('oqr:lastSurah', JSON.stringify(nextSurah)) } catch { }
-                const t = enabledTranslations.join(',')
-                const href = (`/s/${nextSurah}${t ? `?t=${encodeURIComponent(t)}` : ''}`) as Route
-                router.push(href)
-              }}
-              aria-label="Select surah"
-            >
-              {surahs.length === 0 ? (
-                <option value={String(surah)}>Surah {surah}</option>
-              ) : (
-                surahs.map((s) => (
-                  <option key={s.number} value={String(s.number)}>
-                    {`سورة ${s.name_ar} — ${s.number}`}
-                  </option>
-                ))
-              )}
-            </select>
+            <div ref={surahDropdownRef} style={{ position: 'relative' }}>
+              <button
+                type="button"
+                className="button"
+                aria-haspopup="listbox"
+                aria-expanded={isSurahOpen}
+                onClick={() => setSurahOpen((o) => !o)}
+                aria-label="Select surah"
+              >
+                سورة {surahs.find((s) => s.number === surah)?.name_ar || surah}
+              </button>
+              {isSurahOpen ? (
+                <div className="card" style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: 360, maxHeight: 360, overflow: 'auto', padding: 8, zIndex: 20 }}>
+                  <div style={{ display: 'grid', gap: 8 }}>
+                    <input
+                      className="input"
+                      type="text"
+                      placeholder="جستجو سوره..."
+                      value={surahQuery}
+                      onChange={(e) => setSurahQuery(e.target.value)}
+                      autoFocus
+                    />
+                    <div role="listbox" aria-label="Surah list" style={{ display: 'grid', gap: 4 }}>
+                      {(surahQuery ? surahs.filter((s) => `${s.name_ar} ${s.number}`.includes(surahQuery)) : surahs).map((s) => (
+                        <button
+                          key={s.number}
+                          type="button"
+                          className="button"
+                          role="option"
+                          aria-selected={s.number === surah}
+                          onClick={() => {
+                            const nextSurah = s.number
+                            try { localStorage.setItem('oqr:lastSurah', JSON.stringify(nextSurah)) } catch { }
+                            const t = enabledTranslations.join(',')
+                            const href = (`/s/${nextSurah}${t ? `?t=${encodeURIComponent(t)}` : ''}`) as Route
+                            setSurahOpen(false)
+                            router.push(href)
+                          }}
+                          style={{ textAlign: 'unset', justifyContent: 'space-between', display: 'flex' }}
+                        >
+                          <span>سورة {s.name_ar}</span>
+                          <span className="muted">{s.number}</span>
+                        </button>
+                      ))}
+                      {!surahs.length ? (
+                        <div className="muted">No surahs available</div>
+                      ) : null}
+                    </div>
+                  </div>
+                </div>
+              ) : null}
+            </div>
             <div ref={translationsRef} style={{ position: 'relative' }}>
               <button type="button" className="button" onClick={() => setTranslationsOpen((o) => !o)}>
                 Translations{enabledTranslations.length ? ` (${enabledTranslations.length})` : ''}

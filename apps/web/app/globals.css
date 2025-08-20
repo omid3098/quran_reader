@@ -71,6 +71,12 @@ a {
   border-radius: 8px;
   padding: 6px 10px;
   font-size: 14px;
+  font-family: inherit;
+}
+
+/* Ensure native option elements also use the app font when supported */
+.select option {
+  font-family: inherit;
 }
 
 .button {
