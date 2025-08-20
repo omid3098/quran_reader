@@ -2,7 +2,6 @@
 
 import { useEffect, useMemo, useRef, useState } from 'react'
 import type { Route } from 'next'
-import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 
 type Translation = { id: string; name: string; language: string }
@@ -13,6 +12,8 @@ type Verse = {
   text_ar_simple: string
   translations?: Array<{ translationId: string; text: string }>
 }
+
+type SurahMeta = { number: number; name_ar: string }
 
 const API = '/api'
 
@@ -45,6 +46,7 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
   const [error, setError] = useState<string | null>(null)
   const [isTranslationsOpen, setTranslationsOpen] = useState(false)
   const translationsRef = useRef<HTMLDivElement>(null)
+  const [surahs, setSurahs] = useState<SurahMeta[]>([])
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -55,6 +57,13 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
       .then((r) => r.json())
       .then((data: any[]) => setTranslations(data))
       .catch(() => setTranslations([]))
+  }, [])
+
+  useEffect(() => {
+    fetch(`${API}/surahs`)
+      .then((r) => r.json())
+      .then((data: SurahMeta[]) => setSurahs(data))
+      .catch(() => setSurahs([]))
   }, [])
 
   // Close dropdown on outside click
@@ -77,6 +86,11 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
       .then((data: Verse[]) => setVerses(data))
       .catch((e) => setError(String(e)))
   }, [qs])
+
+  // persist last read surah
+  useEffect(() => {
+    try { localStorage.setItem('oqr:lastSurah', JSON.stringify(surah)) } catch { }
+  }, [surah])
 
   // reflect URL
   useEffect(() => {
@@ -102,7 +116,28 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
         <div className="header-inner">
           <div className="brand">OQR — Surah {surah}</div>
           <nav className="toolbar" aria-label="Reader controls">
-            <Link className="button" href="/s">Surahs</Link>
+            <select
+              className="select"
+              value={String(surah)}
+              onChange={(e) => {
+                const nextSurah = Number(e.target.value)
+                try { localStorage.setItem('oqr:lastSurah', JSON.stringify(nextSurah)) } catch { }
+                const t = enabledTranslations.join(',')
+                const href = (`/s/${nextSurah}${t ? `?t=${encodeURIComponent(t)}` : ''}`) as Route
+                router.push(href)
+              }}
+              aria-label="Select surah"
+            >
+              {surahs.length === 0 ? (
+                <option value={String(surah)}>Surah {surah}</option>
+              ) : (
+                surahs.map((s) => (
+                  <option key={s.number} value={String(s.number)}>
+                    {`سورة ${s.name_ar} — ${s.number}`}
+                  </option>
+                ))
+              )}
+            </select>
             <div ref={translationsRef} style={{ position: 'relative' }}>
               <button type="button" className="button" onClick={() => setTranslationsOpen((o) => !o)}>
                 Translations{enabledTranslations.length ? ` (${enabledTranslations.length})` : ''}

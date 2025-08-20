@@ -1,27 +1,28 @@
-import Link from 'next/link'
+"use client"
+
+import { useEffect } from 'react'
+import { useRouter } from 'next/navigation'
 
 export default function HomePage() {
+  const router = useRouter()
+
+  useEffect(() => {
+    let target = 1
+    try {
+      const raw = localStorage.getItem('oqr:lastSurah')
+      const parsed = raw ? JSON.parse(raw) : null
+      if (typeof parsed === 'number' && parsed >= 1 && parsed <= 114) target = parsed
+    } catch { }
+    router.replace(`/s/${target}`)
+  }, [router])
+
   return (
     <main className="container">
-      <header className="header">
-        <div className="header-inner">
-          <div className="brand">OpenQuranReader</div>
-          <nav className="toolbar">
-            <Link className="button" href="/s">Surah List</Link>
-            <Link className="button" href="/s/1">Read Al-Fatiha</Link>
-          </nav>
-        </div>
-      </header>
-
       <section style={{ padding: 16 }}>
-        <h2>Welcome</h2>
-        <p>Start reading with a simple, accessible UI while back-end evolves.</p>
-        <div style={{ marginTop: 12 }}>
-          <Link className="button" href="/s">Browse Surahs</Link>
-        </div>
+        <div className="skeleton" style={{ height: 64, marginBottom: 8 }} />
+        <div className="skeleton" style={{ height: 64, marginBottom: 8 }} />
+        <div className="skeleton" style={{ height: 64 }} />
       </section>
-
-      <footer className="footer">MVP UI — data from local file-backed API</footer>
     </main>
   )
 }
