@@ -2,6 +2,7 @@ import http from 'node:http'
 import fs from 'node:fs'
 import path from 'node:path'
 import url from 'node:url'
+import { fileURLToPath } from 'node:url'
 
 function sendJson(res, code, data) {
   res.writeHead(code, { 'content-type': 'application/json', 'access-control-allow-origin': '*' })
@@ -10,7 +11,10 @@ function sendJson(res, code, data) {
 
 function notFound(res) { res.writeHead(404); res.end('Not found') }
 
-const ROOT = process.cwd()
+const __filename = fileURLToPath(import.meta.url)
+const __dirname = path.dirname(__filename)
+// Resolve repo root from apps/api/src to project root
+const ROOT = path.resolve(__dirname, '../../..')
 const OUT_DIR = path.join(ROOT, 'scripts', 'out')
 
 // Load surahs and translations once at startup
