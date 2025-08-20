@@ -1,0 +1,10 @@
+{
+  "name": "@openquranreader/types",
+  "version": "0.0.0",
+  "private": true,
+  "types": "src/index.ts",
+  "exports": {
+    ".": "./src/index.ts"
+  }
+}
+

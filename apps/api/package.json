@@ -1,0 +1,16 @@
+{
+  "name": "api",
+  "private": true,
+  "version": "0.0.0",
+  "type": "module",
+  "dependencies": {
+    "dotenv": "16.4.5"
+  },
+  "scripts": {
+    "dev": "node --watch src/main.js",
+    "build": "echo 'ts build placeholder'",
+    "start": "node dist/main.js",
+    "lint": "eslint .",
+    "typecheck": "tsc -p tsconfig.json --noEmit"
+  }
+}
