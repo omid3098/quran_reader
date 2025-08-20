@@ -22,6 +22,7 @@ let SURAH_LIST = []
 let TRANSLATIONS = []
 let VERSES_INDEX = new Map() // key `${surah}:${ayah}` -> { text_ar_simple }
 let TRANSLATION_FILES = new Map() // translationId -> absolute file path
+let MAX_AYAH_BY_SURAH = new Map() // surah -> max ayah index
 
 function loadData() {
   const surahsPath = path.join(OUT_DIR, 'surahs.json')
@@ -38,11 +39,14 @@ function loadData() {
 
   // Build verses index
   VERSES_INDEX = new Map()
+  MAX_AYAH_BY_SURAH = new Map()
   const lines = fs.readFileSync(versesJsonlPath, 'utf8').split(/\r?\n/).filter(Boolean)
   for (const line of lines) {
     const v = JSON.parse(line)
     const key = `${v.surah}:${v.ayah}`
     VERSES_INDEX.set(key, { text_ar_simple: v.text_ar_simple, bismillah: v.bismillah })
+    const currentMax = MAX_AYAH_BY_SURAH.get(v.surah) || 0
+    if (v.ayah > currentMax) MAX_AYAH_BY_SURAH.set(v.surah, v.ayah)
   }
 
   // Map translation files
@@ -104,9 +108,15 @@ const server = http.createServer((req, res) => {
 
   if (pathname === '/verses') {
     const surah = parseInt(params.surah || '0', 10)
-    const from = parseInt(params.from || '1', 10)
-    const to = parseInt(params.to || '0', 10)
-    if (!surah || !from || !to || from > to) return sendJson(res, 400, { error: 'Invalid query' })
+    let from = parseInt(params.from || '1', 10)
+    let to = parseInt(params.to || '0', 10)
+    if (!surah) return sendJson(res, 400, { error: 'Invalid query' })
+
+    const maxAyah = MAX_AYAH_BY_SURAH.get(surah) || 0
+    if (!from || from < 1) from = 1
+    if (!to || to < 1) to = maxAyah
+    if (to > maxAyah) to = maxAyah
+    if (!from || !to || from > to) return sendJson(res, 400, { error: 'Invalid query' })
 
     const slice = []
     for (let ayah = from; ayah <= to; ayah++) {

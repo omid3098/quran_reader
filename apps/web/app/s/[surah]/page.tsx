@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { Route } from 'next'
 import Link from 'next/link'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -13,7 +14,7 @@ type Verse = {
   translations?: Array<{ translationId: string; text: string }>
 }
 
-const API = 'http://localhost:4000'
+const API = '/api'
 
 function useLocalStorage<T>(key: string, initial: T) {
   const [value, setValue] = useState<T>(() => {
@@ -25,7 +26,7 @@ function useLocalStorage<T>(key: string, initial: T) {
     }
   })
   useEffect(() => {
-    try { localStorage.setItem(key, JSON.stringify(value)) } catch {}
+    try { localStorage.setItem(key, JSON.stringify(value)) } catch { }
   }, [key, value])
   return [value, setValue] as const
 }
@@ -35,15 +36,15 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
   const sp = useSearchParams()
 
   const surah = Number(params.surah)
-  const [from, setFrom] = useState<number>(Number(sp.get('from') || 1))
-  const [to, setTo] = useState<number>(Number(sp.get('to') || 7))
   const [font, setFont] = useLocalStorage<'sm' | 'md' | 'lg'>('oqr:font', 'md')
   const [theme, setTheme] = useLocalStorage<'light' | 'dark'>('oqr:theme', (document.documentElement.dataset.theme as any) || 'dark')
-  const [translationId, setTranslationId] = useLocalStorage<string>('oqr:translation', sp.get('t') || 'en.arberry')
+  const [enabledTranslations, setEnabledTranslations] = useLocalStorage<string[]>('oqr:translations', (sp.get('t')?.split(',').filter(Boolean)) || ['en.arberry'])
 
   const [translations, setTranslations] = useState<Translation[]>([])
   const [verses, setVerses] = useState<Verse[] | null>(null)
   const [error, setError] = useState<string | null>(null)
+  const [isTranslationsOpen, setTranslationsOpen] = useState(false)
+  const translationsRef = useRef<HTMLDivElement>(null)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -56,7 +57,17 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
       .catch(() => setTranslations([]))
   }, [])
 
-  const qs = useMemo(() => new URLSearchParams({ surah: String(surah), from: String(from), to: String(to), translation_ids: translationId }).toString(), [surah, from, to, translationId])
+  // Close dropdown on outside click
+  useEffect(() => {
+    const onDocClick = (e: MouseEvent) => {
+      if (!translationsRef.current) return
+      if (!translationsRef.current.contains(e.target as Node)) setTranslationsOpen(false)
+    }
+    document.addEventListener('mousedown', onDocClick)
+    return () => document.removeEventListener('mousedown', onDocClick)
+  }, [])
+
+  const qs = useMemo(() => new URLSearchParams({ surah: String(surah), translation_ids: enabledTranslations.join(',') }).toString(), [surah, enabledTranslations])
 
   useEffect(() => {
     setVerses(null)
@@ -69,25 +80,12 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
 
   // reflect URL
   useEffect(() => {
-    const url = `/s/${surah}?from=${from}&to=${to}${translationId ? `&t=${encodeURIComponent(translationId)}` : ''}`
-    router.replace(url)
-  }, [router, surah, from, to, translationId])
+    const t = enabledTranslations.join(',')
+    const href = `/s/${surah}${t ? `?t=${encodeURIComponent(t)}` : ''}` as Route
+    router.replace(href)
+  }, [router, surah, enabledTranslations])
 
-  // keyboard navigation
   const listRef = useRef<HTMLDivElement>(null)
-  useEffect(() => {
-    const onKey = (e: KeyboardEvent) => {
-      if (e.key === 'ArrowRight' || e.key === 'k') setFrom((f) => Math.max(1, f - 1))
-      if (e.key === 'ArrowLeft' || e.key === 'j') setFrom((f) => f + 1)
-    }
-    window.addEventListener('keydown', onKey)
-    return () => window.removeEventListener('keydown', onKey)
-  }, [])
-
-  useEffect(() => {
-    // lock to single-ayah window when using arrows
-    setTo(from)
-  }, [from])
 
   useEffect(() => {
     if (!verses || !verses.length) return
@@ -96,7 +94,7 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
   }, [verses])
 
   const arabicSizeVar = font === 'sm' ? '20px' : font === 'lg' ? '28px' : '24px'
-  const selectedTranslation = translations.find((t) => t.id === translationId)
+  const selectedTranslations = translations.filter((t) => enabledTranslations.includes(t.id))
 
   return (
     <main className="container">
@@ -105,19 +103,40 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
           <div className="brand">OQR — Surah {surah}</div>
           <nav className="toolbar" aria-label="Reader controls">
             <Link className="button" href="/s">Surahs</Link>
-            <label>
-              <span style={{ marginInlineEnd: 6 }}>From</span>
-              <input className="input" type="number" min={1} value={from} onChange={(e) => setFrom(Number(e.target.value || 1))} style={{ width: 80 }} />
-            </label>
-            <label>
-              <span style={{ marginInlineEnd: 6 }}>To</span>
-              <input className="input" type="number" min={from} value={to} onChange={(e) => setTo(Number(e.target.value || from))} style={{ width: 80 }} />
-            </label>
-            <select className="select" value={translationId} onChange={(e) => setTranslationId(e.target.value)}>
-              {translations.map((t) => (
-                <option key={t.id} value={t.id}>{t.language}: {t.name}</option>
-              ))}
-            </select>
+            <div ref={translationsRef} style={{ position: 'relative' }}>
+              <button type="button" className="button" onClick={() => setTranslationsOpen((o) => !o)}>
+                Translations{enabledTranslations.length ? ` (${enabledTranslations.length})` : ''}
+              </button>
+              {isTranslationsOpen ? (
+                <div className="card" style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: 360, maxHeight: 320, overflow: 'auto', padding: 8, zIndex: 20 }}>
+                  <div style={{ display: 'grid', gap: 8 }}>
+                    {translations.map((t) => {
+                      const checked = enabledTranslations.includes(t.id)
+                      return (
+                        <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                          <input
+                            type="checkbox"
+                            checked={checked}
+                            onChange={(e) => {
+                              setEnabledTranslations((prev) => {
+                                const set = new Set(prev)
+                                if (e.target.checked) set.add(t.id)
+                                else set.delete(t.id)
+                                return Array.from(set)
+                              })
+                            }}
+                          />
+                          <span>{t.language}: {t.name}</span>
+                        </label>
+                      )
+                    })}
+                    {translations.length === 0 ? (
+                      <div className="muted">No translations available</div>
+                    ) : null}
+                  </div>
+                </div>
+              ) : null}
+            </div>
             <select className="select" value={font} onChange={(e) => setFont(e.target.value as any)}>
               <option value="sm">A-</option>
               <option value="md">A</option>
@@ -148,9 +167,17 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
                   <span>{v.text_ar_simple}</span>
                 </div>
                 {v.translations?.length ? (
-                  <div className="translation" dir="auto">
-                    <span style={{ color: 'var(--accent)' }}>{selectedTranslation?.name}:</span>{' '}
-                    <span>{v.translations[0].text}</span>
+                  <div style={{ display: 'grid', gap: 6 }}>
+                    {selectedTranslations.map((st) => {
+                      const found = v.translations?.find((tr) => tr.translationId === st.id)
+                      if (!found) return null
+                      return (
+                        <div key={st.id} className="translation" dir="auto">
+                          <span style={{ color: 'var(--accent)' }}>{st.name}:</span>{' '}
+                          <span>{found.text}</span>
+                        </div>
+                      )
+                    })}
                   </div>
                 ) : null}
               </article>
@@ -159,7 +186,7 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
         )}
       </section>
 
-      <footer className="footer">Use j/← and k/→ to move between ayahs. URL updates for deep links.</footer>
+      <footer className="footer">Showing all verses. Toggle translations from the toolbar.</footer>
     </main>
   )
 }
