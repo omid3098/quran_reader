@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
-import { Menu, Book, ChevronDown, FileText, Star, Share2, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, X, Sun, Moon, Bookmark, File, Download, Copy, QrCode, Upload, Clipboard, Languages } from 'lucide-react'
+import { Menu, Book, ChevronDown, FileText, Share2, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, X, Sun, Moon, Bookmark, File, Download, Copy, QrCode, Upload, Clipboard, Languages } from 'lucide-react'
 import type { Route } from 'next'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -841,8 +841,8 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                                     aria-pressed={isBookmarked(v.ayah)}
                                                     onClick={(e) => { e.stopPropagation(); toggleBookmark(v.ayah) }}
                                                 >
-                                                    {/* Star icon */}
-                                                    <Star className="icon" strokeWidth={2} aria-hidden {...(isBookmarked(v.ayah) ? { fill: 'currentColor' } : {})} />
+                                                    {/* Bookmark icon to match sidebar */}
+                                                    <Bookmark className="icon" strokeWidth={2} aria-hidden {...(isBookmarked(v.ayah) ? { fill: 'currentColor' } : {})} />
                                                 </button>
                                                 <button
                                                     type="button"
