@@ -1,3 +1,4 @@
+import 'dotenv/config'
 import http from 'node:http'
 import fs from 'node:fs'
 import path from 'node:path'
@@ -17,7 +18,18 @@ const __dirname = path.dirname(__filename)
 const ROOT = path.resolve(__dirname, '../../..')
 const OUT_DIR = path.join(ROOT, 'scripts', 'out')
 
-// Load surahs and translations once at startup
+const USE_DB = (String(process.env.USE_DATABASE || '').toLowerCase() === 'true') || Boolean(process.env.DATABASE_URL)
+
+let prisma = null
+async function getPrisma() {
+  if (!prisma) {
+    const mod = await import('@prisma/client')
+    prisma = new mod.PrismaClient()
+  }
+  return prisma
+}
+
+// Load surahs and translations once at startup (file-backed mode)
 let SURAH_LIST = []
 let TRANSLATIONS = []
 let VERSES_INDEX = new Map() // key `${surah}:${ayah}` -> { text_ar_simple }
@@ -60,7 +72,7 @@ function loadData() {
   }
 }
 
-loadData()
+if (!USE_DB) loadData()
 
 function parseQuery(reqUrl) {
   const u = new url.URL(reqUrl, 'http://localhost')
@@ -97,14 +109,28 @@ function buildSliceSet(slice) {
   return set
 }
 
-const server = http.createServer((req, res) => {
-  const { pathname, params, searchParams } = parseQuery(req.url || '/')
+async function handle(req, res) {
+  const { pathname, params } = parseQuery(req.url || '/')
 
-  if (pathname === '/health') return sendJson(res, 200, { ok: true, name: 'OpenQuranReader API' })
+  if (pathname === '/health') return sendJson(res, 200, { ok: true, name: 'OpenQuranReader API', mode: USE_DB ? 'db' : 'files' })
 
-  if (pathname === '/surahs') return sendJson(res, 200, SURAH_LIST)
+  if (pathname === '/surahs') {
+    if (USE_DB) {
+      const db = await getPrisma()
+      const rows = await db.surah.findMany({ orderBy: { number: 'asc' }, select: { number: true, name_ar: true } })
+      return sendJson(res, 200, rows)
+    }
+    return sendJson(res, 200, SURAH_LIST)
+  }
 
-  if (pathname === '/translations') return sendJson(res, 200, TRANSLATIONS)
+  if (pathname === '/translations') {
+    if (USE_DB) {
+      const db = await getPrisma()
+      const rows = await db.translation.findMany({ orderBy: { id: 'asc' } })
+      return sendJson(res, 200, rows)
+    }
+    return sendJson(res, 200, TRANSLATIONS)
+  }
 
   if (pathname === '/verses') {
     const surah = parseInt(params.surah || '0', 10)
@@ -112,6 +138,44 @@ const server = http.createServer((req, res) => {
     let to = parseInt(params.to || '0', 10)
     if (!surah) return sendJson(res, 400, { error: 'Invalid query' })
 
+    if (USE_DB) {
+      const db = await getPrisma()
+      const agg = await db.verse.aggregate({ where: { surah }, _max: { ayah: true } })
+      const maxAyah = agg._max.ayah || 0
+      if (!from || from < 1) from = 1
+      if (!to || to < 1) to = maxAyah
+      if (to > maxAyah) to = maxAyah
+      if (!from || !to || from > to) return sendJson(res, 400, { error: 'Invalid query' })
+
+      const base = await db.verse.findMany({
+        where: { surah, ayah: { gte: from, lte: to } },
+        orderBy: { ayah: 'asc' },
+        select: { ayah: true, text_ar_simple: true, bismillah: true },
+      })
+      const slice = base.map((v) => ({ surah, ayah: v.ayah, text_ar_simple: v.text_ar_simple, ...(v.bismillah ? { bismillah: v.bismillah } : {}) }))
+
+      const tParam = params.translation_ids || params.t || ''
+      const ids = tParam ? tParam.split(',').map(s => s.trim()).filter(Boolean) : []
+      if (ids.length) {
+        const vt = await db.verseTranslation.findMany({
+          where: { surah, ayah: { gte: from, lte: to }, translationId: { in: ids } },
+          select: { ayah: true, translationId: true, text: true },
+        })
+        const map = new Map()
+        for (const row of vt) {
+          const key = row.ayah
+          if (!map.has(key)) map.set(key, {})
+          map.get(key)[row.translationId] = row.text
+        }
+        for (const v of slice) {
+          const pack = map.get(v.ayah) || {}
+          v.translations = Object.entries(pack).map(([translationId, text]) => ({ translationId, text }))
+        }
+      }
+      return sendJson(res, 200, slice)
+    }
+
+    // file-backed mode
     const maxAyah = MAX_AYAH_BY_SURAH.get(surah) || 0
     if (!from || from < 1) from = 1
     if (!to || to < 1) to = maxAyah
@@ -129,7 +193,6 @@ const server = http.createServer((req, res) => {
       }
     }
 
-    // Collect translations if requested
     const tParam = params.translation_ids || params.t || ''
     const ids = tParam ? tParam.split(',').map(s => s.trim()).filter(Boolean) : []
 
@@ -160,7 +223,9 @@ const server = http.createServer((req, res) => {
   }
 
   notFound(res)
-})
+}
+
+const server = http.createServer((req, res) => { void handle(req, res) })
 
 const port = process.env.PORT || 4000
 server.listen(port, () => {

@@ -1,0 +1,130 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+model Surah {
+  number  Int   @id
+  name_ar String
+
+  verses Verse[]
+
+  @@map("surah")
+}
+
+model Verse {
+  surah           Int
+  ayah            Int
+  text_ar_simple  String
+  bismillah       String?
+
+  surahRel Surah  @relation(fields: [surah], references: [number], onDelete: Cascade)
+  translations VerseTranslation[]
+
+  @@id([surah, ayah])
+  @@index([surah, ayah])
+  @@map("verse")
+}
+
+model Translation {
+  id          String @id
+  name        String
+  language    String
+  translator  String?
+  source      String?
+  lastUpdate  DateTime?
+  verseCount  Int?
+
+  verses VerseTranslation[]
+
+  @@map("translation")
+}
+
+model VerseTranslation {
+  surah         Int
+  ayah          Int
+  translationId String
+  text          String
+
+  verse       Verse       @relation(fields: [surah, ayah], references: [surah, ayah], onDelete: Cascade)
+  translation Translation @relation(fields: [translationId], references: [id], onDelete: Cascade)
+
+  @@id([surah, ayah, translationId])
+  @@index([translationId])
+  @@index([surah, ayah])
+  @@map("verse_translation")
+}
+
+model User {
+  id        String   @id @default(cuid())
+  email     String?  @unique
+  createdAt DateTime @default(now())
+
+  prefs    UserPrefs?
+  notes    Note[]
+  bookmarks Bookmark[]
+  progress ReadingProgress[]
+
+  @@map("user")
+}
+
+model UserPrefs {
+  userId              String  @id
+  defaultTranslations String[] @db.Text
+  theme               String? // 'light' | 'dark'
+  fontSize            String? // 'sm' | 'md' | 'lg'
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@map("user_prefs")
+}
+
+model Note {
+  id        String   @id @default(cuid())
+  userId    String
+  surah     Int
+  ayah      Int
+  content   String
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([surah, ayah])
+  @@map("note")
+}
+
+model Bookmark {
+  id        String   @id @default(cuid())
+  userId    String
+  surah     Int
+  ayah      Int
+  createdAt DateTime @default(now())
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId])
+  @@index([surah, ayah])
+  @@map("bookmark")
+}
+
+model ReadingProgress {
+  id        String   @id @default(cuid())
+  userId    String
+  surah     Int
+  ayah      Int
+  updatedAt DateTime @updatedAt
+
+  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@unique([userId, surah])
+  @@index([userId])
+  @@map("reading_progress")
+}
+
+

@@ -18,6 +18,7 @@ Last updated: 2025-08-21
   - scripts/out/verse_translations.jsonl
   - scripts/out/translations/*.jsonl (per-translation)
 - Docker compose for Postgres + pgAdmin prepared (not yet used)
+ - Prisma introduced for DB-backed mode (schema defined); seed script added; API can run in DB mode via USE_DATABASE=true
 
 ## Next phases (MVP path)
 1) Web UI/UX Reader MVP (in progress)
@@ -37,9 +38,11 @@ Last updated: 2025-08-21
    - GET /surahs, GET /translations, GET /verses?surah=…&from=…&to=…&translation_ids=… served from scripts/out
    - Simple CORS for local dev; basic validation & error handling
 
-3) Database schema + seed (Postgres + Prisma)
-   - Define schema for surah, verse, translation, verse_translation, user, user_prefs, note, bookmark, collection, reading_progress
-   - Seed from scripts/out files and replace file-backed API with DB-backed queries
+3) Database schema + seed (Postgres + Prisma) — in progress
+   - Schema defined for surah, verse, translation, verse_translation, user, user_prefs, note, bookmark, reading_progress
+   - Seed script implemented to load from scripts/out
+   - API supports DB-backed responses behind env flag (USE_DATABASE=true)
+   - Remaining: run migrations and seed on local Postgres
 
 4) Auth + user prefs
    - NextAuth for sessions; persist default translations and UI prefs server-side
@@ -77,6 +80,23 @@ Last updated: 2025-08-21
 - UX quality bar
   - Skeletons for verse list; responsive layout; correct RTL rendering; accessible focus styles
 - Explicitly out of scope for this phase: DB, Auth, Notes, Search
+
+## Acceptance criteria — Database schema + seed
+- Migrations applied to local Postgres
+- Seed completes from scripts/out
+- API endpoints (/surahs, /translations, /verses) serve identical payloads in DB mode vs file-backed mode
+- Toggleable via USE_DATABASE=true and DATABASE_URL env vars
+
+## How to run DB locally (dev)
+- Start Docker Desktop, then:
+  - docker compose up -d db
+- In apps/api/.env set:
+  - DATABASE_URL=postgresql://oqr:oqr@localhost:5432/oqr?schema=public
+  - USE_DATABASE=true
+- Generate client + migrate + seed (from apps/api):
+  - pnpm prisma generate
+  - pnpm prisma migrate dev --name init
+  - pnpm db:seed
 
 ## Notes
 - Keep displayed scripture verbatim per Tanzil; derive-only for search later
