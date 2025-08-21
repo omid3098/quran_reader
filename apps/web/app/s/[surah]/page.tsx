@@ -45,8 +45,6 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
   const [translations, setTranslations] = useState<Translation[]>([])
   const [verses, setVerses] = useState<Verse[] | null>(null)
   const [error, setError] = useState<string | null>(null)
-  const [isTranslationsOpen, setTranslationsOpen] = useState(false)
-  const translationsRef = useRef<HTMLDivElement>(null)
   const [surahs, setSurahs] = useState<SurahMeta[]>([])
   const [isSurahOpen, setSurahOpen] = useState(false)
   const [surahQuery, setSurahQuery] = useState('')
@@ -54,6 +52,7 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
   const [activeAyah, setActiveAyah] = useState<number | null>(null)
   const [renderUpto, setRenderUpto] = useState<number>(0)
   const RENDER_STEP = 50
+  const [isSidebarOpen, setSidebarOpen] = useState(false)
 
   // Audio state
   const reciterOptions = useMemo(
@@ -118,7 +117,6 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
   useEffect(() => {
     const onDocClick = (e: MouseEvent) => {
       const target = e.target as Node
-      if (translationsRef.current && !translationsRef.current.contains(target)) setTranslationsOpen(false)
       if (surahDropdownRef.current && !surahDropdownRef.current.contains(target)) setSurahOpen(false)
     }
     document.addEventListener('mousedown', onDocClick)
@@ -234,7 +232,7 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
       const target = document.activeElement as HTMLElement | null
       const tag = target?.tagName?.toLowerCase()
       if (tag === 'input' || tag === 'select' || tag === 'textarea' || target?.isContentEditable) return
-      if (isSurahOpen || isTranslationsOpen) return
+      if (isSurahOpen || isSidebarOpen) return
       if (!verses || !verses.length) return
       const first = verses[0]?.ayah || 1
       const last = verses[verses.length - 1]?.ayah || first
@@ -254,7 +252,7 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
     }
     window.addEventListener('keydown', handler)
     return () => window.removeEventListener('keydown', handler)
-  }, [verses, isSurahOpen, isTranslationsOpen])
+  }, [verses, isSurahOpen, isSidebarOpen])
 
   const arabicSizeVar = font === 'sm' ? '20px' : font === 'lg' ? '28px' : '24px'
   const selectedTranslations = translations.filter((t) => enabledTranslations.includes(t.id))
@@ -379,11 +377,32 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
     playAyah(current)
   }
 
+  function goPrevAyah() {
+    if (!verses || !verses.length) return
+    const first = verses[0]?.ayah || 1
+    setActiveAyah((prev) => {
+      const next = Math.max(first, (prev || first) - 1)
+      if (playingAyah != null) setTimeout(() => playAyah(next), 0)
+      return next
+    })
+  }
+
+  function goNextAyah() {
+    if (!verses || !verses.length) return
+    const first = verses[0]?.ayah || 1
+    const last = verses[verses.length - 1]?.ayah || first
+    setActiveAyah((prev) => {
+      const curr = prev || first
+      const next = Math.min(last, curr + 1)
+      if (playingAyah != null) setTimeout(() => playAyah(next), 0)
+      return next
+    })
+  }
+
   return (
     <main className="container">
       <header className="header" role="banner">
         <div className="header-inner">
-          <div className="brand">OQR — Surah {surah}</div>
           <nav className="toolbar" aria-label="Reader controls">
             <div ref={surahDropdownRef} style={{ position: 'relative' }}>
               <button
@@ -394,10 +413,20 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
                 onClick={() => setSurahOpen((o) => !o)}
                 aria-label="Select surah"
               >
-                سورة {surahs.find((s) => s.number === surah)?.name_ar || surah}
+                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                  <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                    <path d="M4 19.5V5a2 2 0 0 1 2-2h10.5" />
+                    <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
+                    <path d="M20 22V4a2 2 0 0 0-2-2H6" />
+                  </svg>
+                  <span dir="rtl" lang="ar">سورة {surahs.find((s) => s.number === surah)?.name_ar || surah}</span>
+                  <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ marginInlineStart: 4 }}>
+                    <polyline points="6 9 12 15 18 9" />
+                  </svg>
+                </span>
               </button>
               {isSurahOpen ? (
-                <div className="card" style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: 360, maxHeight: 360, overflow: 'auto', padding: 8, zIndex: 20 }}>
+                <div className="card" style={{ position: 'absolute', left: 0, top: 'calc(100% + 8px)', width: 360, maxHeight: 360, overflow: 'auto', padding: 8, zIndex: 20 }}>
                   <div style={{ display: 'grid', gap: 8 }}>
                     <input
                       className="input"
@@ -447,61 +476,16 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
                 </div>
               ) : null}
             </div>
-            <div ref={translationsRef} style={{ position: 'relative' }}>
-              <button type="button" className="button" onClick={() => setTranslationsOpen((o) => !o)}>
-                Translations{enabledTranslations.length ? ` (${enabledTranslations.length})` : ''}
-              </button>
-              {isTranslationsOpen ? (
-                <div className="card" style={{ position: 'absolute', right: 0, top: 'calc(100% + 8px)', width: 360, maxHeight: 320, overflow: 'auto', padding: 8, zIndex: 20 }}>
-                  <div style={{ display: 'grid', gap: 8 }}>
-                    {translations.map((t) => {
-                      const checked = enabledTranslations.includes(t.id)
-                      return (
-                        <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                          <input
-                            type="checkbox"
-                            checked={checked}
-                            onChange={(e) => {
-                              setEnabledTranslations((prev) => {
-                                const set = new Set(prev)
-                                if (e.target.checked) set.add(t.id)
-                                else set.delete(t.id)
-                                return Array.from(set)
-                              })
-                            }}
-                          />
-                          <span>{t.language}: {t.name}</span>
-                        </label>
-                      )
-                    })}
-                    {translations.length === 0 ? (
-                      <div className="muted">No translations available</div>
-                    ) : null}
-                  </div>
-                </div>
-              ) : null}
-            </div>
-            <select className="select" value={font} onChange={(e) => setFont(e.target.value as any)}>
-              <option value="sm">A-</option>
-              <option value="md">A</option>
-              <option value="lg">A+</option>
-            </select>
-            <select className="select" value={theme} onChange={(e) => setTheme(e.target.value as any)}>
-              <option value="dark">Dark</option>
-              <option value="light">Light</option>
-            </select>
-
-            <select className="select" value={reciter} onChange={(e) => setReciter(e.target.value)} aria-label="Select reciter">
-              {reciterOptions.map((r) => (
-                <option key={r.id} value={r.id}>{r.name}</option>
-              ))}
-            </select>
-            <label className="button" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-              <input type="checkbox" checked={autoplay} onChange={(e) => setAutoplay(e.target.checked)} />
-              Autoplay
-            </label>
-            <button type="button" className="button" onClick={toggleToolbarPlay} aria-label={playingAyah === activeAyah ? 'Pause' : 'Play current ayah'}>
-              {playingAyah === activeAyah && playingAyah != null ? 'Pause' : 'Play'}
+            <button
+              type="button"
+              className="icon-btn"
+              onClick={() => setSidebarOpen(true)}
+              aria-label="Open settings"
+              title="Settings"
+            >
+              <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M3 6h18M3 12h18M3 18h18" />
+              </svg>
             </button>
           </nav>
         </div>
@@ -567,7 +551,149 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
         )}
       </section>
 
-      <footer className="footer">Showing all verses. Toggle translations from the toolbar.</footer>
+      {/* Floating audio controls */}
+      <div className="floating-audio" role="region" aria-label="Audio controls">
+        <button type="button" className="icon-btn" aria-label="Previous ayah" title="Previous" onClick={goPrevAyah}>
+          <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M15 18l-6-6 6-6" />
+          </svg>
+        </button>
+        <button
+          type="button"
+          className="icon-btn"
+          aria-label={playingAyah === activeAyah && playingAyah != null ? 'Pause' : 'Play'}
+          title={playingAyah === activeAyah && playingAyah != null ? 'Pause' : 'Play'}
+          onClick={toggleToolbarPlay}
+        >
+          {playingAyah === activeAyah && playingAyah != null ? (
+            <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <rect x="6" y="4" width="4" height="16" />
+              <rect x="14" y="4" width="4" height="16" />
+            </svg>
+          ) : (
+            <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <polygon points="6,4 20,12 6,20 6,4" />
+            </svg>
+          )}
+        </button>
+        <button type="button" className="icon-btn" aria-label="Next ayah" title="Next" onClick={goNextAyah}>
+          <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M9 6l6 6-6 6" />
+          </svg>
+        </button>
+        <span className="sep" aria-hidden="true" />
+        <button
+          type="button"
+          className={`icon-btn${autoplay ? ' active' : ''}`}
+          aria-pressed={autoplay}
+          aria-label={autoplay ? 'Disable autoplay' : 'Enable autoplay'}
+          title="Autoplay"
+          onClick={() => setAutoplay(!autoplay)}
+        >
+          <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+            <path d="M3 12a9 9 0 1 0 3-6.7M3 5v6h6" />
+          </svg>
+        </button>
+      </div>
+
+      {/* Sidebar */}
+      {isSidebarOpen ? <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} aria-hidden="true" /> : null}
+      <aside className={`sidebar${isSidebarOpen ? ' open' : ''}`} aria-hidden={!isSidebarOpen} aria-label="Settings sidebar">
+        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+          <div className="muted">Settings</div>
+          <button type="button" className="icon-btn" aria-label="Close sidebar" onClick={() => setSidebarOpen(false)}>
+            <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+              <path d="M6 18L18 6M6 6l12 12" />
+            </svg>
+          </button>
+        </div>
+
+        <div className="section">
+          <div className="muted" style={{ marginBottom: 8 }}>Theme</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button
+              type="button"
+              className={`icon-btn${theme === 'light' ? ' active' : ''}`}
+              aria-pressed={theme === 'light'}
+              aria-label="Light theme"
+              onClick={() => setTheme('light')}
+              title="Light"
+            >
+              <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <circle cx="12" cy="12" r="4" />
+                <path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l-1.5-1.5M20.5 20.5L19 19M5 19l-1.5 1.5M20.5 3.5L19 5" />
+              </svg>
+            </button>
+            <button
+              type="button"
+              className={`icon-btn${theme === 'dark' ? ' active' : ''}`}
+              aria-pressed={theme === 'dark'}
+              aria-label="Dark theme"
+              onClick={() => setTheme('dark')}
+              title="Dark"
+            >
+              <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+              </svg>
+            </button>
+          </div>
+        </div>
+
+        <div className="section">
+          <div className="muted" style={{ marginBottom: 8 }}>Font size</div>
+          <div style={{ display: 'flex', gap: 8 }}>
+            <button type="button" className={`icon-btn${font === 'sm' ? ' active' : ''}`} aria-pressed={font === 'sm'} aria-label="Small font" onClick={() => setFont('sm')} title="Small">
+              <span style={{ fontSize: 12, fontWeight: 700 }}>A</span>
+            </button>
+            <button type="button" className={`icon-btn${font === 'md' ? ' active' : ''}`} aria-pressed={font === 'md'} aria-label="Medium font" onClick={() => setFont('md')} title="Medium">
+              <span style={{ fontSize: 14, fontWeight: 700 }}>A</span>
+            </button>
+            <button type="button" className={`icon-btn${font === 'lg' ? ' active' : ''}`} aria-pressed={font === 'lg'} aria-label="Large font" onClick={() => setFont('lg')} title="Large">
+              <span style={{ fontSize: 16, fontWeight: 700 }}>A</span>
+            </button>
+          </div>
+        </div>
+
+        <div className="section">
+          <div className="muted" style={{ marginBottom: 8 }}>Translations</div>
+          <div style={{ display: 'grid', gap: 8, maxHeight: 260, overflow: 'auto' }}>
+            {translations.map((t) => {
+              const checked = enabledTranslations.includes(t.id)
+              return (
+                <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={checked}
+                    onChange={(e) => {
+                      setEnabledTranslations((prev) => {
+                        const set = new Set(prev)
+                        if (e.target.checked) set.add(t.id)
+                        else set.delete(t.id)
+                        return Array.from(set)
+                      })
+                    }}
+                  />
+                  <span>{t.language}: {t.name}</span>
+                </label>
+              )
+            })}
+            {translations.length === 0 ? (
+              <div className="muted">No translations available</div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="section">
+          <div className="muted" style={{ marginBottom: 8 }}>Reciter</div>
+          <select className="select" value={reciter} onChange={(e) => setReciter(e.target.value)} aria-label="Select reciter">
+            {reciterOptions.map((r) => (
+              <option key={r.id} value={r.id}>{r.name}</option>
+            ))}
+          </select>
+        </div>
+      </aside>
+
+      <footer className="footer">Showing all verses. Use the sidebar for settings and translations.</footer>
     </main>
   )
 }
