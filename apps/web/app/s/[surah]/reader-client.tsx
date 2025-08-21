@@ -17,6 +17,7 @@ type Verse = {
 type SurahMeta = { number: number; name_ar: string }
 
 const STATIC_BASE = (process.env.NEXT_PUBLIC_BASE_PATH || '') + '/quran'
+const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || ''
 
 function isRtlLanguage(lang: string | undefined): boolean {
     const rtlLangs = new Set(['ar', 'fa', 'ur', 'he', 'ps', 'sd', 'ug', 'ku', 'yi'])
@@ -653,7 +654,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         const enc = encodeSharePayload(compact)
         if (!enc) return { url: null, reason: 'Failed to encode' }
         const base = (typeof window !== 'undefined') ? window.location.origin : ''
-        const href = `${base}/s/${surah}?share=${enc}`
+        const href = `${base}${BASE_PATH}/s/${surah}?share=${enc}`
         if (href.length > 1800) {
             return { url: null, reason: 'Too large for a link; use file export' }
         }
@@ -673,7 +674,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         if (t) params.set('t', t)
         params.set('v', String(ayah))
         params.set('share', enc)
-        return `${base}/s/${surah}?${params.toString()}`
+        return `${base}${BASE_PATH}/s/${surah}?${params.toString()}`
     }
 
     function qrImageUrl(link: string, size = 220): string {
