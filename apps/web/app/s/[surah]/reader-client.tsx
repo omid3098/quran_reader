@@ -1140,161 +1140,165 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                     </div>
 
                     <div className="section">
-                        <div style={{ display: 'grid', gap: 8 }}>
 
-                            {/* Accordion for saved content */}
-                            <div className="card" role="region" aria-label="Saved content">
-                                <button
-                                    type="button"
-                                    className="button"
-                                    aria-expanded={isNotesOpen}
-                                    aria-controls="accordion-notes"
-                                    onClick={() => setIsNotesOpen((o) => !o)}
-                                    style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                                >
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                                        <FileText className="icon" strokeWidth={2} aria-hidden />
-                                        <span>Notes</span>
-                                    </span>
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                                        <span className="muted" suppressHydrationWarning>({hydrated ? Object.keys(notes).length : 0})</span>
-                                        <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isNotesOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
-                                    </span>
-                                </button>
-                                {isNotesOpen ? (
-                                    <div id="accordion-notes" style={{ marginTop: 8, display: 'grid', gap: 6, gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', maxHeight: 220, overflow: 'auto' }}>
-                                        {(!hydrated || Object.keys(notes).length === 0) ? (
-                                            <div className="muted">No notes yet</div>
-                                        ) : (
-                                            Object.keys(notes)
-                                                .sort((a, b) => a.localeCompare(b))
-                                                .map((k) => {
-                                                    const [s, a] = k.split(':').map((x) => Number(x))
-                                                    const here = s === surah
-                                                    return (
-                                                        <button
-                                                            key={`note-${k}`}
-                                                            className="button"
-                                                            style={{ textAlign: 'left' }}
-                                                            onClick={() => {
-                                                                const params = new URLSearchParams()
-                                                                const t = enabledTranslations.join(',')
-                                                                if (t) params.set('t', t)
-                                                                params.set('v', String(a))
-                                                                const href = (`/s/${s}?${params.toString()}`) as Route
-                                                                setSidebarOpen(false)
-                                                                if (here) { setActiveAyah(a); setOpenNoteAyah(a) }
-                                                                else { router.push(href, { scroll: false }); setTimeout(() => setOpenNoteAyah(a), 50) }
-                                                            }}
-                                                        >
-                                                            <span>{s}:{a}</span>
-                                                        </button>
-                                                    )
-                                                })
-                                        )}
-                                    </div>
-                                ) : null}
+                        {/* Notes */}
+                        <div role="region" aria-label="Notes">
+                            <button
+                                type="button"
+                                className="button"
+                                aria-expanded={isNotesOpen}
+                                aria-controls="accordion-notes"
+                                onClick={() => setIsNotesOpen((o) => !o)}
+                                style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                            >
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                                    <FileText className="icon" strokeWidth={2} aria-hidden />
+                                    <span>Notes</span>
+                                </span>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                                    <span className="muted" suppressHydrationWarning>({hydrated ? Object.keys(notes).length : 0})</span>
+                                    <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isNotesOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
+                                </span>
+                            </button>
+                            {isNotesOpen ? (
+                                <div id="accordion-notes" style={{ marginTop: 8, display: 'grid', gap: 6, gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', maxHeight: 220, overflow: 'auto' }}>
+                                    {(!hydrated || Object.keys(notes).length === 0) ? (
+                                        <div className="muted">No notes yet</div>
+                                    ) : (
+                                        Object.keys(notes)
+                                            .sort((a, b) => a.localeCompare(b))
+                                            .map((k) => {
+                                                const [s, a] = k.split(':').map((x) => Number(x))
+                                                const here = s === surah
+                                                return (
+                                                    <button
+                                                        key={`note-${k}`}
+                                                        className="button"
+                                                        style={{ textAlign: 'left' }}
+                                                        onClick={() => {
+                                                            const params = new URLSearchParams()
+                                                            const t = enabledTranslations.join(',')
+                                                            if (t) params.set('t', t)
+                                                            params.set('v', String(a))
+                                                            const href = (`/s/${s}?${params.toString()}`) as Route
+                                                            setSidebarOpen(false)
+                                                            if (here) { setActiveAyah(a); setOpenNoteAyah(a) }
+                                                            else { router.push(href, { scroll: false }); setTimeout(() => setOpenNoteAyah(a), 50) }
+                                                        }}
+                                                    >
+                                                        <span>{s}:{a}</span>
+                                                    </button>
+                                                )
+                                            })
+                                    )}
+                                </div>
+                            ) : null}
+                        </div>
 
-                                <div style={{ height: 8 }} />
+                    </div>
 
-                                <button
-                                    type="button"
-                                    className="button"
-                                    aria-expanded={isBookmarksOpen}
-                                    aria-controls="accordion-bookmarks"
-                                    onClick={() => setIsBookmarksOpen((o) => !o)}
-                                    style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                                >
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                                        <Bookmark className="icon" strokeWidth={2} aria-hidden />
-                                        <span>Bookmarks</span>
-                                    </span>
-                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                                        <span className="muted" suppressHydrationWarning>({hydrated ? Object.keys(bookmarks).length : 0})</span>
-                                        <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isBookmarksOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
-                                    </span>
-                                </button>
-                                {isBookmarksOpen ? (
-                                    <div id="accordion-bookmarks" style={{ marginTop: 8, display: 'grid', gap: 6, gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', maxHeight: 220, overflow: 'auto' }}>
-                                        {(!hydrated || Object.keys(bookmarks).length === 0) ? (
-                                            <div className="muted">No bookmarks yet</div>
-                                        ) : (
-                                            Object.keys(bookmarks)
-                                                .sort((a, b) => a.localeCompare(b))
-                                                .map((k) => {
-                                                    const [s, a] = k.split(':').map((x) => Number(x))
-                                                    const here = s === surah
-                                                    return (
-                                                        <button
-                                                            key={k}
-                                                            className="button"
-                                                            style={{ textAlign: 'left' }}
-                                                            onClick={() => {
-                                                                const params = new URLSearchParams()
-                                                                const t = enabledTranslations.join(',')
-                                                                if (t) params.set('t', t)
-                                                                params.set('v', String(a))
-                                                                const href = (`/s/${s}?${params.toString()}`) as Route
-                                                                setSidebarOpen(false)
-                                                                if (here) setActiveAyah(a)
-                                                                else router.push(href, { scroll: false })
-                                                            }}
-                                                        >
-                                                            <span>{s}:{a}</span>
-                                                        </button>
-                                                    )
-                                                })
-                                        )}
-                                    </div>
-                                ) : null}
+                    <div className="section">
+                        {/* Bookmarks */}
+                        <div role="region" aria-label="Bookmarks">
+                            <button
+                                type="button"
+                                className="button"
+                                aria-expanded={isBookmarksOpen}
+                                aria-controls="accordion-bookmarks"
+                                onClick={() => setIsBookmarksOpen((o) => !o)}
+                                style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                            >
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                                    <Bookmark className="icon" strokeWidth={2} aria-hidden />
+                                    <span>Bookmarks</span>
+                                </span>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                                    <span className="muted" suppressHydrationWarning>({hydrated ? Object.keys(bookmarks).length : 0})</span>
+                                    <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isBookmarksOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
+                                </span>
+                            </button>
+                            {isBookmarksOpen ? (
+                                <div id="accordion-bookmarks" style={{ marginTop: 8, display: 'grid', gap: 6, gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', maxHeight: 220, overflow: 'auto' }}>
+                                    {(!hydrated || Object.keys(bookmarks).length === 0) ? (
+                                        <div className="muted">No bookmarks yet</div>
+                                    ) : (
+                                        Object.keys(bookmarks)
+                                            .sort((a, b) => a.localeCompare(b))
+                                            .map((k) => {
+                                                const [s, a] = k.split(':').map((x) => Number(x))
+                                                const here = s === surah
+                                                return (
+                                                    <button
+                                                        key={k}
+                                                        className="button"
+                                                        style={{ textAlign: 'left' }}
+                                                        onClick={() => {
+                                                            const params = new URLSearchParams()
+                                                            const t = enabledTranslations.join(',')
+                                                            if (t) params.set('t', t)
+                                                            params.set('v', String(a))
+                                                            const href = (`/s/${s}?${params.toString()}`) as Route
+                                                            setSidebarOpen(false)
+                                                            if (here) setActiveAyah(a)
+                                                            else router.push(href, { scroll: false })
+                                                        }}
+                                                    >
+                                                        <span>{s}:{a}</span>
+                                                    </button>
+                                                )
+                                            })
+                                    )}
+                                </div>
+                            ) : null}
+                        </div>
+                    </div>
+
+                    <div className="section">
+                        <div className="card" style={{ display: 'grid', gap: 8 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <File className="icon" strokeWidth={2} aria-hidden />
+                                <span style={{ fontWeight: 600 }}>Export & Import</span>
                             </div>
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                                <button type="button" className="icon-btn" title="Download JSON" aria-label="Download JSON" onClick={downloadExport}>
+                                    <Download className="icon" strokeWidth={2} aria-hidden />
+                                </button>
+                                <button type="button" className="icon-btn" title="Copy JSON" aria-label="Copy JSON" onClick={copyExportToClipboard}>
+                                    <Copy className="icon" strokeWidth={2} aria-hidden />
+                                </button>
+                                <button type="button" className="icon-btn" title="Copy Share Link" aria-label="Copy Share Link" onClick={() => {
+                                    const res = shareAllAsLink()
+                                    if (!res.url) { alert(res.reason || 'Could not build link'); return }
+                                    try { void navigator.clipboard.writeText(res.url) } catch { }
+                                }}>
+                                    <Share2 className="icon" strokeWidth={2} aria-hidden />
+                                </button>
+                                <button type="button" className="icon-btn" title="Show QR" aria-label="Show QR" onClick={() => {
+                                    const res = shareAllAsLink()
+                                    if (!res.url) { alert(res.reason || 'Could not build link'); return }
+                                    const img = qrImageUrl(res.url)
+                                    const w = window.open('', 'oqr-qr', 'width=260,height=300')
+                                    if (w) w.document.body.innerHTML = `<div style=\"display:flex;align-items:center;justify-content:center;height:100%;padding:12px;background:#fff\"><img alt=\"QR\" src=\"${img}\"/></div>`
+                                }}>
+                                    <QrCode className="icon" strokeWidth={2} aria-hidden />
+                                </button>
 
-                            <div className="card" style={{ display: 'grid', gap: 8 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <File className="icon" strokeWidth={2} aria-hidden />
-                                    <span style={{ fontWeight: 600 }}>Export & Import</span>
-                                </div>
-                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                                    <button type="button" className="icon-btn" title="Download JSON" aria-label="Download JSON" onClick={downloadExport}>
-                                        <Download className="icon" strokeWidth={2} aria-hidden />
-                                    </button>
-                                    <button type="button" className="icon-btn" title="Copy JSON" aria-label="Copy JSON" onClick={copyExportToClipboard}>
-                                        <Copy className="icon" strokeWidth={2} aria-hidden />
-                                    </button>
-                                    <button type="button" className="icon-btn" title="Copy Share Link" aria-label="Copy Share Link" onClick={() => {
-                                        const res = shareAllAsLink()
-                                        if (!res.url) { alert(res.reason || 'Could not build link'); return }
-                                        try { void navigator.clipboard.writeText(res.url) } catch { }
-                                    }}>
-                                        <Share2 className="icon" strokeWidth={2} aria-hidden />
-                                    </button>
-                                    <button type="button" className="icon-btn" title="Show QR" aria-label="Show QR" onClick={() => {
-                                        const res = shareAllAsLink()
-                                        if (!res.url) { alert(res.reason || 'Could not build link'); return }
-                                        const img = qrImageUrl(res.url)
-                                        const w = window.open('', 'oqr-qr', 'width=260,height=300')
-                                        if (w) w.document.body.innerHTML = `<div style=\"display:flex;align-items:center;justify-content:center;height:100%;padding:12px;background:#fff\"><img alt=\"QR\" src=\"${img}\"/></div>`
-                                    }}>
-                                        <QrCode className="icon" strokeWidth={2} aria-hidden />
-                                    </button>
-
-                                    <input id="oqr-import-json" type="file" accept="application/json" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleImportFile(f) }} style={{ display: 'none' }} />
-                                    <button type="button" className="icon-btn" title="Import from file" aria-label="Import from file" onClick={() => {
-                                        const el = document.getElementById('oqr-import-json') as HTMLInputElement | null
-                                        el?.click()
-                                    }}>
-                                        <Upload className="icon" strokeWidth={2} aria-hidden />
-                                    </button>
-                                    <button type="button" className="icon-btn" title="Paste JSON" aria-label="Paste JSON" onClick={async () => {
-                                        try {
-                                            const txt = await navigator.clipboard.readText()
-                                            const obj = JSON.parse(txt)
-                                            mergeImported(obj)
-                                        } catch { }
-                                    }}>
-                                        <Clipboard className="icon" strokeWidth={2} aria-hidden />
-                                    </button>
-                                </div>
+                                <input id="oqr-import-json" type="file" accept="application/json" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleImportFile(f) }} style={{ display: 'none' }} />
+                                <button type="button" className="icon-btn" title="Import from file" aria-label="Import from file" onClick={() => {
+                                    const el = document.getElementById('oqr-import-json') as HTMLInputElement | null
+                                    el?.click()
+                                }}>
+                                    <Upload className="icon" strokeWidth={2} aria-hidden />
+                                </button>
+                                <button type="button" className="icon-btn" title="Paste JSON" aria-label="Paste JSON" onClick={async () => {
+                                    try {
+                                        const txt = await navigator.clipboard.readText()
+                                        const obj = JSON.parse(txt)
+                                        mergeImported(obj)
+                                    } catch { }
+                                }}>
+                                    <Clipboard className="icon" strokeWidth={2} aria-hidden />
+                                </button>
                             </div>
                         </div>
                     </div>
