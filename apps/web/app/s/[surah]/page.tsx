@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import type { Route } from 'next'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -55,9 +55,50 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
   const [renderUpto, setRenderUpto] = useState<number>(0)
   const RENDER_STEP = 50
 
+  // Audio state
+  const reciterOptions = useMemo(
+    () => [
+      { id: 'Abu_Bakr_Ash-Shaatree_128kbps', name: 'Abu Bakr Ash-Shaatree (128kbps)' },
+      { id: 'Alafasy_128kbps', name: 'Mishary Rashid Alafasy (128kbps)' },
+      { id: 'Ghamadi_64kbps', name: 'Saad Al-Ghamdi (64kbps)' },
+      { id: 'Abdul_Basit_Murattal_128kbps', name: 'Abdul Basit (Murattal, 128kbps)' },
+      { id: 'Husary_128kbps', name: 'Al-Husary (Tartil, 128kbps)' },
+      { id: 'Minshawy_Murattal_128kbps', name: 'Minshawy (Murattal, 128kbps)' },
+    ],
+    []
+  )
+  const [reciter, setReciter] = useLocalStorage<string>('oqr:reciter', 'Alafasy_128kbps')
+  const [autoplay, setAutoplay] = useLocalStorage<boolean>('oqr:autoplay', true)
+  const [playingAyah, setPlayingAyah] = useState<number | null>(null)
+  const audioRef = useRef<HTMLAudioElement | null>(null) as MutableRefObject<HTMLAudioElement | null>
+
   useEffect(() => {
     document.documentElement.dataset.theme = theme
   }, [theme])
+
+  // Create a single audio element for this page
+  useEffect(() => {
+    if (!audioRef.current) {
+      const audio = new Audio()
+      audio.preload = 'none'
+      audioRef.current = audio
+    }
+  }, [])
+
+  // Media Session metadata
+  useEffect(() => {
+    // @ts-ignore
+    if ('mediaSession' in navigator) {
+      // @ts-ignore
+      navigator.mediaSession.setActionHandler?.('previoustrack', () => {
+        setActiveAyah((prev) => Math.max(1, (prev || 1) - 1))
+      })
+      // @ts-ignore
+      navigator.mediaSession.setActionHandler?.('nexttrack', () => {
+        setActiveAyah((prev) => (prev || 1) + 1)
+      })
+    }
+  }, [])
 
   useEffect(() => {
     fetch(`${API}/translations`)
@@ -218,6 +259,126 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
   const arabicSizeVar = font === 'sm' ? '20px' : font === 'lg' ? '28px' : '24px'
   const selectedTranslations = translations.filter((t) => enabledTranslations.includes(t.id))
 
+  function pad3(n: number) {
+    return String(n).padStart(3, '0')
+  }
+
+  // Ayah counts by surah (1..114); index 0 unused
+  const AYAH_COUNT = useMemo(() => [
+    0,
+    7, 286, 200, 176, 120, 165, 206, 75, 129, 109,
+    123, 111, 43, 52, 99, 128, 111, 110, 98, 135,
+    112, 78, 118, 64, 77, 227, 93, 88, 69, 60,
+    34, 30, 73, 54, 45, 83, 182, 88, 75, 85,
+    54, 53, 89, 59, 37, 35, 38, 29, 18, 45,
+    60, 49, 62, 55, 78, 96, 29, 22, 24, 13,
+    14, 11, 11, 18, 12, 12, 30, 52, 52, 44,
+    28, 28, 20, 56, 40, 31, 50, 40, 46, 42,
+    29, 19, 36, 25, 22, 17, 19, 26, 30, 20,
+    15, 21, 11, 8, 8, 19, 5, 8, 8, 11,
+    11, 8, 3, 9, 5, 4, 7, 3, 6, 3,
+    5, 4, 5, 6
+  ], [])
+
+  // Prefix sum to compute global verse index
+  const AYAH_OFFSET = useMemo(() => {
+    const arr = new Array(115).fill(0)
+    for (let s = 2; s <= 114; s++) {
+      arr[s] = arr[s - 1] + AYAH_COUNT[s - 1]
+    }
+    return arr as number[]
+  }, [AYAH_COUNT])
+
+  function getGlobalAyahIndex(surahNum: number, ayahNum: number) {
+    const offset = AYAH_OFFSET[surahNum] || 0
+    return offset + ayahNum
+  }
+
+  function buildAudioUrl(surahNum: number, ayahNum: number) {
+    if (reciter === 'Alafasy_128kbps') {
+      const global = getGlobalAyahIndex(surahNum, ayahNum)
+      return `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${global}.mp3`
+    }
+    const s = pad3(surahNum)
+    const a = pad3(ayahNum)
+    return `https://everyayah.com/data/${reciter}/${s}${a}.mp3`
+  }
+
+  function playAyah(ayah: number) {
+    if (!verses || !verses.length) return
+    const audio = audioRef.current || new Audio()
+    audioRef.current = audio
+    audio.pause()
+    audio.src = buildAudioUrl(surah, ayah)
+    try { audio.load() } catch { }
+    audio.currentTime = 0
+    audio.play().catch(() => { })
+    setPlayingAyah(ayah)
+
+    // @ts-ignore
+    if ('mediaSession' in navigator) {
+      // @ts-ignore
+      navigator.mediaSession.metadata = new window.MediaMetadata({
+        title: `Surah ${surah} — Ayah ${ayah}`,
+        artist: reciter.replace(/_/g, ' '),
+        album: 'OpenQuranReader (EveryAyah)'
+      })
+    }
+  }
+
+  function stopPlayback() {
+    const audio = audioRef.current
+    if (audio) {
+      audio.pause()
+    }
+    setPlayingAyah(null)
+  }
+
+  useEffect(() => {
+    const audio = audioRef.current || new Audio()
+    if (!audioRef.current) audioRef.current = audio
+    const onEnded = () => {
+      if (!autoplay) {
+        setPlayingAyah(null)
+        return
+      }
+      setActiveAyah((prev) => {
+        const first = verses?.[0]?.ayah || 1
+        const last = verses?.[verses.length - 1]?.ayah || first
+        const current = prev || first
+        if (current >= last) {
+          setPlayingAyah(null)
+          return current
+        }
+        const next = current + 1
+        setTimeout(() => playAyah(next), 0)
+        return next
+      })
+    }
+    const onError = () => {
+      if (autoplay) onEnded()
+      else setPlayingAyah(null)
+    }
+    audio.addEventListener('ended', onEnded)
+    audio.addEventListener('error', onError)
+    return () => {
+      audio.removeEventListener('ended', onEnded)
+      audio.removeEventListener('error', onError)
+    }
+  }, [autoplay, verses, reciter])
+
+  function toggleToolbarPlay() {
+    if (!verses || !verses.length) return
+    const first = verses[0]?.ayah || 1
+    const current = (activeAyah && activeAyah > 0) ? activeAyah : first
+    if (playingAyah === current) {
+      stopPlayback()
+      return
+    }
+    if (activeAyah !== current) setActiveAyah(current)
+    playAyah(current)
+  }
+
   return (
     <main className="container">
       <header className="header" role="banner">
@@ -329,6 +490,19 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
               <option value="dark">Dark</option>
               <option value="light">Light</option>
             </select>
+
+            <select className="select" value={reciter} onChange={(e) => setReciter(e.target.value)} aria-label="Select reciter">
+              {reciterOptions.map((r) => (
+                <option key={r.id} value={r.id}>{r.name}</option>
+              ))}
+            </select>
+            <label className="button" style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <input type="checkbox" checked={autoplay} onChange={(e) => setAutoplay(e.target.checked)} />
+              Autoplay
+            </label>
+            <button type="button" className="button" onClick={toggleToolbarPlay} aria-label={playingAyah === activeAyah ? 'Pause' : 'Play current ayah'}>
+              {playingAyah === activeAyah && playingAyah != null ? 'Pause' : 'Play'}
+            </button>
           </nav>
         </div>
       </header>
@@ -358,6 +532,9 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
                   }
                 }}
               >
+                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+                  <span className="muted">Ayah {v.ayah}</span>
+                </div>
                 {v.ayah === 1 && v.bismillah && !v.text_ar_simple.startsWith(v.bismillah) ? (
                   <div className="arabic" dir="rtl" lang="ar" style={{ opacity: 0.9 }}>
                     {v.bismillah}

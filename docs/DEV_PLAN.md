@@ -65,6 +65,25 @@ Last updated: 2025-08-21
 10) Legal/credits
    - Tanzil attribution and per-translation licenses
 
+11) Audio playback (tartil) — MVP
+   - Goal: Per-ayah audio playback of Arabic text in tartil style with auto-advance and basic controls (play/pause, reciter selection, autoplay toggle). No timing word-level sync in this phase.
+   - Sources (stream-only, no redistribution):
+     - EveryAyah per-ayah MP3s (e.g., Husary Tartil): `https://everyayah.com/data/Husary_128kbps/{SSS}{AAA}.mp3` where `{SSS}` and `{AAA}` are 3-digit zero-padded surah and ayah numbers (e.g., `001001.mp3`). See also Minshawy Murattal and Abdul Basit Murattal directories on EveryAyah.
+     - Alternative mirrors: QuranicAudio.com directories (usually per-surah), not used for per-ayah in this phase.
+   - UX additions:
+     - Play/pause button per ayah; highlight currently playing ayah
+     - Toolbar: Reciter select (default: Al-Husary Tartil 128kbps), Autoplay next ayah toggle
+     - Persist reciter and autoplay in localStorage
+     - Media Session metadata and next/previous actions (where supported)
+   - Non-goals:
+     - Offline downloads/caching, gapless playback across surahs, word-level highlighting, custom audio hosting
+   - Acceptance criteria:
+     - Clicking play on any ayah streams correct audio from EveryAyah and highlights the ayah
+     - Autoplay advances to the next ayah until the end of the surah; can be toggled off
+     - Changing reciter updates subsequent playback URLs
+     - Preferences persist and load on refresh; controls accessible via keyboard
+     - No changes to API; web uses direct remote audio URLs
+
 ## Acceptance criteria for current phase — Web UI/UX Reader MVP
 - Pages
   - Surah list page at /s lists 114 surahs with Arabic names (English names optional)
