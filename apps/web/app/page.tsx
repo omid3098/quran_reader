@@ -7,13 +7,22 @@ export default function HomePage() {
   const router = useRouter()
 
   useEffect(() => {
-    let target = 1
+    let targetSurah = 1
+    let targetAyah: number | null = null
     try {
-      const raw = localStorage.getItem('oqr:lastSurah')
-      const parsed = raw ? JSON.parse(raw) : null
-      if (typeof parsed === 'number' && parsed >= 1 && parsed <= 114) target = parsed
+      const posRaw = localStorage.getItem('oqr:lastPosition')
+      const pos = posRaw ? JSON.parse(posRaw) as { surah?: number; ayah?: number } : null
+      if (pos && typeof pos.surah === 'number' && pos.surah >= 1 && pos.surah <= 114) {
+        targetSurah = pos.surah
+        if (typeof pos.ayah === 'number' && pos.ayah > 0) targetAyah = pos.ayah
+      } else {
+        const raw = localStorage.getItem('oqr:lastSurah')
+        const parsed = raw ? JSON.parse(raw) : null
+        if (typeof parsed === 'number' && parsed >= 1 && parsed <= 114) targetSurah = parsed
+      }
     } catch { }
-    router.replace(`/s/${target}`)
+    const href = targetAyah ? `/s/${targetSurah}?v=${encodeURIComponent(String(targetAyah))}` : `/s/${targetSurah}`
+    router.replace(href)
   }, [router])
 
   return (

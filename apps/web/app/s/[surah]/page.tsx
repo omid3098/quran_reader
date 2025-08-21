@@ -50,6 +50,7 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
   const [isSurahOpen, setSurahOpen] = useState(false)
   const [surahQuery, setSurahQuery] = useState('')
   const surahDropdownRef = useRef<HTMLDivElement>(null)
+  const [activeAyah, setActiveAyah] = useState<number | null>(null)
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -91,25 +92,61 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
       .catch((e) => setError(String(e)))
   }, [qs])
 
+  // initialize active ayah from URL (v=) or stored last ayah for this surah
+  useEffect(() => {
+    let initial: number | null = null
+    const vParam = Number(sp.get('v'))
+    if (!Number.isNaN(vParam) && vParam > 0) initial = vParam
+    if (initial == null) {
+      try {
+        const raw = localStorage.getItem(`oqr:lastAyah:${surah}`)
+        const parsed = raw ? JSON.parse(raw) : null
+        if (typeof parsed === 'number' && parsed > 0) initial = parsed
+      } catch { }
+    }
+    if (initial == null) initial = 1
+    setActiveAyah(initial)
+  }, [surah, sp])
+
   // persist last read surah
   useEffect(() => {
     try { localStorage.setItem('oqr:lastSurah', JSON.stringify(surah)) } catch { }
   }, [surah])
 
-  // reflect URL
+  // reflect URL (include selected translations and active ayah if set)
   useEffect(() => {
     const t = enabledTranslations.join(',')
-    const href = `/s/${surah}${t ? `?t=${encodeURIComponent(t)}` : ''}` as Route
-    router.replace(href)
-  }, [router, surah, enabledTranslations])
+    const params = new URLSearchParams()
+    if (t) params.set('t', t)
+    if (activeAyah && activeAyah > 0) params.set('v', String(activeAyah))
+    const qs = params.toString()
+    const href = (`/s/${surah}${qs ? `?${qs}` : ''}`) as Route
+    router.replace(href, { scroll: false })
+  }, [router, surah, enabledTranslations, activeAyah])
 
   const listRef = useRef<HTMLDivElement>(null)
 
+  // when verses load or active ayah changes, ensure it is in range and scroll into view
   useEffect(() => {
     if (!verses || !verses.length) return
-    const el = document.getElementById(`ayah-${verses[0].ayah}`)
+    const first = verses[0]?.ayah
+    const last = verses[verses.length - 1]?.ayah
+    let next = activeAyah ?? first
+    if (typeof next !== 'number' || next < first) next = first
+    if (next > last) next = last
+    if (next !== activeAyah) setActiveAyah(next)
+    const el = document.getElementById(`ayah-${next}`)
     el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
-  }, [verses])
+  }, [verses, activeAyah])
+
+  // persist last position (surah + ayah) and per-surah last ayah
+  useEffect(() => {
+    if (!activeAyah) return
+    try {
+      localStorage.setItem(`oqr:lastAyah:${surah}`, JSON.stringify(activeAyah))
+      localStorage.setItem('oqr:lastPosition', JSON.stringify({ surah, ayah: activeAyah }))
+    } catch { }
+  }, [surah, activeAyah])
 
   const arabicSizeVar = font === 'sm' ? '20px' : font === 'lg' ? '28px' : '24px'
   const selectedTranslations = translations.filter((t) => enabledTranslations.includes(t.id))
@@ -154,9 +191,19 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
                             const nextSurah = s.number
                             try { localStorage.setItem('oqr:lastSurah', JSON.stringify(nextSurah)) } catch { }
                             const t = enabledTranslations.join(',')
-                            const href = (`/s/${nextSurah}${t ? `?t=${encodeURIComponent(t)}` : ''}`) as Route
+                            let v: number | null = null
+                            try {
+                              const raw = localStorage.getItem(`oqr:lastAyah:${nextSurah}`)
+                              const parsed = raw ? JSON.parse(raw) : null
+                              if (typeof parsed === 'number' && parsed > 0) v = parsed
+                            } catch { }
+                            const params = new URLSearchParams()
+                            if (t) params.set('t', t)
+                            if (v) params.set('v', String(v))
+                            const qs = params.toString()
+                            const href = (`/s/${nextSurah}${qs ? `?${qs}` : ''}`) as Route
                             setSurahOpen(false)
-                            router.push(href)
+                            router.push(href, { scroll: false })
                           }}
                           style={{ textAlign: 'unset', justifyContent: 'space-between', display: 'flex' }}
                         >
@@ -230,7 +277,20 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
         ) : (
           <div ref={listRef} style={{ '--arabic-size': arabicSizeVar } as React.CSSProperties}>
             {verses.map((v) => (
-              <article key={v.ayah} id={`ayah-${v.ayah}`} className="ayah" tabIndex={0}>
+              <article
+                key={v.ayah}
+                id={`ayah-${v.ayah}`}
+                className={`ayah${activeAyah === v.ayah ? ' focused' : ''}`}
+                tabIndex={0}
+                aria-current={activeAyah === v.ayah ? 'true' : undefined}
+                onClick={() => setActiveAyah(v.ayah)}
+                onKeyDown={(e) => {
+                  if (e.key === 'Enter' || e.key === ' ') {
+                    e.preventDefault()
+                    setActiveAyah(v.ayah)
+                  }
+                }}
+              >
                 <div className="arabic" dir="rtl" lang="ar">
                   <span className="ayah-num">{v.ayah}</span>
                   <span>{v.text_ar_simple}</span>
