@@ -1,17 +1,35 @@
 # OpenQuranReader — Quickstart
 
-Choose one command to get started on macOS:
+This project is now a fully static Next.js site. No backend or database is required.
 
-- pnpm/local setup (no Docker):
+## Prerequisites
+- Node.js 20+
+- pnpm (Corepack-enabled; run `corepack enable` once)
+
+## Install
 ```bash
-bash scripts/setup-pnpm-mac.sh
+pnpm install
 ```
 
-- Docker-only setup:
+## Develop
 ```bash
-bash scripts/setup-docker-mac.sh
+pnpm --filter web dev
+# => copies XML assets into apps/web/public/quran and starts Next.js at http://localhost:3000
 ```
 
-After it finishes:
-- Web app: http://localhost:3000
-- API health: http://localhost:4000/health
+## Build (static export)
+```bash
+pnpm --filter web build
+# Static files output to apps/web/out
+```
+
+## Deploy to GitHub Pages
+Push to `main`. The GitHub Actions workflow `.github/workflows/deploy.yml` builds with `NEXT_PUBLIC_BASE_PATH=/<repo>` and publishes `apps/web/out` to Pages.
+
+If you use a custom domain or serve at root, unset `NEXT_PUBLIC_BASE_PATH` in the workflow.
+
+## Data sources
+- Arabic: `assets/quran/quran-simple.xml`
+- Translations: other `*.xml` files in `assets/quran/`
+
+The app reads XML at runtime from `apps/web/public/quran/*.xml`. No JSON duplication is shipped.

@@ -1,15 +1,14 @@
 /** @type {import('next').NextConfig} */
 const nextConfig = {
   reactStrictMode: true,
+  output: 'export',
   experimental: {
     typedRoutes: true,
   },
-  async rewrites() {
-    const API_URL = process.env.OQR_API_URL || 'http://localhost:4000'
-    return [
-      { source: '/api/:path*', destination: `${API_URL}/:path*` },
-    ]
-  },
+  // For GitHub Pages under a subpath, set at build time:
+  basePath: process.env.NEXT_PUBLIC_BASE_PATH || undefined,
+  assetPrefix: process.env.NEXT_PUBLIC_BASE_PATH ? `${process.env.NEXT_PUBLIC_BASE_PATH}/` : undefined,
+  trailingSlash: true,
 }
 
 export default nextConfig

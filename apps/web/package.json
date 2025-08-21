@@ -14,7 +14,8 @@
     "eslint": "9.9.0"
   },
   "scripts": {
-    "dev": "next dev",
+    "dev": "node ../../scripts/copy-xml.js && next dev",
+    "prebuild": "node ../../scripts/copy-xml.js",
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",

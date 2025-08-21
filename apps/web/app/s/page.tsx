@@ -1,18 +1,23 @@
 import Link from 'next/link'
+import fs from 'node:fs/promises'
+import path from 'node:path'
 
-async function fetchSurahs() {
-  const res = await fetch('/api/surahs', { next: { revalidate: 0 } })
-  if (!res.ok) throw new Error('Failed to load surahs')
-  return (await res.json()) as Array<{ number: number; name_ar: string }>
+async function fetchSurahsStatic() {
+  try {
+    const file = path.join(process.cwd(), 'public', 'quran', 'quran-simple.xml')
+    const raw = await fs.readFile(file, 'utf8')
+    const list: Array<{ number: number; name_ar: string }> = []
+    const re = /<sura\s+index="(\d+)"\s+name="([^"]*)">/g
+    let m: RegExpExecArray | null
+    while ((m = re.exec(raw)) !== null) list.push({ number: parseInt(m[1], 10), name_ar: m[2] })
+    return list
+  } catch {
+    return [] as Array<{ number: number; name_ar: string }>
+  }
 }
 
 export default async function SurahListPage() {
-  let surahs: Array<{ number: number; name_ar: string }> = []
-  try {
-    surahs = await fetchSurahs()
-  } catch (e) {
-    // show fallback empty state
-  }
+  const surahs = await fetchSurahsStatic()
 
   return (
     <main className="container">
@@ -28,7 +33,7 @@ export default async function SurahListPage() {
       <section style={{ padding: 16 }}>
         <h2>Surahs</h2>
         {!surahs.length ? (
-          <div className="card">No data. Is the API running? Try checking /health.</div>
+          <div className="card">No data available</div>
         ) : (
           <div className="grid">
             {surahs.map((s) => (
@@ -44,7 +49,7 @@ export default async function SurahListPage() {
         )}
       </section>
 
-      <footer className="footer">Data from local API; generated via Tanzil</footer>
+      <footer className="footer">Data loaded from static files; generated via Tanzil</footer>
     </main>
   )
 }

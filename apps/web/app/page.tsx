@@ -2,6 +2,7 @@
 
 import { useEffect } from 'react'
 import { useRouter } from 'next/navigation'
+import type { Route } from 'next'
 
 export default function HomePage() {
   const router = useRouter()
@@ -21,7 +22,7 @@ export default function HomePage() {
         if (typeof parsed === 'number' && parsed >= 1 && parsed <= 114) targetSurah = parsed
       }
     } catch { }
-    const href = targetAyah ? `/s/${targetSurah}?v=${encodeURIComponent(String(targetAyah))}` : `/s/${targetSurah}`
+    const href = (targetAyah ? `/s/${targetSurah}?v=${encodeURIComponent(String(targetAyah))}` : `/s/${targetSurah}`) as Route
     router.replace(href)
   }, [router])
 
