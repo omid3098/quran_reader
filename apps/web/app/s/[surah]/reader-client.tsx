@@ -1106,66 +1106,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                     </div>
 
                     <div className="section">
-                        <div className="muted" style={{ marginBottom: 8 }}>Bookmarks & Notes</div>
                         <div style={{ display: 'grid', gap: 8 }}>
-                            <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <Bookmark className="icon" strokeWidth={2} aria-hidden />
-                                    <span className="muted" suppressHydrationWarning>{(hydrated ? Object.keys(bookmarks).length : 0)} bookmarks</span>
-                                </div>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <FileText className="icon" strokeWidth={2} aria-hidden />
-                                    <span className="muted" suppressHydrationWarning>{(hydrated ? Object.keys(notes).length : 0)} notes</span>
-                                </div>
-                            </div>
-
-                            <div className="card" style={{ display: 'grid', gap: 8 }}>
-                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <File className="icon" strokeWidth={2} aria-hidden />
-                                    <span style={{ fontWeight: 600 }}>Export & Import</span>
-                                </div>
-                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                                    <button type="button" className="icon-btn" title="Download JSON" aria-label="Download JSON" onClick={downloadExport}>
-                                        <Download className="icon" strokeWidth={2} aria-hidden />
-                                    </button>
-                                    <button type="button" className="icon-btn" title="Copy JSON" aria-label="Copy JSON" onClick={copyExportToClipboard}>
-                                        <Copy className="icon" strokeWidth={2} aria-hidden />
-                                    </button>
-                                    <button type="button" className="icon-btn" title="Copy Share Link" aria-label="Copy Share Link" onClick={() => {
-                                        const res = shareAllAsLink()
-                                        if (!res.url) { alert(res.reason || 'Could not build link'); return }
-                                        try { void navigator.clipboard.writeText(res.url) } catch { }
-                                    }}>
-                                        <Share2 className="icon" strokeWidth={2} aria-hidden />
-                                    </button>
-                                    <button type="button" className="icon-btn" title="Show QR" aria-label="Show QR" onClick={() => {
-                                        const res = shareAllAsLink()
-                                        if (!res.url) { alert(res.reason || 'Could not build link'); return }
-                                        const img = qrImageUrl(res.url)
-                                        const w = window.open('', 'oqr-qr', 'width=260,height=300')
-                                        if (w) w.document.body.innerHTML = `<div style=\"display:flex;align-items:center;justify-content:center;height:100%;padding:12px;background:#fff\"><img alt=\"QR\" src=\"${img}\"/></div>`
-                                    }}>
-                                        <QrCode className="icon" strokeWidth={2} aria-hidden />
-                                    </button>
-
-                                    <input id="oqr-import-json" type="file" accept="application/json" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleImportFile(f) }} style={{ display: 'none' }} />
-                                    <button type="button" className="icon-btn" title="Import from file" aria-label="Import from file" onClick={() => {
-                                        const el = document.getElementById('oqr-import-json') as HTMLInputElement | null
-                                        el?.click()
-                                    }}>
-                                        <Upload className="icon" strokeWidth={2} aria-hidden />
-                                    </button>
-                                    <button type="button" className="icon-btn" title="Paste JSON" aria-label="Paste JSON" onClick={async () => {
-                                        try {
-                                            const txt = await navigator.clipboard.readText()
-                                            const obj = JSON.parse(txt)
-                                            mergeImported(obj)
-                                        } catch { }
-                                    }}>
-                                        <Clipboard className="icon" strokeWidth={2} aria-hidden />
-                                    </button>
-                                </div>
-                            </div>
 
                             {/* Accordion for saved content */}
                             <div className="card" role="region" aria-label="Saved content">
@@ -1181,7 +1122,10 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                         <FileText className="icon" strokeWidth={2} aria-hidden />
                                         <span>Notes</span>
                                     </span>
-                                    <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isNotesOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                                        <span className="muted" suppressHydrationWarning>({hydrated ? Object.keys(notes).length : 0})</span>
+                                        <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isNotesOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
+                                    </span>
                                 </button>
                                 {isNotesOpen ? (
                                     <div id="accordion-notes" style={{ marginTop: 8, display: 'grid', gap: 6, gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', maxHeight: 220, overflow: 'auto' }}>
@@ -1231,7 +1175,10 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                         <Bookmark className="icon" strokeWidth={2} aria-hidden />
                                         <span>Bookmarks</span>
                                     </span>
-                                    <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isBookmarksOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
+                                    <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                                        <span className="muted" suppressHydrationWarning>({hydrated ? Object.keys(bookmarks).length : 0})</span>
+                                        <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isBookmarksOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
+                                    </span>
                                 </button>
                                 {isBookmarksOpen ? (
                                     <div id="accordion-bookmarks" style={{ marginTop: 8, display: 'grid', gap: 6, gridTemplateColumns: 'repeat(auto-fill, minmax(90px, 1fr))', maxHeight: 220, overflow: 'auto' }}>
@@ -1266,6 +1213,54 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                         )}
                                     </div>
                                 ) : null}
+                            </div>
+
+                            <div className="card" style={{ display: 'grid', gap: 8 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <File className="icon" strokeWidth={2} aria-hidden />
+                                    <span style={{ fontWeight: 600 }}>Export & Import</span>
+                                </div>
+                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                                    <button type="button" className="icon-btn" title="Download JSON" aria-label="Download JSON" onClick={downloadExport}>
+                                        <Download className="icon" strokeWidth={2} aria-hidden />
+                                    </button>
+                                    <button type="button" className="icon-btn" title="Copy JSON" aria-label="Copy JSON" onClick={copyExportToClipboard}>
+                                        <Copy className="icon" strokeWidth={2} aria-hidden />
+                                    </button>
+                                    <button type="button" className="icon-btn" title="Copy Share Link" aria-label="Copy Share Link" onClick={() => {
+                                        const res = shareAllAsLink()
+                                        if (!res.url) { alert(res.reason || 'Could not build link'); return }
+                                        try { void navigator.clipboard.writeText(res.url) } catch { }
+                                    }}>
+                                        <Share2 className="icon" strokeWidth={2} aria-hidden />
+                                    </button>
+                                    <button type="button" className="icon-btn" title="Show QR" aria-label="Show QR" onClick={() => {
+                                        const res = shareAllAsLink()
+                                        if (!res.url) { alert(res.reason || 'Could not build link'); return }
+                                        const img = qrImageUrl(res.url)
+                                        const w = window.open('', 'oqr-qr', 'width=260,height=300')
+                                        if (w) w.document.body.innerHTML = `<div style=\"display:flex;align-items:center;justify-content:center;height:100%;padding:12px;background:#fff\"><img alt=\"QR\" src=\"${img}\"/></div>`
+                                    }}>
+                                        <QrCode className="icon" strokeWidth={2} aria-hidden />
+                                    </button>
+
+                                    <input id="oqr-import-json" type="file" accept="application/json" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleImportFile(f) }} style={{ display: 'none' }} />
+                                    <button type="button" className="icon-btn" title="Import from file" aria-label="Import from file" onClick={() => {
+                                        const el = document.getElementById('oqr-import-json') as HTMLInputElement | null
+                                        el?.click()
+                                    }}>
+                                        <Upload className="icon" strokeWidth={2} aria-hidden />
+                                    </button>
+                                    <button type="button" className="icon-btn" title="Paste JSON" aria-label="Paste JSON" onClick={async () => {
+                                        try {
+                                            const txt = await navigator.clipboard.readText()
+                                            const obj = JSON.parse(txt)
+                                            mergeImported(obj)
+                                        } catch { }
+                                    }}>
+                                        <Clipboard className="icon" strokeWidth={2} aria-hidden />
+                                    </button>
+                                </div>
                             </div>
                         </div>
                     </div>
