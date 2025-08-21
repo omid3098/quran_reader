@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
-import { Menu, Book, ChevronDown, FileText, Share2, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, X, Sun, Moon, Bookmark, File, Download, Copy, QrCode, Upload, Clipboard, Languages, FolderOutput, FolderInput } from 'lucide-react'
+import { Menu, Book, ChevronDown, FileText, Share2, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, X, Sun, Moon, Bookmark, File, Download, Copy, QrCode, Upload, Clipboard, Languages, FolderOutput, FolderInput, Check } from 'lucide-react'
 import type { Route } from 'next'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -79,6 +79,8 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const [isBookmarksOpen, setIsBookmarksOpen] = useState(false)
     const [isExportOpen, setIsExportOpen] = useState(false)
     const [isImportOpen, setIsImportOpen] = useState(false)
+    const [isThemeOpen, setIsThemeOpen] = useState(false)
+    const [isFontOpen, setIsFontOpen] = useState(false)
 
     // Audio state
     const reciterOptions = useMemo(
@@ -430,6 +432,10 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
 
     const arabicSizeVar = font === 'sm' ? '20px' : font === 'lg' ? '28px' : '24px'
     const selectedTranslations = translations.filter((t) => enabledTranslations.includes(t.id))
+    const reciterDisplayName = useMemo(() => {
+        const name = reciterOptions.find((r) => r.id === reciter)?.name || 'Choose'
+        return name.length > 7 ? `${name.slice(0, 7)}...` : name
+    }, [reciter, reciterOptions])
 
     function pad3(n: number) {
         return String(n).padStart(3, '0')
@@ -1011,131 +1017,160 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                     </div>
 
                     <div className="section">
-                        <div className="muted" style={{ marginBottom: 8 }}>Theme</div>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                            <button
-                                type="button"
-                                className={`icon-btn${theme === 'light' ? ' active' : ''}`}
-                                aria-pressed={theme === 'light'}
-                                aria-label="Light theme"
-                                onClick={() => setTheme('light')}
-                                title="Light"
-                            >
-                                <Sun className="icon" strokeWidth={2} aria-hidden />
-                            </button>
-                            <button
-                                type="button"
-                                className={`icon-btn${theme === 'dark' ? ' active' : ''}`}
-                                aria-pressed={theme === 'dark'}
-                                aria-label="Dark theme"
-                                onClick={() => setTheme('dark')}
-                                title="Dark"
-                            >
-                                <Moon className="icon" strokeWidth={2} aria-hidden />
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="section">
-                        <div className="muted" style={{ marginBottom: 8 }}>Font size</div>
-                        <div style={{ display: 'flex', gap: 8 }}>
-                            <button type="button" className={`icon-btn${font === 'sm' ? ' active' : ''}`} aria-pressed={font === 'sm'} aria-label="Small font" onClick={() => setFont('sm')} title="Small">
-                                <span style={{ fontSize: 12, fontWeight: 700 }}>A</span>
-                            </button>
-                            <button type="button" className={`icon-btn${font === 'md' ? ' active' : ''}`} aria-pressed={font === 'md'} aria-label="Medium font" onClick={() => setFont('md')} title="Medium">
-                                <span style={{ fontSize: 14, fontWeight: 700 }}>A</span>
-                            </button>
-                            <button type="button" className={`icon-btn${font === 'lg' ? ' active' : ''}`} aria-pressed={font === 'lg'} aria-label="Large font" onClick={() => setFont('lg')} title="Large">
-                                <span style={{ fontSize: 16, fontWeight: 700 }}>A</span>
-                            </button>
-                        </div>
-                    </div>
-
-                    <div className="section">
-                        <div className="muted" style={{ marginBottom: 8 }}>Translations</div>
-                        <div ref={translationsDropdownRef} style={{ position: 'relative' }}>
+                        <div role="region" aria-label="Theme">
                             <button
                                 type="button"
                                 className="button"
-                                aria-haspopup="listbox"
-                                aria-expanded={isTranslationsOpen}
-                                onClick={() => setTranslationsOpen((o) => !o)}
-                                aria-label="Select translations"
-                                style={{ width: '100%', justifyContent: 'space-between', display: 'flex', alignItems: 'center' }}
+                                aria-expanded={isThemeOpen}
+                                aria-controls="accordion-theme"
+                                onClick={() => setIsThemeOpen((o) => !o)}
+                                style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                             >
                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                                    <Languages className="icon" strokeWidth={2} aria-hidden />
-                                    <span>Choose translations</span>
+                                    <Sun className="icon" strokeWidth={2} aria-hidden />
+                                    <span>Theme</span>
                                 </span>
-                                <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ marginInlineStart: 4 }} />
+                                <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isThemeOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
                             </button>
-                            {isTranslationsOpen ? (
-                                <div className="card" style={{ position: 'absolute', left: 0, right: 0, top: 'calc(100% + 8px)', maxHeight: 260, overflow: 'auto', padding: 8, zIndex: 20 }} role="listbox" aria-label="Translations list">
-                                    <div style={{ display: 'grid', gap: 8 }}>
-                                        {translations.map((t) => {
-                                            const checked = enabledTranslations.includes(t.id)
-                                            return (
-                                                <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                                    <input
-                                                        type="checkbox"
-                                                        checked={checked}
-                                                        onChange={(e) => {
-                                                            setEnabledTranslations((prev) => {
-                                                                const set = new Set(prev)
-                                                                if (e.target.checked) set.add(t.id)
-                                                                else set.delete(t.id)
-                                                                return Array.from(set)
-                                                            })
-                                                        }}
-                                                    />
-                                                    <span>{t.language}: {t.name}</span>
-                                                </label>
-                                            )
-                                        })}
-                                        {translations.length === 0 ? (
-                                            <div className="muted">No translations available</div>
-                                        ) : null}
-                                    </div>
+                            {isThemeOpen ? (
+                                <div id="accordion-theme" style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                                    <button
+                                        type="button"
+                                        className={`icon-btn${theme === 'light' ? ' active' : ''}`}
+                                        aria-pressed={theme === 'light'}
+                                        aria-label="Light theme"
+                                        onClick={() => setTheme('light')}
+                                        title="Light"
+                                    >
+                                        <Sun className="icon" strokeWidth={2} aria-hidden />
+                                    </button>
+                                    <button
+                                        type="button"
+                                        className={`icon-btn${theme === 'dark' ? ' active' : ''}`}
+                                        aria-pressed={theme === 'dark'}
+                                        aria-label="Dark theme"
+                                        onClick={() => setTheme('dark')}
+                                        title="Dark"
+                                    >
+                                        <Moon className="icon" strokeWidth={2} aria-hidden />
+                                    </button>
                                 </div>
                             ) : null}
                         </div>
                     </div>
 
                     <div className="section">
-                        <div className="muted" style={{ marginBottom: 8 }}>Reciter</div>
-                        <div ref={reciterDropdownRef} style={{ position: 'relative' }}>
+                        <div role="region" aria-label="Font size">
                             <button
                                 type="button"
                                 className="button"
-                                aria-haspopup="listbox"
-                                aria-expanded={isReciterOpen}
-                                onClick={() => setReciterOpen((o) => !o)}
-                                aria-label="Select reciter"
-                                style={{ width: '100%', justifyContent: 'space-between', display: 'flex', alignItems: 'center' }}
+                                aria-expanded={isFontOpen}
+                                aria-controls="accordion-font"
+                                onClick={() => setIsFontOpen((o) => !o)}
+                                style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
                             >
                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                                    <span>{reciterOptions.find((r) => r.id === reciter)?.name || 'Choose reciter'}</span>
+                                    <File className="icon" strokeWidth={2} aria-hidden />
+                                    <span>Font size</span>
                                 </span>
-                                <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ marginInlineStart: 4 }} />
+                                <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isFontOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
+                            </button>
+                            {isFontOpen ? (
+                                <div id="accordion-font" style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+                                    <button type="button" className={`icon-btn${font === 'sm' ? ' active' : ''}`} aria-pressed={font === 'sm'} aria-label="Small font" onClick={() => setFont('sm')} title="Small">
+                                        <span style={{ fontSize: 12, fontWeight: 700 }}>A</span>
+                                    </button>
+                                    <button type="button" className={`icon-btn${font === 'md' ? ' active' : ''}`} aria-pressed={font === 'md'} aria-label="Medium font" onClick={() => setFont('md')} title="Medium">
+                                        <span style={{ fontSize: 14, fontWeight: 700 }}>A</span>
+                                    </button>
+                                    <button type="button" className={`icon-btn${font === 'lg' ? ' active' : ''}`} aria-pressed={font === 'lg'} aria-label="Large font" onClick={() => setFont('lg')} title="Large">
+                                        <span style={{ fontSize: 16, fontWeight: 700 }}>A</span>
+                                    </button>
+                                </div>
+                            ) : null}
+                        </div>
+                    </div>
+
+                    <div className="section">
+                        <div role="region" aria-label="Translations">
+                            <button
+                                type="button"
+                                className="button"
+                                aria-expanded={isTranslationsOpen}
+                                aria-controls="accordion-translations"
+                                onClick={() => setTranslationsOpen((o) => !o)}
+                                style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                            >
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                                    <Languages className="icon" strokeWidth={2} aria-hidden />
+                                    <span>Translations</span>
+                                </span>
+                                <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isTranslationsOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
+                            </button>
+                            {isTranslationsOpen ? (
+                                <div id="accordion-translations" style={{ marginTop: 8, display: 'grid', gap: 8, maxHeight: 260, overflow: 'auto' }}>
+                                    {translations.map((t) => {
+                                        const checked = enabledTranslations.includes(t.id)
+                                        return (
+                                            <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                <input
+                                                    type="checkbox"
+                                                    checked={checked}
+                                                    onChange={(e) => {
+                                                        setEnabledTranslations((prev) => {
+                                                            const set = new Set(prev)
+                                                            if (e.target.checked) set.add(t.id)
+                                                            else set.delete(t.id)
+                                                            return Array.from(set)
+                                                        })
+                                                    }}
+                                                />
+                                                <span>{t.language}: {t.name}</span>
+                                            </label>
+                                        )
+                                    })}
+                                    {translations.length === 0 ? (
+                                        <div className="muted">No translations available</div>
+                                    ) : null}
+                                </div>
+                            ) : null}
+                        </div>
+                    </div>
+
+                    <div className="section">
+                        <div role="region" aria-label="Reciter">
+                            <button
+                                type="button"
+                                className="button"
+                                aria-expanded={isReciterOpen}
+                                aria-controls="accordion-reciter"
+                                onClick={() => setReciterOpen((o) => !o)}
+                                style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                            >
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                                    <Play className="icon" strokeWidth={2} aria-hidden />
+                                    <span>Reciter</span>
+                                </span>
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, maxWidth: 160, overflow: 'hidden' }}>
+                                    <span className="muted" title={reciterOptions.find((r) => r.id === reciter)?.name || 'Choose'}>{reciterDisplayName}</span>
+                                    <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isReciterOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
+                                </span>
                             </button>
                             {isReciterOpen ? (
-                                <div className="card" style={{ position: 'absolute', left: 0, right: 0, top: 'calc(100% + 8px)', maxHeight: 260, overflow: 'auto', padding: 8, zIndex: 20 }} role="listbox" aria-label="Reciters list">
-                                    <div style={{ display: 'grid', gap: 6 }}>
-                                        {reciterOptions.map((r) => (
-                                            <button
-                                                key={r.id}
-                                                type="button"
-                                                className="button"
-                                                role="option"
-                                                aria-selected={r.id === reciter}
-                                                onClick={() => { setReciter(r.id); setReciterOpen(false) }}
-                                                style={{ textAlign: 'left', justifyContent: 'space-between', display: 'flex' }}
-                                            >
-                                                <span>{r.name}</span>
-                                                {r.id === reciter ? <span className="muted">Selected</span> : null}
-                                            </button>
-                                        ))}
-                                    </div>
+                                <div id="accordion-reciter" style={{ marginTop: 8, display: 'grid', gap: 6, maxHeight: 260, overflow: 'auto' }}>
+                                    {reciterOptions.map((r) => (
+                                        <button
+                                            key={r.id}
+                                            type="button"
+                                            className="button"
+                                            aria-pressed={r.id === reciter}
+                                            onClick={() => { setReciter(r.id); setReciterOpen(false) }}
+                                            style={{ textAlign: 'left', justifyContent: 'space-between', display: 'flex', alignItems: 'center', gap: 8 }}
+                                        >
+                                            <span>{r.name}</span>
+                                            {r.id === reciter ? <Check className="icon" strokeWidth={3} aria-hidden /> : null}
+                                        </button>
+                                    ))}
                                 </div>
                             ) : null}
                         </div>
