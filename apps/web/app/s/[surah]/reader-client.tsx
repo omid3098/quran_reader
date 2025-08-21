@@ -58,6 +58,8 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const surahDropdownRef = useRef<HTMLDivElement>(null)
     const [isTranslationsOpen, setTranslationsOpen] = useState(false)
     const translationsDropdownRef = useRef<HTMLDivElement>(null)
+    const [isReciterOpen, setReciterOpen] = useState(false)
+    const reciterDropdownRef = useRef<HTMLDivElement>(null)
     const [activeAyah, setActiveAyah] = useState<number | null>(null)
     const [renderUpto, setRenderUpto] = useState<number>(0)
     const RENDER_STEP = 50
@@ -158,6 +160,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
             const target = e.target as Node
             if (surahDropdownRef.current && !surahDropdownRef.current.contains(target)) setSurahOpen(false)
             if (translationsDropdownRef.current && !translationsDropdownRef.current.contains(target)) setTranslationsOpen(false)
+            if (reciterDropdownRef.current && !reciterDropdownRef.current.contains(target)) setReciterOpen(false)
         }
         document.addEventListener('mousedown', onDocClick)
         return () => document.removeEventListener('mousedown', onDocClick)
@@ -1098,11 +1101,42 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
 
                     <div className="section">
                         <div className="muted" style={{ marginBottom: 8 }}>Reciter</div>
-                        <select className="select" value={reciter} onChange={(e) => setReciter(e.target.value)} aria-label="Select reciter">
-                            {reciterOptions.map((r) => (
-                                <option key={r.id} value={r.id}>{r.name}</option>
-                            ))}
-                        </select>
+                        <div ref={reciterDropdownRef} style={{ position: 'relative' }}>
+                            <button
+                                type="button"
+                                className="button"
+                                aria-haspopup="listbox"
+                                aria-expanded={isReciterOpen}
+                                onClick={() => setReciterOpen((o) => !o)}
+                                aria-label="Select reciter"
+                                style={{ width: '100%', justifyContent: 'space-between', display: 'flex', alignItems: 'center' }}
+                            >
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                                    <span>{reciterOptions.find((r) => r.id === reciter)?.name || 'Choose reciter'}</span>
+                                </span>
+                                <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ marginInlineStart: 4 }} />
+                            </button>
+                            {isReciterOpen ? (
+                                <div className="card" style={{ position: 'absolute', left: 0, right: 0, top: 'calc(100% + 8px)', maxHeight: 260, overflow: 'auto', padding: 8, zIndex: 20 }} role="listbox" aria-label="Reciters list">
+                                    <div style={{ display: 'grid', gap: 6 }}>
+                                        {reciterOptions.map((r) => (
+                                            <button
+                                                key={r.id}
+                                                type="button"
+                                                className="button"
+                                                role="option"
+                                                aria-selected={r.id === reciter}
+                                                onClick={() => { setReciter(r.id); setReciterOpen(false) }}
+                                                style={{ textAlign: 'left', justifyContent: 'space-between', display: 'flex' }}
+                                            >
+                                                <span>{r.name}</span>
+                                                {r.id === reciter ? <span className="muted">Selected</span> : null}
+                                            </button>
+                                        ))}
+                                    </div>
+                                </div>
+                            ) : null}
+                        </div>
                     </div>
 
                     <div className="section">
