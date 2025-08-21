@@ -909,7 +909,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                         })}
                                     </div>
                                 ) : null}
-                                {showNotes && openNoteAyah === v.ayah ? (
+                                {openNoteAyah === v.ayah ? (
                                     <div className="card" style={{ marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
                                         <div className="muted" style={{ marginBottom: 6 }}>Note for {surah}:{v.ayah}</div>
                                         <textarea
@@ -950,7 +950,12 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                             <button type="button" className="button" onClick={() => setOpenNoteAyah(null)}>Close</button>
                                         </div>
                                     </div>
-                                ) : null}
+                                ) : (showNotes && !!getNote(v.ayah) ? (
+                                    <div className="card" style={{ marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
+                                        <div className="muted" style={{ marginBottom: 6 }}>Note for {surah}:{v.ayah}</div>
+                                        <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{getNote(v.ayah)}</div>
+                                    </div>
+                                ) : null)}
                             </article>
                         ))}
                         {renderUpto < (verses[verses.length - 1]?.ayah || 0) ? (
