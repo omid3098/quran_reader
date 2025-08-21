@@ -198,7 +198,7 @@ a {
   top: 0;
   bottom: 0;
   left: 0;
-  width: 320px;
+  width: 250px;
   background: var(--card);
   border-right: 1px solid rgba(255, 255, 255, 0.08);
   z-index: 31;
