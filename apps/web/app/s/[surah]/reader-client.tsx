@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
-import { Menu, Book, ChevronDown, FileText, Share2, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, X, Sun, Moon, Bookmark, File, Download, Copy, QrCode, Upload, Clipboard, Languages } from 'lucide-react'
+import { Menu, Book, ChevronDown, FileText, Share2, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, X, Sun, Moon, Bookmark, File, Download, Copy, QrCode, Upload, Clipboard, Languages, FolderOutput, FolderInput } from 'lucide-react'
 import type { Route } from 'next'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -77,6 +77,8 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     // Sidebar accordions
     const [isNotesOpen, setIsNotesOpen] = useState(false)
     const [isBookmarksOpen, setIsBookmarksOpen] = useState(false)
+    const [isExportOpen, setIsExportOpen] = useState(false)
+    const [isImportOpen, setIsImportOpen] = useState(false)
 
     // Audio state
     const reciterOptions = useMemo(
@@ -1254,52 +1256,88 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                     </div>
 
                     <div className="section">
-                        <div className="card" style={{ display: 'grid', gap: 8 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <File className="icon" strokeWidth={2} aria-hidden />
-                                <span style={{ fontWeight: 600 }}>Export & Import</span>
-                            </div>
-                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                                <button type="button" className="icon-btn" title="Download JSON" aria-label="Download JSON" onClick={downloadExport}>
-                                    <Download className="icon" strokeWidth={2} aria-hidden />
-                                </button>
-                                <button type="button" className="icon-btn" title="Copy JSON" aria-label="Copy JSON" onClick={copyExportToClipboard}>
-                                    <Copy className="icon" strokeWidth={2} aria-hidden />
-                                </button>
-                                <button type="button" className="icon-btn" title="Copy Share Link" aria-label="Copy Share Link" onClick={() => {
-                                    const res = shareAllAsLink()
-                                    if (!res.url) { alert(res.reason || 'Could not build link'); return }
-                                    try { void navigator.clipboard.writeText(res.url) } catch { }
-                                }}>
-                                    <Share2 className="icon" strokeWidth={2} aria-hidden />
-                                </button>
-                                <button type="button" className="icon-btn" title="Show QR" aria-label="Show QR" onClick={() => {
-                                    const res = shareAllAsLink()
-                                    if (!res.url) { alert(res.reason || 'Could not build link'); return }
-                                    const img = qrImageUrl(res.url)
-                                    const w = window.open('', 'oqr-qr', 'width=260,height=300')
-                                    if (w) w.document.body.innerHTML = `<div style=\"display:flex;align-items:center;justify-content:center;height:100%;padding:12px;background:#fff\"><img alt=\"QR\" src=\"${img}\"/></div>`
-                                }}>
-                                    <QrCode className="icon" strokeWidth={2} aria-hidden />
-                                </button>
+                        {/* Export */}
+                        <div role="region" aria-label="Export">
+                            <button
+                                type="button"
+                                className="button"
+                                aria-expanded={isExportOpen}
+                                aria-controls="accordion-export"
+                                onClick={() => setIsExportOpen((o) => !o)}
+                                style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                            >
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                                    <FolderOutput className="icon" strokeWidth={2} aria-hidden />
+                                    <span>Export</span>
+                                </span>
+                                <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isExportOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
+                            </button>
+                            {isExportOpen ? (
+                                <div id="accordion-export" style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                                    <button type="button" className="icon-btn" title="Download JSON" aria-label="Download JSON" onClick={downloadExport}>
+                                        <Download className="icon" strokeWidth={2} aria-hidden />
+                                    </button>
+                                    <button type="button" className="icon-btn" title="Copy JSON" aria-label="Copy JSON" onClick={copyExportToClipboard}>
+                                        <Copy className="icon" strokeWidth={2} aria-hidden />
+                                    </button>
+                                    <button type="button" className="icon-btn" title="Copy Share Link" aria-label="Copy Share Link" onClick={() => {
+                                        const res = shareAllAsLink()
+                                        if (!res.url) { alert(res.reason || 'Could not build link'); return }
+                                        try { void navigator.clipboard.writeText(res.url) } catch { }
+                                    }}>
+                                        <Share2 className="icon" strokeWidth={2} aria-hidden />
+                                    </button>
+                                    <button type="button" className="icon-btn" title="Show QR" aria-label="Show QR" onClick={() => {
+                                        const res = shareAllAsLink()
+                                        if (!res.url) { alert(res.reason || 'Could not build link'); return }
+                                        const img = qrImageUrl(res.url)
+                                        const w = window.open('', 'oqr-qr', 'width=260,height=300')
+                                        if (w) w.document.body.innerHTML = `<div style=\"display:flex;align-items:center;justify-content:center;height:100%;padding:12px;background:#fff\"><img alt=\"QR\" src=\"${img}\"/></div>`
+                                    }}>
+                                        <QrCode className="icon" strokeWidth={2} aria-hidden />
+                                    </button>
+                                </div>
+                            ) : null}
+                        </div>
+                    </div>
 
-                                <input id="oqr-import-json" type="file" accept="application/json" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleImportFile(f) }} style={{ display: 'none' }} />
-                                <button type="button" className="icon-btn" title="Import from file" aria-label="Import from file" onClick={() => {
-                                    const el = document.getElementById('oqr-import-json') as HTMLInputElement | null
-                                    el?.click()
-                                }}>
-                                    <Upload className="icon" strokeWidth={2} aria-hidden />
-                                </button>
-                                <button type="button" className="icon-btn" title="Paste JSON" aria-label="Paste JSON" onClick={async () => {
-                                    try {
-                                        const txt = await navigator.clipboard.readText()
-                                        const obj = JSON.parse(txt)
-                                        mergeImported(obj)
-                                    } catch { }
-                                }}>
-                                    <Clipboard className="icon" strokeWidth={2} aria-hidden />
-                                </button>
-                            </div>
+                    <div className="section">
+                        {/* Import */}
+                        <div role="region" aria-label="Import">
+                            <button
+                                type="button"
+                                className="button"
+                                aria-expanded={isImportOpen}
+                                aria-controls="accordion-import"
+                                onClick={() => setIsImportOpen((o) => !o)}
+                                style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                            >
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                                    <FolderInput className="icon" strokeWidth={2} aria-hidden />
+                                    <span>Import</span>
+                                </span>
+                                <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isImportOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
+                            </button>
+                            {isImportOpen ? (
+                                <div id="accordion-import" style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                                    <input id="oqr-import-json" type="file" accept="application/json" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleImportFile(f) }} style={{ display: 'none' }} />
+                                    <button type="button" className="icon-btn" title="Import from file" aria-label="Import from file" onClick={() => {
+                                        const el = document.getElementById('oqr-import-json') as HTMLInputElement | null
+                                        el?.click()
+                                    }}>
+                                        <Upload className="icon" strokeWidth={2} aria-hidden />
+                                    </button>
+                                    <button type="button" className="icon-btn" title="Paste JSON" aria-label="Paste JSON" onClick={async () => {
+                                        try {
+                                            const txt = await navigator.clipboard.readText()
+                                            const obj = JSON.parse(txt)
+                                            mergeImported(obj)
+                                        } catch { }
+                                    }}>
+                                        <Clipboard className="icon" strokeWidth={2} aria-hidden />
+                                    </button>
+                                </div>
+                            ) : null}
                         </div>
                     </div>
                 </aside>
