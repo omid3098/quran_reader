@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
+import { Menu, Book, ChevronDown, FileText, Star, Share2, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, X, Sun, Moon, Bookmark, File, Download, Copy, QrCode, Upload, Clipboard, Languages } from 'lucide-react'
 import type { Route } from 'next'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -55,6 +56,8 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const [isSurahOpen, setSurahOpen] = useState(false)
     const [surahQuery, setSurahQuery] = useState('')
     const surahDropdownRef = useRef<HTMLDivElement>(null)
+    const [isTranslationsOpen, setTranslationsOpen] = useState(false)
+    const translationsDropdownRef = useRef<HTMLDivElement>(null)
     const [activeAyah, setActiveAyah] = useState<number | null>(null)
     const [renderUpto, setRenderUpto] = useState<number>(0)
     const RENDER_STEP = 50
@@ -151,6 +154,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         const onDocClick = (e: MouseEvent) => {
             const target = e.target as Node
             if (surahDropdownRef.current && !surahDropdownRef.current.contains(target)) setSurahOpen(false)
+            if (translationsDropdownRef.current && !translationsDropdownRef.current.contains(target)) setTranslationsOpen(false)
         }
         document.addEventListener('mousedown', onDocClick)
         return () => document.removeEventListener('mousedown', onDocClick)
@@ -696,9 +700,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                 aria-label="Open settings"
                                 title="Settings"
                             >
-                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                    <path d="M3 6h18M3 12h18M3 18h18" />
-                                </svg>
+                                <Menu className="icon" strokeWidth={2} aria-hidden />
                             </button>
                         </div>
 
@@ -714,15 +716,9 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                             >
                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                                     {/* Book icon */}
-                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                        <path d="M4 19.5V5a2 2 0 0 1 2-2h11" />
-                                        <path d="M20 22V6a3 3 0 0 0-3-3H6" />
-                                        <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                                    </svg>
+                                    <Book className="icon" strokeWidth={2} aria-hidden />
                                     <span dir="rtl" lang="ar">سورة {surahs.find((s) => s.number === surah)?.name_ar || surah}</span>
-                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ marginInlineStart: 4 }}>
-                                        <polyline points="6 9 12 15 18 9" />
-                                    </svg>
+                                    <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ marginInlineStart: 4 }} />
                                 </span>
                             </button>
                             {isSurahOpen ? (
@@ -787,9 +783,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                 aria-label={showNotes ? 'Hide notes' : 'Show notes'}
                                 title={showNotes ? 'Hide notes' : 'Show notes'}
                             >
-                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                    <path d="M4 4h12a2 2 0 0 1 2 2v12l-4-4H6a2 2 0 0 1-2-2V4z" />
-                                </svg>
+                                <FileText className="icon" strokeWidth={2} aria-hidden />
                             </button>
                         </div>
                     </nav>
@@ -848,15 +842,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                                     onClick={(e) => { e.stopPropagation(); toggleBookmark(v.ayah) }}
                                                 >
                                                     {/* Star icon */}
-                                                    {isBookmarked(v.ayah) ? (
-                                                        <svg className="icon" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" aria-hidden="true">
-                                                            <path d="M12 17.27L18.18 21 16.54 13.97 22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                                                        </svg>
-                                                    ) : (
-                                                        <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21 12 17.77 5.82 21 7 14.14 2 9.27 8.91 8.26 12 2" />
-                                                        </svg>
-                                                    )}
+                                                    <Star className="icon" strokeWidth={2} aria-hidden {...(isBookmarked(v.ayah) ? { fill: 'currentColor' } : {})} />
                                                 </button>
                                                 <button
                                                     type="button"
@@ -866,9 +852,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                                     onClick={(e) => { e.stopPropagation(); setOpenNoteAyah((cur) => cur === v.ayah ? null : v.ayah) }}
                                                 >
                                                     {/* Note icon */}
-                                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                                        <path d="M4 4h12a2 2 0 0 1 2 2v12l-4-4H6a2 2 0 0 1-2-2V4z" />
-                                                    </svg>
+                                                    <FileText className="icon" strokeWidth={2} aria-hidden />
                                                 </button>
                                                 <button
                                                     type="button"
@@ -883,12 +867,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                                     }}
                                                 >
                                                     {/* Share icon */}
-                                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                                        <circle cx="18" cy="5" r="3" />
-                                                        <circle cx="6" cy="12" r="3" />
-                                                        <circle cx="18" cy="19" r="3" />
-                                                        <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
-                                                    </svg>
+                                                    <Share2 className="icon" strokeWidth={2} aria-hidden />
                                                 </button>
                                             </div>
                                         ) : null}
@@ -982,9 +961,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                 {/* Floating audio controls */}
                 <div className="floating-audio" role="region" aria-label="Audio controls">
                     <button type="button" className="icon-btn" aria-label="Previous ayah" title="Previous" onClick={goPrevAyah}>
-                        <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M15 18l-6-6 6-6" />
-                        </svg>
+                        <ChevronLeft className="icon" strokeWidth={2} aria-hidden />
                     </button>
                     <button
                         type="button"
@@ -994,20 +971,13 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                         onClick={toggleToolbarPlay}
                     >
                         {playingAyah === activeAyah && playingAyah != null ? (
-                            <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <rect x="6" y="4" width="4" height="16" />
-                                <rect x="14" y="4" width="4" height="16" />
-                            </svg>
+                            <Pause className="icon" strokeWidth={2} aria-hidden />
                         ) : (
-                            <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <polygon points="6,4 20,12 6,20 6,4" />
-                            </svg>
+                            <Play className="icon" strokeWidth={2} aria-hidden />
                         )}
                     </button>
                     <button type="button" className="icon-btn" aria-label="Next ayah" title="Next" onClick={goNextAyah}>
-                        <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M9 6l6 6-6 6" />
-                        </svg>
+                        <ChevronRight className="icon" strokeWidth={2} aria-hidden />
                     </button>
                     <span className="sep" aria-hidden="true" />
                     <button
@@ -1018,9 +988,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                         title="Autoplay"
                         onClick={() => setAutoplay(!autoplay)}
                     >
-                        <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M3 12a9 9 0 1 0 3-6.7M3 5v6h6" />
-                        </svg>
+                        <RotateCcw className="icon" strokeWidth={2} aria-hidden />
                     </button>
                 </div>
 
@@ -1030,9 +998,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                     <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
                         <div className="muted">Settings</div>
                         <button type="button" className="icon-btn" aria-label="Close sidebar" onClick={() => setSidebarOpen(false)}>
-                            <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <path d="M6 18L18 6M6 6l12 12" />
-                            </svg>
+                            <X className="icon" strokeWidth={2} aria-hidden />
                         </button>
                     </div>
 
@@ -1047,10 +1013,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                 onClick={() => setTheme('light')}
                                 title="Light"
                             >
-                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                    <circle cx="12" cy="12" r="4" />
-                                    <path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l-1.5-1.5M20.5 20.5L19 19M5 19l-1.5 1.5M20.5 3.5L19 5" />
-                                </svg>
+                                <Sun className="icon" strokeWidth={2} aria-hidden />
                             </button>
                             <button
                                 type="button"
@@ -1060,9 +1023,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                 onClick={() => setTheme('dark')}
                                 title="Dark"
                             >
-                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
-                                </svg>
+                                <Moon className="icon" strokeWidth={2} aria-hidden />
                             </button>
                         </div>
                     </div>
@@ -1084,29 +1045,50 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
 
                     <div className="section">
                         <div className="muted" style={{ marginBottom: 8 }}>Translations</div>
-                        <div style={{ display: 'grid', gap: 8, maxHeight: 260, overflow: 'auto' }}>
-                            {translations.map((t) => {
-                                const checked = enabledTranslations.includes(t.id)
-                                return (
-                                    <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                        <input
-                                            type="checkbox"
-                                            checked={checked}
-                                            onChange={(e) => {
-                                                setEnabledTranslations((prev) => {
-                                                    const set = new Set(prev)
-                                                    if (e.target.checked) set.add(t.id)
-                                                    else set.delete(t.id)
-                                                    return Array.from(set)
-                                                })
-                                            }}
-                                        />
-                                        <span>{t.language}: {t.name}</span>
-                                    </label>
-                                )
-                            })}
-                            {translations.length === 0 ? (
-                                <div className="muted">No translations available</div>
+                        <div ref={translationsDropdownRef} style={{ position: 'relative' }}>
+                            <button
+                                type="button"
+                                className="button"
+                                aria-haspopup="listbox"
+                                aria-expanded={isTranslationsOpen}
+                                onClick={() => setTranslationsOpen((o) => !o)}
+                                aria-label="Select translations"
+                                style={{ width: '100%', justifyContent: 'space-between', display: 'flex', alignItems: 'center' }}
+                            >
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                                    <Languages className="icon" strokeWidth={2} aria-hidden />
+                                    <span>Choose translations</span>
+                                </span>
+                                <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ marginInlineStart: 4 }} />
+                            </button>
+                            {isTranslationsOpen ? (
+                                <div className="card" style={{ position: 'absolute', left: 0, right: 0, top: 'calc(100% + 8px)', maxHeight: 260, overflow: 'auto', padding: 8, zIndex: 20 }} role="listbox" aria-label="Translations list">
+                                    <div style={{ display: 'grid', gap: 8 }}>
+                                        {translations.map((t) => {
+                                            const checked = enabledTranslations.includes(t.id)
+                                            return (
+                                                <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                                    <input
+                                                        type="checkbox"
+                                                        checked={checked}
+                                                        onChange={(e) => {
+                                                            setEnabledTranslations((prev) => {
+                                                                const set = new Set(prev)
+                                                                if (e.target.checked) set.add(t.id)
+                                                                else set.delete(t.id)
+                                                                return Array.from(set)
+                                                            })
+                                                        }}
+                                                    />
+                                                    <span>{t.language}: {t.name}</span>
+                                                </label>
+                                            )
+                                        })}
+                                        {translations.length === 0 ? (
+                                            <div className="muted">No translations available</div>
+                                        ) : null}
+                                    </div>
+                                </div>
                             ) : null}
                         </div>
                     </div>
@@ -1125,34 +1107,34 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                         <div style={{ display: 'grid', gap: 8 }}>
                             <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
+                                    <Bookmark className="icon" strokeWidth={2} aria-hidden />
                                     <span className="muted" suppressHydrationWarning>{(hydrated ? Object.keys(bookmarks).length : 0)} bookmarks</span>
                                 </div>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                     {/* Use the same note icon as verses */}
-                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 4h12a2 2 0 0 1 2 2v12l-4-4H6a2 2 0 0 1-2-2V4z" /></svg>
+                                    <FileText className="icon" strokeWidth={2} aria-hidden />
                                     <span className="muted" suppressHydrationWarning>{(hydrated ? Object.keys(notes).length : 0)} notes</span>
                                 </div>
                             </div>
                             <div className="card" style={{ display: 'grid', gap: 8 }}>
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16l6-3 6 3V8" /><path d="M14 2v6h6" /></svg>
+                                    <File className="icon" strokeWidth={2} aria-hidden />
                                     <span style={{ fontWeight: 600 }}>Export & Import</span>
                                 </div>
                                 <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                                     {/* Export actions */}
                                     <button type="button" className="icon-btn" title="Download JSON" aria-label="Download JSON" onClick={downloadExport}>
-                                        <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M7 10l5 5 5-5" /><path d="M12 15V3" /></svg>
+                                        <Download className="icon" strokeWidth={2} aria-hidden />
                                     </button>
                                     <button type="button" className="icon-btn" title="Copy JSON" aria-label="Copy JSON" onClick={copyExportToClipboard}>
-                                        <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                                        <Copy className="icon" strokeWidth={2} aria-hidden />
                                     </button>
                                     <button type="button" className="icon-btn" title="Copy Share Link" aria-label="Copy Share Link" onClick={() => {
                                         const res = shareAllAsLink()
                                         if (!res.url) { alert(res.reason || 'Could not build link'); return }
                                         try { void navigator.clipboard.writeText(res.url) } catch { }
                                     }}>
-                                        <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" /></svg>
+                                        <Share2 className="icon" strokeWidth={2} aria-hidden />
                                     </button>
                                     <button type="button" className="icon-btn" title="Show QR" aria-label="Show QR" onClick={() => {
                                         const res = shareAllAsLink()
@@ -1161,7 +1143,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                         const w = window.open('', 'oqr-qr', 'width=260,height=300')
                                         if (w) w.document.body.innerHTML = `<div style=\"display:flex;align-items:center;justify-content:center;height:100%;padding:12px;background:#fff\"><img alt=\"QR\" src=\"${img}\"/></div>`
                                     }}>
-                                        <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><path d="M3 14h7v7H3z" /></svg>
+                                        <QrCode className="icon" strokeWidth={2} aria-hidden />
                                     </button>
 
                                     {/* Import actions */}
@@ -1170,8 +1152,8 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                         const el = document.getElementById('oqr-import-json') as HTMLInputElement | null
                                         el?.click()
                                     }}>
-                                        {/* Upload tray icon */}
-                                        <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M12 3v12" /><path d="M7 8l5-5 5 5" /></svg>
+                                        {/* Upload icon */}
+                                        <Upload className="icon" strokeWidth={2} aria-hidden />
                                     </button>
                                     <button type="button" className="icon-btn" title="Paste JSON" aria-label="Paste JSON" onClick={async () => {
                                         try {
@@ -1181,7 +1163,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                         } catch { }
                                     }}>
                                         {/* Clipboard icon */}
-                                        <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="3" width="13" height="18" rx="2" ry="2" /><path d="M5 7V5a2 2 0 0 1 2-2h8" /></svg>
+                                        <Clipboard className="icon" strokeWidth={2} aria-hidden />
                                     </button>
                                 </div>
                             </div>
@@ -1189,7 +1171,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                             <div className="card">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                                     {/* Note icon */}
-                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 4h12a2 2 0 0 1 2 2v12l-4-4H6a2 2 0 0 1-2-2V4z" /></svg>
+                                    <FileText className="icon" strokeWidth={2} aria-hidden />
                                     <span style={{ fontWeight: 600 }}>Notes</span>
                                 </div>
                                 <div style={{ display: 'grid', gap: 4, maxHeight: 180, overflow: 'auto' }}>
@@ -1227,7 +1209,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
 
                             <div className="card">
                                 <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
+                                    <Bookmark className="icon" strokeWidth={2} aria-hidden />
                                     <span style={{ fontWeight: 600 }}>Bookmarks</span>
                                 </div>
                                 <div style={{ display: 'grid', gap: 4, maxHeight: 180, overflow: 'auto' }}>

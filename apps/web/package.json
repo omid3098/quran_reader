@@ -3,6 +3,7 @@
   "private": true,
   "version": "0.0.0",
   "dependencies": {
+    "lucide-react": "^0.540.0",
     "next": "14.2.7",
     "react": "18.3.1",
     "react-dom": "18.3.1"
@@ -10,8 +11,8 @@
   "devDependencies": {
     "@types/node": "20.12.12",
     "@types/react": "18.3.3",
-    "typescript": "5.5.4",
-    "eslint": "9.9.0"
+    "eslint": "9.9.0",
+    "typescript": "5.5.4"
   },
   "scripts": {
     "dev": "node ../../scripts/copy-xml.js && next dev",
