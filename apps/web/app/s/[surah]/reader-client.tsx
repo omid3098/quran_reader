@@ -67,6 +67,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const [openNoteAyah, setOpenNoteAyah] = useState<number | null>(null)
     const [incomingShare, setIncomingShare] = useState<null | { bookmarks: VerseKey[]; notes: Array<[VerseKey, string]> }>(null)
     const [showQr, setShowQr] = useState(false)
+    const [hydrated, setHydrated] = useState(false)
 
     // Audio state
     const reciterOptions = useMemo(
@@ -89,6 +90,8 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     useEffect(() => {
         document.documentElement.dataset.theme = theme
     }, [theme])
+
+    useEffect(() => { setHydrated(true) }, [])
 
     // Create a single audio element for this page
     useEffect(() => {
@@ -682,8 +685,24 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         <main className="container">
             <header className="header" role="banner">
                 <div className="header-inner">
-                    <nav className="toolbar" aria-label="Reader controls">
-                        <div ref={surahDropdownRef} style={{ position: 'relative' }}>
+                    <nav className="toolbar" aria-label="Reader controls" style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
+                        {/* Left: Sidebar (menu) button */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                            <button
+                                type="button"
+                                className="icon-btn"
+                                onClick={() => setSidebarOpen(true)}
+                                aria-label="Open settings"
+                                title="Settings"
+                            >
+                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <path d="M3 6h18M3 12h18M3 18h18" />
+                                </svg>
+                            </button>
+                        </div>
+
+                        {/* Center: Surah dropdown */}
+                        <div ref={surahDropdownRef} style={{ position: 'relative', justifySelf: 'center' }}>
                             <button
                                 type="button"
                                 className="button"
@@ -693,10 +712,11 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                 aria-label="Select surah"
                             >
                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                                    {/* Book icon */}
                                     <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                        <path d="M4 19.5V5a2 2 0 0 1 2-2h10.5" />
+                                        <path d="M4 19.5V5a2 2 0 0 1 2-2h11" />
+                                        <path d="M20 22V6a3 3 0 0 0-3-3H6" />
                                         <path d="M4 19.5A2.5 2.5 0 0 1 6.5 17H20" />
-                                        <path d="M20 22V4a2 2 0 0 0-2-2H6" />
                                     </svg>
                                     <span dir="rtl" lang="ar">سورة {surahs.find((s) => s.number === surah)?.name_ar || surah}</span>
                                     <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true" style={{ marginInlineStart: 4 }}>
@@ -705,7 +725,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                 </span>
                             </button>
                             {isSurahOpen ? (
-                                <div className="card" style={{ position: 'absolute', left: 0, top: 'calc(100% + 8px)', width: 360, maxHeight: 360, overflow: 'auto', padding: 8, zIndex: 20 }}>
+                                <div className="card" style={{ position: 'absolute', left: '50%', transform: 'translateX(-50%)', top: 'calc(100% + 8px)', width: 360, maxHeight: 360, overflow: 'auto', padding: 8, zIndex: 20 }}>
                                     <div style={{ display: 'grid', gap: 8 }}>
                                         <input
                                             className="input"
@@ -755,30 +775,22 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                 </div>
                             ) : null}
                         </div>
-                        <button
-                            type="button"
-                            className="icon-btn"
-                            onClick={() => setSidebarOpen(true)}
-                            aria-label="Open settings"
-                            title="Settings"
-                        >
-                            <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <path d="M3 6h18M3 12h18M3 18h18" />
-                            </svg>
-                        </button>
-                        <button
-                            type="button"
-                            className={`icon-btn${showNotes ? ' active' : ''}`}
-                            aria-pressed={showNotes}
-                            onClick={() => setShowNotes(!showNotes)}
-                            aria-label={showNotes ? 'Hide notes' : 'Show notes'}
-                            title={showNotes ? 'Hide notes' : 'Show notes'}
-                        >
-                            {/* Note/file icon (same as verse note button for consistency) */}
-                            <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <path d="M4 4h12a2 2 0 0 1 2 2v12l-4-4H6a2 2 0 0 1-2-2V4z" />
-                            </svg>
-                        </button>
+
+                        {/* Right: Notes toggle */}
+                        <div style={{ display: 'flex', justifyContent: 'flex-end' }}>
+                            <button
+                                type="button"
+                                className={`icon-btn${showNotes ? ' active' : ''}`}
+                                aria-pressed={showNotes}
+                                onClick={() => setShowNotes(!showNotes)}
+                                aria-label={showNotes ? 'Hide notes' : 'Show notes'}
+                                title={showNotes ? 'Hide notes' : 'Show notes'}
+                            >
+                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <path d="M4 4h12a2 2 0 0 1 2 2v12l-4-4H6a2 2 0 0 1-2-2V4z" />
+                                </svg>
+                            </button>
+                        </div>
                     </nav>
                 </div>
             </header>
@@ -1112,12 +1124,12 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                         <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
-                                <span className="muted">{Object.keys(bookmarks).length} bookmarks</span>
+                                <span className="muted" suppressHydrationWarning>{(hydrated ? Object.keys(bookmarks).length : 0)} bookmarks</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                 {/* Use the same note icon as verses */}
                                 <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 4h12a2 2 0 0 1 2 2v12l-4-4H6a2 2 0 0 1-2-2V4z" /></svg>
-                                <span className="muted">{Object.keys(notes).length} notes</span>
+                                <span className="muted" suppressHydrationWarning>{(hydrated ? Object.keys(notes).length : 0)} notes</span>
                             </div>
                         </div>
                         <div className="card" style={{ display: 'grid', gap: 8 }}>
@@ -1179,7 +1191,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                 <span style={{ fontWeight: 600 }}>Notes</span>
                             </div>
                             <div style={{ display: 'grid', gap: 4, maxHeight: 180, overflow: 'auto' }}>
-                                {Object.keys(notes).length === 0 ? (
+                                {(!hydrated || Object.keys(notes).length === 0) ? (
                                     <div className="muted">No notes yet</div>
                                 ) : (
                                     Object.keys(notes)
@@ -1217,7 +1229,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                 <span style={{ fontWeight: 600 }}>Bookmarks</span>
                             </div>
                             <div style={{ display: 'grid', gap: 4, maxHeight: 180, overflow: 'auto' }}>
-                                {Object.keys(bookmarks).length === 0 ? (
+                                {(!hydrated || Object.keys(bookmarks).length === 0) ? (
                                     <div className="muted">No bookmarks yet</div>
                                 ) : (
                                     Object.keys(bookmarks)
