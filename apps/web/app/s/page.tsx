@@ -28,7 +28,7 @@ export default async function SurahListPage() {
       <section style={{ padding: 16 }}>
         <h2>Surahs</h2>
         {!surahs.length ? (
-          <div className="card">No data. Is the API running at http://localhost:4000?</div>
+          <div className="card">No data. Is the API running? Try checking /health.</div>
         ) : (
           <div className="grid">
             {surahs.map((s) => (

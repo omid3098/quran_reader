@@ -5,7 +5,7 @@ Last updated: 2025-08-21
 ## Current status
 - Repo scaffolded as pnpm workspace monorepo
 - apps/api file-backed Read API with /health, /surahs, /translations, /verses (served from scripts/out)
-- apps/web Next.js App Router in progress:
+- apps/web Next.js App Router MVP complete:
   - Surah list page at /s (server component) listing surahs (Arabic names)
   - Reader page at /s/[surah] with Arabic text, multi-select translations, RTL layout, skeleton states
   - URL reflects state via t= (translations) and v= (focused ayah); last read position persisted
@@ -21,18 +21,18 @@ Last updated: 2025-08-21
  - Prisma introduced for DB-backed mode (schema defined); seed script added; API can run in DB mode via USE_DATABASE=true
 
 ## Next phases (MVP path)
-1) Web UI/UX Reader MVP (in progress)
+1) Web UI/UX Reader MVP (done)
    - Already done:
      - Header with Surah selector (dropdown) and translations multi-select; theme and font size controls; state persisted to localStorage
      - Reader view: Arabic text, ayah numbers, selected translations, loading skeletons, smooth scroll to focused ayah
      - A11y/RTL: basic bidi-safe rendering, focusable ayahs, responsive layout
      - API integration via Next.js rewrite (/api -> localhost:4000)
-   - Remaining to complete MVP:
      - Keyboard navigation between ayahs (←/→ or j/k) updating focused ayah
      - Bismillah handling rules (show/hide appropriately per surah)
      - Performance: progressive lazy rendering/windowing of verses (no explicit range control in UX)
-     - Surah list: optional English names if desired (dataset currently provides Arabic names only)
-     - Consistent API usage in web (use /api everywhere; avoid hardcoded http://localhost:4000 in /s)
+     - Consistent API usage in web (/api everywhere)
+   - Optional polish:
+     - Surah list: English names (dataset currently provides Arabic names only)
 
 2) File-backed Read API (done)
    - GET /surahs, GET /translations, GET /verses?surah=…&from=…&to=…&translation_ids=… served from scripts/out
