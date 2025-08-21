@@ -1,11 +1,15 @@
 # OpenQuranReader — Development Plan (living document)
 
-Last updated: 2025-08-20
+Last updated: 2025-08-21
 
 ## Current status
 - Repo scaffolded as pnpm workspace monorepo
-- apps/api file-backed Read API with /health, /surahs, /translations, /verses
-- apps/web Next.js App Router scaffold (placeholder page)
+- apps/api file-backed Read API with /health, /surahs, /translations, /verses (served from scripts/out)
+- apps/web Next.js App Router in progress:
+  - Surah list page at /s (server component) listing surahs (Arabic names)
+  - Reader page at /s/[surah] with Arabic text, multi-select translations, RTL layout, skeleton states
+  - URL reflects state via t= (translations) and v= (focused ayah); last read position persisted
+  - Next.js rewrite config proxies /api/* -> http://localhost:4000/*
 - Tanzil importer implemented: scripts/tanzil-import.js parses assets/quran XML and outputs to scripts/out
 - Data generated:
   - scripts/out/surahs.json
@@ -16,13 +20,18 @@ Last updated: 2025-08-20
 - Docker compose for Postgres + pgAdmin prepared (not yet used)
 
 ## Next phases (MVP path)
-1) Web UI/UX Reader MVP (current)
-   - App shell: header (surah selector, ayah range, translation selector), toggleable sidebar for Surah list
-   - Reader view: Arabic text + 1 translation (default), ayah numbers with anchors, Bismillah handling, loading skeletons
-   - Settings: font size slider, light/dark theme, Arabic font choice; persist to localStorage
-   - Navigation: keyboard (←/→ or j/k) to move ayah, smooth scroll to focused ayah, URL reflects state (/s/1?from=1&to=7&t=en.arberry)
-   - A11y/RTL: bidi-safe rendering, focus outlines, sufficient contrast, responsive layout
-   - Error/empty states: API unavailable, no translations selected, invalid URL params
+1) Web UI/UX Reader MVP (in progress)
+   - Already done:
+     - Header with Surah selector (dropdown) and translations multi-select; theme and font size controls; state persisted to localStorage
+     - Reader view: Arabic text, ayah numbers, selected translations, loading skeletons, smooth scroll to focused ayah
+     - A11y/RTL: basic bidi-safe rendering, focusable ayahs, responsive layout
+     - API integration via Next.js rewrite (/api -> localhost:4000)
+   - Remaining to complete MVP:
+     - Keyboard navigation between ayahs (←/→ or j/k) updating focused ayah
+     - Bismillah handling rules (show/hide appropriately per surah)
+     - Performance: progressive lazy rendering/windowing of verses (no explicit range control in UX)
+     - Surah list: optional English names if desired (dataset currently provides Arabic names only)
+     - Consistent API usage in web (use /api everywhere; avoid hardcoded http://localhost:4000 in /s)
 
 2) File-backed Read API (done)
    - GET /surahs, GET /translations, GET /verses?surah=…&from=…&to=…&translation_ids=… served from scripts/out
@@ -55,18 +64,18 @@ Last updated: 2025-08-20
 
 ## Acceptance criteria for current phase — Web UI/UX Reader MVP
 - Pages
-  - Surah list page at /s lists 114 surahs with Arabic and English names
-  - Reader page at /s/1 renders ayah 1–7 by default with Arabic and the selected translation
+  - Surah list page at /s lists 114 surahs with Arabic names (English names optional)
+  - Reader page at /s/[surah] renders the surah with Arabic and the selected translations; can deep-link to an ayah via v=
 - API integration
-  - Client fetches from http://localhost:4000/surahs, /translations, /verses and shows loading/error states
+  - Client uses Next.js rewrite `/api/*` -> `http://localhost:4000/*`; shows loading and error states
 - Controls & persistence
-  - Translation selector populated from /translations; selected translation persists in localStorage and reflects in URL as t=
-  - Font size and theme toggles persist across reloads
+  - Translations multi-select populated from /translations; selection persists in localStorage and reflects in URL as t=
+  - Font size and theme toggles persist across reloads; theme applied before hydration
 - Navigation & deep links
-  - Keyboard navigation between ayahs; focused ayah is visible and scrolled into view
-  - URL query params (from, to, t) are read on load and updated on interaction
+  - Smooth scroll to focused ayah; keyboard navigation (←/→ or j/k) moves focus
+  - URL query params (t, v) are read on load and updated on interaction
 - UX quality bar
-  - Basic skeletons for verse list; responsive layout; correct RTL rendering; accessible focus styles
+  - Skeletons for verse list; responsive layout; correct RTL rendering; accessible focus styles
 - Explicitly out of scope for this phase: DB, Auth, Notes, Search
 
 ## Notes

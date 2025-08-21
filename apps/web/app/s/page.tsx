@@ -1,7 +1,7 @@
 import Link from 'next/link'
 
 async function fetchSurahs() {
-  const res = await fetch('http://localhost:4000/surahs', { next: { revalidate: 0 } })
+  const res = await fetch('/api/surahs', { next: { revalidate: 0 } })
   if (!res.ok) throw new Error('Failed to load surahs')
   return (await res.json()) as Array<{ number: number; name_ar: string }>
 }

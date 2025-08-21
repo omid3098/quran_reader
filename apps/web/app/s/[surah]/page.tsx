@@ -10,6 +10,7 @@ type Verse = {
   surah: number
   ayah: number
   text_ar_simple: string
+  bismillah?: string
   translations?: Array<{ translationId: string; text: string }>
 }
 
@@ -51,6 +52,8 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
   const [surahQuery, setSurahQuery] = useState('')
   const surahDropdownRef = useRef<HTMLDivElement>(null)
   const [activeAyah, setActiveAyah] = useState<number | null>(null)
+  const [renderUpto, setRenderUpto] = useState<number>(0)
+  const RENDER_STEP = 50
 
   useEffect(() => {
     document.documentElement.dataset.theme = theme
@@ -147,6 +150,70 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
       localStorage.setItem('oqr:lastPosition', JSON.stringify({ surah, ayah: activeAyah }))
     } catch { }
   }, [surah, activeAyah])
+
+  // Initialize and maintain progressive rendering window
+  useEffect(() => {
+    if (!verses || !verses.length) return
+    const lastAyah = verses[verses.length - 1]?.ayah || 0
+    const baseline = activeAyah && activeAyah > 0 ? activeAyah : 1
+    setRenderUpto((prev) => {
+      const target = Math.min(lastAyah, baseline + RENDER_STEP)
+      return prev > target ? prev : target
+    })
+  }, [verses, activeAyah])
+
+  // Ensure window grows when navigating past current boundary
+  useEffect(() => {
+    if (!verses || !verses.length || !activeAyah) return
+    const lastAyah = verses[verses.length - 1]?.ayah || 0
+    if (activeAyah > renderUpto) {
+      setRenderUpto(Math.min(lastAyah, activeAyah + RENDER_STEP))
+    }
+  }, [activeAyah, verses, renderUpto])
+
+  // Infinite bottom sentinel to progressively render more verses
+  const bottomRef = useRef<HTMLDivElement>(null)
+  useEffect(() => {
+    if (!verses || !verses.length) return
+    const el = bottomRef.current
+    if (!el) return
+    const lastAyah = verses[verses.length - 1]?.ayah || 0
+    const io = new IntersectionObserver((entries) => {
+      if (entries[0]?.isIntersecting) {
+        setRenderUpto((prev) => Math.min(lastAyah, prev + RENDER_STEP))
+      }
+    })
+    io.observe(el)
+    return () => io.disconnect()
+  }, [verses, bottomRef])
+
+  // Keyboard navigation: ←/k previous, →/j next
+  useEffect(() => {
+    const handler = (e: KeyboardEvent) => {
+      const target = document.activeElement as HTMLElement | null
+      const tag = target?.tagName?.toLowerCase()
+      if (tag === 'input' || tag === 'select' || tag === 'textarea' || target?.isContentEditable) return
+      if (isSurahOpen || isTranslationsOpen) return
+      if (!verses || !verses.length) return
+      const first = verses[0]?.ayah || 1
+      const last = verses[verses.length - 1]?.ayah || first
+      if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'j') {
+        e.preventDefault()
+        setActiveAyah((prev) => {
+          const next = Math.min(last, (prev || first) + 1)
+          return next
+        })
+      } else if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'k') {
+        e.preventDefault()
+        setActiveAyah((prev) => {
+          const next = Math.max(first, (prev || first) - 1)
+          return next
+        })
+      }
+    }
+    window.addEventListener('keydown', handler)
+    return () => window.removeEventListener('keydown', handler)
+  }, [verses, isSurahOpen, isTranslationsOpen])
 
   const arabicSizeVar = font === 'sm' ? '20px' : font === 'lg' ? '28px' : '24px'
   const selectedTranslations = translations.filter((t) => enabledTranslations.includes(t.id))
@@ -276,7 +343,7 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
           </div>
         ) : (
           <div ref={listRef} style={{ '--arabic-size': arabicSizeVar } as React.CSSProperties}>
-            {verses.map((v) => (
+            {verses.filter((v) => v.ayah <= renderUpto).map((v) => (
               <article
                 key={v.ayah}
                 id={`ayah-${v.ayah}`}
@@ -291,6 +358,11 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
                   }
                 }}
               >
+                {v.ayah === 1 && v.bismillah && !v.text_ar_simple.startsWith(v.bismillah) ? (
+                  <div className="arabic" dir="rtl" lang="ar" style={{ opacity: 0.9 }}>
+                    {v.bismillah}
+                  </div>
+                ) : null}
                 <div className="arabic" dir="rtl" lang="ar">
                   <span className="ayah-num">{v.ayah}</span>
                   <span>{v.text_ar_simple}</span>
@@ -311,6 +383,9 @@ export default function ReaderPage({ params }: { params: { surah: string } }) {
                 ) : null}
               </article>
             ))}
+            {renderUpto < (verses[verses.length - 1]?.ayah || 0) ? (
+              <div ref={bottomRef} className="skeleton" style={{ height: 32, marginTop: 8 }} />
+            ) : null}
           </div>
         )}
       </section>

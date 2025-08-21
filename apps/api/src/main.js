@@ -122,7 +122,11 @@ const server = http.createServer((req, res) => {
     for (let ayah = from; ayah <= to; ayah++) {
       const key = `${surah}:${ayah}`
       const base = VERSES_INDEX.get(key)
-      if (base) slice.push({ surah, ayah, text_ar_simple: base.text_ar_simple })
+      if (base) {
+        const row = { surah, ayah, text_ar_simple: base.text_ar_simple }
+        if (base.bismillah) Object.assign(row, { bismillah: base.bismillah })
+        slice.push(row)
+      }
     }
 
     // Collect translations if requested
