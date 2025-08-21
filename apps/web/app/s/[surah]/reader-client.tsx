@@ -58,21 +58,31 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const [renderUpto, setRenderUpto] = useState<number>(0)
     const RENDER_STEP = 50
     const [isSidebarOpen, setSidebarOpen] = useState(false)
+    // Local bookmarks and notes
+    type VerseKey = `${number}:${number}`
+    type NotesMap = Record<VerseKey, { text: string; updatedAt: string }>
+    type BookmarksSet = Record<VerseKey, true>
+    const [bookmarks, setBookmarks] = useLocalStorage<BookmarksSet>('oqr:bookmarks', {})
+    const [notes, setNotes] = useLocalStorage<NotesMap>('oqr:notes', {})
+    const [openNoteAyah, setOpenNoteAyah] = useState<number | null>(null)
+    const [incomingShare, setIncomingShare] = useState<null | { bookmarks: VerseKey[]; notes: Array<[VerseKey, string]> }>(null)
+    const [showQr, setShowQr] = useState(false)
 
     // Audio state
     const reciterOptions = useMemo(
         () => [
-            { id: 'Abu_Bakr_Ash-Shaatree_128kbps', name: 'Abu Bakr Ash-Shaatree (128kbps)' },
-            { id: 'Alafasy_128kbps', name: 'Mishary Rashid Alafasy (128kbps)' },
-            { id: 'Ghamadi_64kbps', name: 'Saad Al-Ghamdi (64kbps)' },
-            { id: 'Abdul_Basit_Murattal_128kbps', name: 'Abdul Basit (Murattal, 128kbps)' },
-            { id: 'Husary_128kbps', name: 'Al-Husary (Tartil, 128kbps)' },
-            { id: 'Minshawy_Murattal_128kbps', name: 'Minshawy (Murattal, 128kbps)' },
+            { id: 'Abu_Bakr_Ash-Shaatree_128kbps', name: 'Abu Bakr Ash-Shaatree' },
+            { id: 'Alafasy_128kbps', name: 'Mishary Rashid Alafasy' },
+            { id: 'Ghamadi_64kbps', name: 'Saad Al-Ghamdi' },
+            { id: 'Abdul_Basit_Murattal_128kbps', name: 'Abdul Basit (Murattal' },
+            { id: 'Husary_128kbps', name: 'Al-Husary (Tartil' },
+            { id: 'Minshawy_Murattal_128kbps', name: 'Minshawy' },
         ],
         []
     )
     const [reciter, setReciter] = useLocalStorage<string>('oqr:reciter', 'Alafasy_128kbps')
     const [autoplay, setAutoplay] = useLocalStorage<boolean>('oqr:autoplay', true)
+    const [showNotes, setShowNotes] = useLocalStorage<boolean>('oqr:showNotes', true)
     const [playingAyah, setPlayingAyah] = useState<number | null>(null)
     const audioRef = useRef<HTMLAudioElement | null>(null) as MutableRefObject<HTMLAudioElement | null>
 
@@ -143,6 +153,61 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     }, [])
 
     const tParam = useMemo(() => enabledTranslations.join(','), [enabledTranslations])
+
+    function makeKey(s: number, a: number): VerseKey { return `${s}:${a}` as VerseKey }
+
+    function isBookmarked(ayah: number): boolean {
+        const key = makeKey(surah, ayah)
+        return !!bookmarks[key]
+    }
+
+    function toggleBookmark(ayah: number) {
+        const key = makeKey(surah, ayah)
+        setBookmarks((prev) => {
+            const next = { ...prev }
+            if (next[key]) delete next[key]
+            else next[key] = true
+            return next
+        })
+    }
+
+    function getNote(ayah: number): string {
+        const key = makeKey(surah, ayah)
+        return notes[key]?.text || ''
+    }
+
+    function saveNote(ayah: number, text: string) {
+        const key = makeKey(surah, ayah)
+        const trimmed = text.trim()
+        setNotes((prev) => {
+            const next = { ...prev }
+            if (trimmed) next[key] = { text: trimmed, updatedAt: new Date().toISOString() }
+            else delete next[key]
+            return next
+        })
+    }
+
+    // Share helpers (URL-safe base64)
+    function encodeSharePayload(obj: any): string {
+        try {
+            const json = JSON.stringify(obj)
+            const b64 = btoa(unescape(encodeURIComponent(json)))
+            return b64.replace(/\+/g, '-').replace(/\//g, '_').replace(/=+$/g, '')
+        } catch {
+            return ''
+        }
+    }
+
+    function decodeSharePayload(s: string): any | null {
+        try {
+            const pad = s.length % 4 === 0 ? '' : '='.repeat(4 - (s.length % 4))
+            const b64 = s.replace(/-/g, '+').replace(/_/g, '/') + pad
+            const json = decodeURIComponent(escape(atob(b64)))
+            return JSON.parse(json)
+        } catch {
+            return null
+        }
+    }
 
     // Load verses and selected translations from static files
     useEffect(() => {
@@ -235,10 +300,15 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         const params = new URLSearchParams()
         if (t) params.set('t', t)
         if (activeAyah && activeAyah > 0) params.set('v', String(activeAyah))
+        // preserve share param only if currently reviewing incomingShare
+        if (incomingShare) {
+            const spShare = sp.get('share')
+            if (spShare) params.set('share', spShare)
+        }
         const qs = params.toString()
         const href = (`/s/${surah}${qs ? `?${qs}` : ''}`) as Route
         router.replace(href, { scroll: false })
-    }, [router, surah, enabledTranslations, activeAyah])
+    }, [router, surah, enabledTranslations, activeAyah, incomingShare, sp])
 
     const listRef = useRef<HTMLDivElement>(null)
 
@@ -470,6 +540,144 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         })
     }
 
+    // Incoming share parse (from URL ?share=...)
+    useEffect(() => {
+        const shareParam = sp.get('share')
+        if (!shareParam) { setIncomingShare(null); return }
+        const decoded = decodeSharePayload(shareParam)
+        if (!decoded || typeof decoded !== 'object') { setIncomingShare(null); return }
+        const v = Number(decoded?.v || 0)
+        if (v !== 1) { setIncomingShare(null); return }
+        const bm: VerseKey[] = Array.isArray(decoded?.bookmarks) ? decoded.bookmarks.filter((k: any) => typeof k === 'string') : []
+        const ns: Array<[VerseKey, string]> = Array.isArray(decoded?.notes) ? decoded.notes.filter((it: any) => Array.isArray(it) && typeof it[0] === 'string' && typeof it[1] === 'string').map((it: any) => [it[0] as VerseKey, it[1] as string]) : []
+        setIncomingShare({ bookmarks: bm, notes: ns })
+    }, [sp])
+
+    function acceptIncomingShare() {
+        if (!incomingShare) return
+        const now = new Date().toISOString()
+        setBookmarks((prev) => {
+            const next = { ...prev }
+            for (const k of incomingShare.bookmarks) next[k as VerseKey] = true
+            return next
+        })
+        setNotes((prev) => {
+            const next = { ...prev }
+            for (const [k, text] of incomingShare.notes) {
+                const trimmed = text.trim()
+                if (!trimmed) continue
+                next[k as VerseKey] = { text: trimmed, updatedAt: now }
+            }
+            return next
+        })
+        // Remove share param from URL
+        const params = new URLSearchParams()
+        const t = enabledTranslations.join(',')
+        if (t) params.set('t', t)
+        if (activeAyah && activeAyah > 0) params.set('v', String(activeAyah))
+        const href = (`/s/${surah}${params.toString() ? `?${params.toString()}` : ''}`) as Route
+        setIncomingShare(null)
+        router.replace(href, { scroll: false })
+    }
+
+    function dismissIncomingShare() {
+        // Keep param but hide UI for this session
+        setIncomingShare(null)
+    }
+
+    // Export/Import helpers
+    type ExportBundle = { v: 1; bookmarks: VerseKey[]; notes: Array<[VerseKey, string, string]>; exportedAt: string }
+    function buildExportBundle(): ExportBundle {
+        const exportedAt = new Date().toISOString()
+        const bm = Object.keys(bookmarks) as VerseKey[]
+        const ns: Array<[VerseKey, string, string]> = Object.entries(notes)
+            .map(([k, v]) => [k as VerseKey, v.text, v.updatedAt] as [VerseKey, string, string])
+        return { v: 1, bookmarks: bm, notes: ns, exportedAt }
+    }
+
+    function downloadExport() {
+        const bundle = buildExportBundle()
+        const blob = new Blob([JSON.stringify(bundle)], { type: 'application/json' })
+        const url = URL.createObjectURL(blob)
+        const a = document.createElement('a')
+        const date = new Date().toISOString().slice(0, 10)
+        a.href = url
+        a.download = `oqr-data-${date}.json`
+        document.body.appendChild(a)
+        a.click()
+        a.remove()
+        URL.revokeObjectURL(url)
+    }
+
+    async function copyExportToClipboard() {
+        const bundle = buildExportBundle()
+        try { await navigator.clipboard.writeText(JSON.stringify(bundle)) } catch { }
+    }
+
+    async function handleImportFile(file: File) {
+        try {
+            const text = await file.text()
+            const data = JSON.parse(text)
+            mergeImported(data)
+        } catch { }
+    }
+
+    function mergeImported(data: any) {
+        if (!data || typeof data !== 'object' || Number(data.v) !== 1) return
+        const inBm: VerseKey[] = Array.isArray(data.bookmarks) ? data.bookmarks.filter((k: any) => typeof k === 'string') : []
+        const inNotes: Array<[VerseKey, string, string]> = Array.isArray(data.notes) ? data.notes.filter((it: any) => Array.isArray(it) && typeof it[0] === 'string' && typeof it[1] === 'string').map((it: any) => [it[0] as VerseKey, it[1] as string, String(it[2] || '')]) : []
+        setBookmarks((prev) => {
+            const next = { ...prev }
+            for (const k of inBm) next[k] = true
+            return next
+        })
+        setNotes((prev) => {
+            const next = { ...prev }
+            for (const [k, text, updatedAt] of inNotes) {
+                const trimmed = text.trim()
+                if (!trimmed) continue
+                const prevTs = Date.parse(next[k]?.updatedAt || '1970-01-01')
+                const inTs = Date.parse(updatedAt || '1970-01-01')
+                if (!next[k] || inTs >= prevTs) next[k] = { text: trimmed, updatedAt: updatedAt || new Date().toISOString() }
+            }
+            return next
+        })
+    }
+
+    function shareAllAsLink(): { url: string | null; reason?: string } {
+        const bundle = buildExportBundle()
+        const compact = { v: 1, bookmarks: bundle.bookmarks, notes: bundle.notes.map(([k, t]) => [k, t]) }
+        const enc = encodeSharePayload(compact)
+        if (!enc) return { url: null, reason: 'Failed to encode' }
+        const base = (typeof window !== 'undefined') ? window.location.origin : ''
+        const href = `${base}/s/${surah}?share=${enc}`
+        if (href.length > 1800) {
+            return { url: null, reason: 'Too large for a link; use file export' }
+        }
+        return { url: href }
+    }
+
+    function shareVerseAsLink(ayah: number): string | null {
+        const key = makeKey(surah, ayah)
+        const includeBm = !!bookmarks[key]
+        const n = notes[key]?.text
+        const compact = { v: 1, bookmarks: includeBm ? [key] : [], notes: n ? [[key, n]] : [] }
+        const enc = encodeSharePayload(compact)
+        if (!enc) return null
+        const base = (typeof window !== 'undefined') ? window.location.origin : ''
+        const params = new URLSearchParams()
+        const t = enabledTranslations.join(',')
+        if (t) params.set('t', t)
+        params.set('v', String(ayah))
+        params.set('share', enc)
+        return `${base}/s/${surah}?${params.toString()}`
+    }
+
+    function qrImageUrl(link: string, size = 220): string {
+        // Remote QR service; suitable for quick sharing without extra deps
+        return `https://api.qrserver.com/v1/create-qr-code/?size=${size}x${size}&data=${encodeURIComponent(link)}`
+    }
+
     return (
         <main className="container">
             <header className="header" role="banner">
@@ -558,11 +766,39 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                 <path d="M3 6h18M3 12h18M3 18h18" />
                             </svg>
                         </button>
+                        <button
+                            type="button"
+                            className={`icon-btn${showNotes ? ' active' : ''}`}
+                            aria-pressed={showNotes}
+                            onClick={() => setShowNotes(!showNotes)}
+                            aria-label={showNotes ? 'Hide notes' : 'Show notes'}
+                            title={showNotes ? 'Hide notes' : 'Show notes'}
+                        >
+                            {/* Sticky note icon */}
+                            <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <path d="M3 3h13a5 5 0 0 1 5 5v13H8a5 5 0 0 1-5-5V3z" />
+                                <path d="M8 3v5a3 3 0 0 0 3 3h5" />
+                            </svg>
+                        </button>
                     </nav>
                 </div>
             </header>
 
             <section style={{ padding: 16 }}>
+                {incomingShare ? (
+                    <div className="card" role="region" aria-label="Incoming shared data" style={{ marginBottom: 12 }}>
+                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                            <div>
+                                <div style={{ fontWeight: 600, marginBottom: 6 }}>Shared data detected</div>
+                                <div className="muted">Bookmarks: {incomingShare.bookmarks.length} · Notes: {incomingShare.notes.length}</div>
+                            </div>
+                            <div style={{ display: 'flex', gap: 8 }}>
+                                <button className="button" onClick={acceptIncomingShare}>Merge</button>
+                                <button className="button" onClick={dismissIncomingShare}>Dismiss</button>
+                            </div>
+                        </div>
+                    </div>
+                ) : null}
                 {error && <div className="card" role="alert">Failed to load verses: {error}</div>}
                 {!verses ? (
                     <div style={{ display: 'grid', gap: 8 }}>
@@ -587,8 +823,62 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                     }
                                 }}
                             >
-                                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6 }}>
+                                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6, justifyContent: 'space-between' }}>
                                     <span className="muted">Ayah {v.ayah}</span>
+                                    {activeAyah === v.ayah ? (
+                                        <div style={{ display: 'inline-flex', gap: 6 }}>
+                                            <button
+                                                type="button"
+                                                className={`icon-btn${isBookmarked(v.ayah) ? ' active' : ''}`}
+                                                title={isBookmarked(v.ayah) ? 'Remove bookmark' : 'Add bookmark'}
+                                                aria-pressed={isBookmarked(v.ayah)}
+                                                onClick={(e) => { e.stopPropagation(); toggleBookmark(v.ayah) }}
+                                            >
+                                                {/* Star icon */}
+                                                {isBookmarked(v.ayah) ? (
+                                                    <svg className="icon" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" aria-hidden="true">
+                                                        <path d="M12 17.27L18.18 21 16.54 13.97 22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                                                    </svg>
+                                                ) : (
+                                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21 12 17.77 5.82 21 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                                    </svg>
+                                                )}
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className={`icon-btn${openNoteAyah === v.ayah ? ' active' : ''}`}
+                                                title="Add/view note"
+                                                aria-pressed={openNoteAyah === v.ayah}
+                                                onClick={(e) => { e.stopPropagation(); setOpenNoteAyah((cur) => cur === v.ayah ? null : v.ayah) }}
+                                            >
+                                                {/* Note icon */}
+                                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                                    <path d="M4 4h12a2 2 0 0 1 2 2v12l-4-4H6a2 2 0 0 1-2-2V4z" />
+                                                </svg>
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="icon-btn"
+                                                title="Share this verse"
+                                                onClick={(e) => {
+                                                    e.stopPropagation()
+                                                    const link = shareVerseAsLink(v.ayah)
+                                                    if (!link) return
+                                                    try { void navigator.clipboard.writeText(link) } catch { }
+                                                    alert('Share link copied to clipboard')
+                                                }}
+                                            >
+                                                {/* Share icon */}
+                                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                                    <circle cx="18" cy="5" r="3" />
+                                                    <circle cx="6" cy="12" r="3" />
+                                                    <circle cx="18" cy="19" r="3" />
+                                                    <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
+                                                </svg>
+                                            </button>
+                                        </div>
+                                    ) : null}
                                 </div>
                                 {v.ayah === 1 && v.bismillah && !v.text_ar_simple.startsWith(v.bismillah) ? (
                                     <div className="arabic" dir="rtl" lang="ar" style={{ opacity: 0.9 }}>
@@ -618,6 +908,48 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                                 </div>
                                             )
                                         })}
+                                    </div>
+                                ) : null}
+                                {showNotes && openNoteAyah === v.ayah ? (
+                                    <div className="card" style={{ marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
+                                        <div className="muted" style={{ marginBottom: 6 }}>Note for {surah}:{v.ayah}</div>
+                                        <textarea
+                                            className="textarea"
+                                            defaultValue={getNote(v.ayah)}
+                                            placeholder="Write your note in plain text or Markdown..."
+                                            rows={4}
+                                            style={{ width: '100%' }}
+                                            onKeyDown={(e) => e.stopPropagation()}
+                                            onClick={(e) => e.stopPropagation()}
+                                            id={`note-${surah}-${v.ayah}`}
+                                        />
+                                        <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'flex-end' }}>
+                                            <button
+                                                type="button"
+                                                className="button"
+                                                onClick={() => {
+                                                    const el = document.getElementById(`note-${surah}-${v.ayah}`) as HTMLTextAreaElement | null
+                                                    const val = el?.value || ''
+                                                    saveNote(v.ayah, val)
+                                                    setOpenNoteAyah(null)
+                                                }}
+                                            >
+                                                Save
+                                            </button>
+                                            <button
+                                                type="button"
+                                                className="button"
+                                                onClick={() => {
+                                                    saveNote(v.ayah, '')
+                                                    const el = document.getElementById(`note-${surah}-${v.ayah}`) as HTMLTextAreaElement | null
+                                                    if (el) el.value = ''
+                                                    setOpenNoteAyah(null)
+                                                }}
+                                            >
+                                                Clear
+                                            </button>
+                                            <button type="button" className="button" onClick={() => setOpenNoteAyah(null)}>Close</button>
+                                        </div>
                                     </div>
                                 ) : null}
                             </article>
@@ -768,6 +1100,114 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                             <option key={r.id} value={r.id}>{r.name}</option>
                         ))}
                     </select>
+                </div>
+
+                <div className="section">
+                    <div className="muted" style={{ marginBottom: 8 }}>Bookmarks & Notes</div>
+                    <div style={{ display: 'grid', gap: 8 }}>
+                        <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
+                                <span className="muted">{Object.keys(bookmarks).length} bookmarks</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 3h13a5 5 0 0 1 5 5v13H8a5 5 0 0 1-5-5V3z" /><path d="M8 3v5a3 3 0 0 0 3 3h5" /></svg>
+                                <span className="muted">{Object.keys(notes).length} notes</span>
+                            </div>
+                        </div>
+
+                        <div className="card" style={{ display: 'grid', gap: 8 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16l6-3 6 3V8" /><path d="M14 2v6h6" /></svg>
+                                <span style={{ fontWeight: 600 }}>Export</span>
+                            </div>
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                                <button type="button" className="icon-btn" title="Download JSON" aria-label="Download JSON" onClick={downloadExport}>
+                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M7 10l5 5 5-5" /><path d="M12 15V3" /></svg>
+                                </button>
+                                <button type="button" className="icon-btn" title="Copy JSON" aria-label="Copy JSON" onClick={copyExportToClipboard}>
+                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                                </button>
+                                <button type="button" className="icon-btn" title="Copy Share Link" aria-label="Copy Share Link" onClick={() => {
+                                    const res = shareAllAsLink()
+                                    if (!res.url) { alert(res.reason || 'Could not build link'); return }
+                                    try { void navigator.clipboard.writeText(res.url) } catch { }
+                                }}>
+                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" /></svg>
+                                </button>
+                                <button type="button" className="icon-btn" title="Show QR" aria-label="Show QR" onClick={() => {
+                                    const res = shareAllAsLink()
+                                    if (!res.url) { alert(res.reason || 'Could not build link'); return }
+                                    const img = qrImageUrl(res.url)
+                                    const w = window.open('', 'oqr-qr', 'width=260,height=300')
+                                    if (w) w.document.body.innerHTML = `<div style=\"display:flex;align-items:center;justify-content:center;height:100%;padding:12px;background:#fff\"><img alt=\"QR\" src=\"${img}\"/></div>`
+                                }}>
+                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><path d="M3 14h7v7H3z" /></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="card" style={{ display: 'grid', gap: 8 }}>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M7 10l5 5 5-5" /><path d="M12 15V3" /></svg>
+                                <span style={{ fontWeight: 600 }}>Import</span>
+                            </div>
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
+                                <label className="button" style={{ cursor: 'pointer' }}>
+                                    <input type="file" accept="application/json" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleImportFile(f) }} style={{ display: 'none' }} />
+                                    <span>Choose file</span>
+                                </label>
+                                <button type="button" className="icon-btn" title="Paste JSON" aria-label="Paste JSON" onClick={async () => {
+                                    try {
+                                        const txt = await navigator.clipboard.readText()
+                                        const obj = JSON.parse(txt)
+                                        mergeImported(obj)
+                                    } catch { }
+                                }}>
+                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 21H9a2 2 0 0 1-2-2V7" /><path d="M14 7H7" /><rect x="13" y="3" width="8" height="4" rx="1" /></svg>
+                                </button>
+                            </div>
+                        </div>
+
+                        <div className="card">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
+                                <span style={{ fontWeight: 600 }}>Quick bookmarks</span>
+                            </div>
+                            <div style={{ display: 'grid', gap: 4, maxHeight: 180, overflow: 'auto' }}>
+                                {Object.keys(bookmarks).length === 0 ? (
+                                    <div className="muted">No bookmarks yet</div>
+                                ) : (
+                                    Object.keys(bookmarks)
+                                        .sort((a, b) => a.localeCompare(b))
+                                        .map((k) => {
+                                            const [s, a] = k.split(':').map((x) => Number(x))
+                                            const here = s === surah
+                                            return (
+                                                <button
+                                                    key={k}
+                                                    className="button"
+                                                    style={{ display: 'flex', justifyContent: 'space-between' }}
+                                                    onClick={() => {
+                                                        const params = new URLSearchParams()
+                                                        const t = enabledTranslations.join(',')
+                                                        if (t) params.set('t', t)
+                                                        params.set('v', String(a))
+                                                        const href = (`/s/${s}?${params.toString()}`) as Route
+                                                        setSidebarOpen(false)
+                                                        if (here) setActiveAyah(a)
+                                                        else router.push(href, { scroll: false })
+                                                    }}
+                                                >
+                                                    <span>Surah {s} · Ayah {a}</span>
+                                                    <span className="muted">Jump</span>
+                                                </button>
+                                            )
+                                        })
+                                )}
+                            </div>
+                        </div>
+                    </div>
                 </div>
             </aside>
 
