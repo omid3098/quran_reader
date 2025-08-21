@@ -774,10 +774,9 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                             aria-label={showNotes ? 'Hide notes' : 'Show notes'}
                             title={showNotes ? 'Hide notes' : 'Show notes'}
                         >
-                            {/* Sticky note icon */}
+                            {/* Note/file icon (same as verse note button for consistency) */}
                             <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <path d="M3 3h13a5 5 0 0 1 5 5v13H8a5 5 0 0 1-5-5V3z" />
-                                <path d="M8 3v5a3 3 0 0 0 3 3h5" />
+                                <path d="M4 4h12a2 2 0 0 1 2 2v12l-4-4H6a2 2 0 0 1-2-2V4z" />
                             </svg>
                         </button>
                     </nav>
@@ -1111,17 +1110,18 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                 <span className="muted">{Object.keys(bookmarks).length} bookmarks</span>
                             </div>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M3 3h13a5 5 0 0 1 5 5v13H8a5 5 0 0 1-5-5V3z" /><path d="M8 3v5a3 3 0 0 0 3 3h5" /></svg>
+                                {/* Use the same note icon as verses */}
+                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 4h12a2 2 0 0 1 2 2v12l-4-4H6a2 2 0 0 1-2-2V4z" /></svg>
                                 <span className="muted">{Object.keys(notes).length} notes</span>
                             </div>
                         </div>
-
                         <div className="card" style={{ display: 'grid', gap: 8 }}>
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                                 <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16l6-3 6 3V8" /><path d="M14 2v6h6" /></svg>
-                                <span style={{ fontWeight: 600 }}>Export</span>
+                                <span style={{ fontWeight: 600 }}>Export & Import</span>
                             </div>
-                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap' }}>
+                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                                {/* Export actions */}
                                 <button type="button" className="icon-btn" title="Download JSON" aria-label="Download JSON" onClick={downloadExport}>
                                     <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M7 10l5 5 5-5" /><path d="M12 15V3" /></svg>
                                 </button>
@@ -1144,19 +1144,16 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                 }}>
                                     <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><path d="M3 14h7v7H3z" /></svg>
                                 </button>
-                            </div>
-                        </div>
 
-                        <div className="card" style={{ display: 'grid', gap: 8 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M7 10l5 5 5-5" /><path d="M12 15V3" /></svg>
-                                <span style={{ fontWeight: 600 }}>Import</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, flexWrap: 'wrap' }}>
-                                <label className="button" style={{ cursor: 'pointer' }}>
-                                    <input type="file" accept="application/json" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleImportFile(f) }} style={{ display: 'none' }} />
-                                    <span>Choose file</span>
-                                </label>
+                                {/* Import actions */}
+                                <input id="oqr-import-json" type="file" accept="application/json" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleImportFile(f) }} style={{ display: 'none' }} />
+                                <button type="button" className="icon-btn" title="Import from file" aria-label="Import from file" onClick={() => {
+                                    const el = document.getElementById('oqr-import-json') as HTMLInputElement | null
+                                    el?.click()
+                                }}>
+                                    {/* Upload tray icon */}
+                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M12 3v12" /><path d="M7 8l5-5 5 5" /></svg>
+                                </button>
                                 <button type="button" className="icon-btn" title="Paste JSON" aria-label="Paste JSON" onClick={async () => {
                                     try {
                                         const txt = await navigator.clipboard.readText()
@@ -1164,15 +1161,55 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                         mergeImported(obj)
                                     } catch { }
                                 }}>
-                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 21H9a2 2 0 0 1-2-2V7" /><path d="M14 7H7" /><rect x="13" y="3" width="8" height="4" rx="1" /></svg>
+                                    {/* Clipboard icon */}
+                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="3" width="13" height="18" rx="2" ry="2" /><path d="M5 7V5a2 2 0 0 1 2-2h8" /></svg>
                                 </button>
                             </div>
                         </div>
 
                         <div className="card">
                             <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                                {/* Note icon */}
+                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 4h12a2 2 0 0 1 2 2v12l-4-4H6a2 2 0 0 1-2-2V4z" /></svg>
+                                <span style={{ fontWeight: 600 }}>Notes</span>
+                            </div>
+                            <div style={{ display: 'grid', gap: 4, maxHeight: 180, overflow: 'auto' }}>
+                                {Object.keys(notes).length === 0 ? (
+                                    <div className="muted">No notes yet</div>
+                                ) : (
+                                    Object.keys(notes)
+                                        .sort((a, b) => a.localeCompare(b))
+                                        .map((k) => {
+                                            const [s, a] = k.split(':').map((x) => Number(x))
+                                            const here = s === surah
+                                            return (
+                                                <button
+                                                    key={`note-${k}`}
+                                                    className="button"
+                                                    style={{ display: 'flex', justifyContent: 'space-between' }}
+                                                    onClick={() => {
+                                                        const params = new URLSearchParams()
+                                                        const t = enabledTranslations.join(',')
+                                                        if (t) params.set('t', t)
+                                                        params.set('v', String(a))
+                                                        const href = (`/s/${s}?${params.toString()}`) as Route
+                                                        setSidebarOpen(false)
+                                                        if (here) { setActiveAyah(a); setOpenNoteAyah(a) }
+                                                        else { router.push(href, { scroll: false }); setTimeout(() => setOpenNoteAyah(a), 50) }
+                                                    }}
+                                                >
+                                                    <span>{s}:{a}</span>
+                                                </button>
+                                            )
+                                        })
+                                )}
+                            </div>
+                        </div>
+
+                        <div className="card">
+                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
                                 <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
-                                <span style={{ fontWeight: 600 }}>Quick bookmarks</span>
+                                <span style={{ fontWeight: 600 }}>Bookmarks</span>
                             </div>
                             <div style={{ display: 'grid', gap: 4, maxHeight: 180, overflow: 'auto' }}>
                                 {Object.keys(bookmarks).length === 0 ? (
@@ -1199,8 +1236,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                                         else router.push(href, { scroll: false })
                                                     }}
                                                 >
-                                                    <span>Surah {s} · Ayah {a}</span>
-                                                    <span className="muted">Jump</span>
+                                                    <span>{s}:{a}</span>
                                                 </button>
                                             )
                                         })
