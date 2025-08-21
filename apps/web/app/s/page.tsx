@@ -20,7 +20,7 @@ export default async function SurahListPage() {
   const surahs = await fetchSurahsStatic()
 
   return (
-    <main className="container">
+    <>
       <header className="header">
         <div className="header-inner">
           <div className="brand">OpenQuranReader</div>
@@ -29,28 +29,29 @@ export default async function SurahListPage() {
           </nav>
         </div>
       </header>
+      <main className="container">
+        <section style={{ padding: 16 }}>
+          <h2>Surahs</h2>
+          {!surahs.length ? (
+            <div className="card">No data available</div>
+          ) : (
+            <div className="grid">
+              {surahs.map((s) => (
+                <Link key={s.number} href={`/s/${s.number}`} className="card">
+                  <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
+                    <div>سورة</div>
+                    <div style={{ fontWeight: 700 }}>{s.name_ar}</div>
+                  </div>
+                  <div style={{ color: 'var(--muted)', marginTop: 6 }}>Surah {s.number}</div>
+                </Link>
+              ))}
+            </div>
+          )}
+        </section>
 
-      <section style={{ padding: 16 }}>
-        <h2>Surahs</h2>
-        {!surahs.length ? (
-          <div className="card">No data available</div>
-        ) : (
-          <div className="grid">
-            {surahs.map((s) => (
-              <Link key={s.number} href={`/s/${s.number}`} className="card">
-                <div style={{ display: 'flex', alignItems: 'baseline', justifyContent: 'space-between' }}>
-                  <div>سورة</div>
-                  <div style={{ fontWeight: 700 }}>{s.name_ar}</div>
-                </div>
-                <div style={{ color: 'var(--muted)', marginTop: 6 }}>Surah {s.number}</div>
-              </Link>
-            ))}
-          </div>
-        )}
-      </section>
-
-      <footer className="footer">Data loaded from static files; generated via Tanzil</footer>
-    </main>
+        <footer className="footer">Data loaded from static files; generated via Tanzil</footer>
+      </main>
+    </>
   )
 }
 

@@ -2,6 +2,9 @@
 
 This project is now a fully static Next.js site. No backend or database is required.
 
+## Demo:
+https://www.omid-saadat.com/quran_reader
+
 ## Prerequisites
 - Node.js 20+
 - pnpm (Corepack-enabled; run `corepack enable` once)
@@ -33,3 +36,5 @@ If you use a custom domain or serve at root, unset `NEXT_PUBLIC_BASE_PATH` in th
 - Translations: other `*.xml` files in `assets/quran/`
 
 The app reads XML at runtime from `apps/web/public/quran/*.xml`. No JSON duplication is shipped.
+
+

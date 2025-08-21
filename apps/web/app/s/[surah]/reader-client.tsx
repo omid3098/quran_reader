@@ -682,7 +682,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     }
 
     return (
-        <main className="container">
+        <>
             <header className="header" role="banner">
                 <div className="header-inner">
                     <nav className="toolbar" aria-label="Reader controls" style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
@@ -795,477 +795,479 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                 </div>
             </header>
 
-            <section style={{ padding: 16 }}>
-                {incomingShare ? (
-                    <div className="card" role="region" aria-label="Incoming shared data" style={{ marginBottom: 12 }}>
-                        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
-                            <div>
-                                <div style={{ fontWeight: 600, marginBottom: 6 }}>Shared data detected</div>
-                                <div className="muted">Bookmarks: {incomingShare.bookmarks.length} · Notes: {incomingShare.notes.length}</div>
-                            </div>
-                            <div style={{ display: 'flex', gap: 8 }}>
-                                <button className="button" onClick={acceptIncomingShare}>Merge</button>
-                                <button className="button" onClick={dismissIncomingShare}>Dismiss</button>
+            <main className="container">
+                <section style={{ padding: 16 }}>
+                    {incomingShare ? (
+                        <div className="card" role="region" aria-label="Incoming shared data" style={{ marginBottom: 12 }}>
+                            <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+                                <div>
+                                    <div style={{ fontWeight: 600, marginBottom: 6 }}>Shared data detected</div>
+                                    <div className="muted">Bookmarks: {incomingShare.bookmarks.length} · Notes: {incomingShare.notes.length}</div>
+                                </div>
+                                <div style={{ display: 'flex', gap: 8 }}>
+                                    <button className="button" onClick={acceptIncomingShare}>Merge</button>
+                                    <button className="button" onClick={dismissIncomingShare}>Dismiss</button>
+                                </div>
                             </div>
                         </div>
-                    </div>
-                ) : null}
-                {error && <div className="card" role="alert">Failed to load verses: {error}</div>}
-                {!verses ? (
-                    <div style={{ display: 'grid', gap: 8 }}>
-                        {Array.from({ length: 5 }).map((_, i) => (
-                            <div key={i} className="skeleton" style={{ height: 64 }} />
-                        ))}
-                    </div>
-                ) : (
-                    <div ref={listRef} style={{ '--arabic-size': arabicSizeVar } as React.CSSProperties}>
-                        {verses.filter((v) => v.ayah <= renderUpto).map((v) => (
-                            <article
-                                key={v.ayah}
-                                id={`ayah-${v.ayah}`}
-                                className={`ayah${activeAyah === v.ayah ? ' focused' : ''}`}
-                                tabIndex={0}
-                                aria-current={activeAyah === v.ayah ? 'true' : undefined}
-                                onClick={() => setActiveAyah(v.ayah)}
-                                onKeyDown={(e) => {
-                                    if (e.key === 'Enter' || e.key === ' ') {
-                                        e.preventDefault()
-                                        setActiveAyah(v.ayah)
-                                    }
-                                }}
-                            >
-                                <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6, justifyContent: 'space-between' }}>
-                                    <span className="muted">Ayah {v.ayah}</span>
-                                    {activeAyah === v.ayah ? (
-                                        <div style={{ display: 'inline-flex', gap: 6 }}>
-                                            <button
-                                                type="button"
-                                                className={`icon-btn${isBookmarked(v.ayah) ? ' active' : ''}`}
-                                                title={isBookmarked(v.ayah) ? 'Remove bookmark' : 'Add bookmark'}
-                                                aria-pressed={isBookmarked(v.ayah)}
-                                                onClick={(e) => { e.stopPropagation(); toggleBookmark(v.ayah) }}
-                                            >
-                                                {/* Star icon */}
-                                                {isBookmarked(v.ayah) ? (
-                                                    <svg className="icon" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" aria-hidden="true">
-                                                        <path d="M12 17.27L18.18 21 16.54 13.97 22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
-                                                    </svg>
-                                                ) : (
+                    ) : null}
+                    {error && <div className="card" role="alert">Failed to load verses: {error}</div>}
+                    {!verses ? (
+                        <div style={{ display: 'grid', gap: 8 }}>
+                            {Array.from({ length: 5 }).map((_, i) => (
+                                <div key={i} className="skeleton" style={{ height: 64 }} />
+                            ))}
+                        </div>
+                    ) : (
+                        <div ref={listRef} style={{ '--arabic-size': arabicSizeVar } as React.CSSProperties}>
+                            {verses.filter((v) => v.ayah <= renderUpto).map((v) => (
+                                <article
+                                    key={v.ayah}
+                                    id={`ayah-${v.ayah}`}
+                                    className={`ayah${activeAyah === v.ayah ? ' focused' : ''}`}
+                                    tabIndex={0}
+                                    aria-current={activeAyah === v.ayah ? 'true' : undefined}
+                                    onClick={() => setActiveAyah(v.ayah)}
+                                    onKeyDown={(e) => {
+                                        if (e.key === 'Enter' || e.key === ' ') {
+                                            e.preventDefault()
+                                            setActiveAyah(v.ayah)
+                                        }
+                                    }}
+                                >
+                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6, justifyContent: 'space-between' }}>
+                                        <span className="muted">Ayah {v.ayah}</span>
+                                        {activeAyah === v.ayah ? (
+                                            <div style={{ display: 'inline-flex', gap: 6 }}>
+                                                <button
+                                                    type="button"
+                                                    className={`icon-btn${isBookmarked(v.ayah) ? ' active' : ''}`}
+                                                    title={isBookmarked(v.ayah) ? 'Remove bookmark' : 'Add bookmark'}
+                                                    aria-pressed={isBookmarked(v.ayah)}
+                                                    onClick={(e) => { e.stopPropagation(); toggleBookmark(v.ayah) }}
+                                                >
+                                                    {/* Star icon */}
+                                                    {isBookmarked(v.ayah) ? (
+                                                        <svg className="icon" viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" strokeWidth="1" aria-hidden="true">
+                                                            <path d="M12 17.27L18.18 21 16.54 13.97 22 9.24l-7.19-.61L12 2 9.19 8.63 2 9.24l5.46 4.73L5.82 21z" />
+                                                        </svg>
+                                                    ) : (
+                                                        <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                                            <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21 12 17.77 5.82 21 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                                        </svg>
+                                                    )}
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className={`icon-btn${openNoteAyah === v.ayah ? ' active' : ''}`}
+                                                    title="Add/view note"
+                                                    aria-pressed={openNoteAyah === v.ayah}
+                                                    onClick={(e) => { e.stopPropagation(); setOpenNoteAyah((cur) => cur === v.ayah ? null : v.ayah) }}
+                                                >
+                                                    {/* Note icon */}
                                                     <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                                        <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21 12 17.77 5.82 21 7 14.14 2 9.27 8.91 8.26 12 2" />
+                                                        <path d="M4 4h12a2 2 0 0 1 2 2v12l-4-4H6a2 2 0 0 1-2-2V4z" />
                                                     </svg>
-                                                )}
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className={`icon-btn${openNoteAyah === v.ayah ? ' active' : ''}`}
-                                                title="Add/view note"
-                                                aria-pressed={openNoteAyah === v.ayah}
-                                                onClick={(e) => { e.stopPropagation(); setOpenNoteAyah((cur) => cur === v.ayah ? null : v.ayah) }}
-                                            >
-                                                {/* Note icon */}
-                                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                                    <path d="M4 4h12a2 2 0 0 1 2 2v12l-4-4H6a2 2 0 0 1-2-2V4z" />
-                                                </svg>
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="icon-btn"
-                                                title="Share this verse"
-                                                onClick={(e) => {
-                                                    e.stopPropagation()
-                                                    const link = shareVerseAsLink(v.ayah)
-                                                    if (!link) return
-                                                    try { void navigator.clipboard.writeText(link) } catch { }
-                                                    alert('Share link copied to clipboard')
-                                                }}
-                                            >
-                                                {/* Share icon */}
-                                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                                    <circle cx="18" cy="5" r="3" />
-                                                    <circle cx="6" cy="12" r="3" />
-                                                    <circle cx="18" cy="19" r="3" />
-                                                    <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
-                                                </svg>
-                                            </button>
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="icon-btn"
+                                                    title="Share this verse"
+                                                    onClick={(e) => {
+                                                        e.stopPropagation()
+                                                        const link = shareVerseAsLink(v.ayah)
+                                                        if (!link) return
+                                                        try { void navigator.clipboard.writeText(link) } catch { }
+                                                        alert('Share link copied to clipboard')
+                                                    }}
+                                                >
+                                                    {/* Share icon */}
+                                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                                        <circle cx="18" cy="5" r="3" />
+                                                        <circle cx="6" cy="12" r="3" />
+                                                        <circle cx="18" cy="19" r="3" />
+                                                        <path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" />
+                                                    </svg>
+                                                </button>
+                                            </div>
+                                        ) : null}
+                                    </div>
+                                    {v.ayah === 1 && v.bismillah && !v.text_ar_simple.startsWith(v.bismillah) ? (
+                                        <div className="arabic" dir="rtl" lang="ar" style={{ opacity: 0.9 }}>
+                                            {v.bismillah}
                                         </div>
                                     ) : null}
-                                </div>
-                                {v.ayah === 1 && v.bismillah && !v.text_ar_simple.startsWith(v.bismillah) ? (
-                                    <div className="arabic" dir="rtl" lang="ar" style={{ opacity: 0.9 }}>
-                                        {v.bismillah}
+                                    <div className="arabic" dir="rtl" lang="ar">
+                                        <span className="ayah-num">{v.ayah}</span>
+                                        <span>{v.text_ar_simple}</span>
                                     </div>
-                                ) : null}
-                                <div className="arabic" dir="rtl" lang="ar">
-                                    <span className="ayah-num">{v.ayah}</span>
-                                    <span>{v.text_ar_simple}</span>
-                                </div>
-                                {v.translations?.length ? (
-                                    <div style={{ display: 'grid', gap: 6 }}>
-                                        {selectedTranslations.map((st) => {
-                                            const found = v.translations?.find((tr) => tr.translationId === st.id)
-                                            if (!found) return null
-                                            const rtl = isRtlLanguage(st.language)
-                                            return (
-                                                <div
-                                                    key={st.id}
-                                                    className="translation"
-                                                    dir={rtl ? 'rtl' : 'ltr'}
-                                                    lang={st.language}
-                                                    style={{ textAlign: rtl ? 'right' : 'left' }}
-                                                >
-                                                    <span style={{ color: 'var(--accent)' }}>{st.name}:</span>{' '}
-                                                    <span>{found.text}</span>
-                                                </div>
-                                            )
-                                        })}
-                                    </div>
-                                ) : null}
-                                {openNoteAyah === v.ayah ? (
-                                    <div className="card" style={{ marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
-                                        <div className="muted" style={{ marginBottom: 6 }}>Note for {surah}:{v.ayah}</div>
-                                        <textarea
-                                            className="textarea"
-                                            defaultValue={getNote(v.ayah)}
-                                            placeholder="Write your note in plain text or Markdown..."
-                                            rows={4}
-                                            style={{ width: '100%' }}
-                                            onKeyDown={(e) => e.stopPropagation()}
-                                            onClick={(e) => e.stopPropagation()}
-                                            id={`note-${surah}-${v.ayah}`}
-                                        />
-                                        <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'flex-end' }}>
-                                            <button
-                                                type="button"
-                                                className="button"
-                                                onClick={() => {
-                                                    const el = document.getElementById(`note-${surah}-${v.ayah}`) as HTMLTextAreaElement | null
-                                                    const val = el?.value || ''
-                                                    saveNote(v.ayah, val)
-                                                    setOpenNoteAyah(null)
-                                                }}
-                                            >
-                                                Save
-                                            </button>
-                                            <button
-                                                type="button"
-                                                className="button"
-                                                onClick={() => {
-                                                    saveNote(v.ayah, '')
-                                                    const el = document.getElementById(`note-${surah}-${v.ayah}`) as HTMLTextAreaElement | null
-                                                    if (el) el.value = ''
-                                                    setOpenNoteAyah(null)
-                                                }}
-                                            >
-                                                Clear
-                                            </button>
-                                            <button type="button" className="button" onClick={() => setOpenNoteAyah(null)}>Close</button>
+                                    {v.translations?.length ? (
+                                        <div style={{ display: 'grid', gap: 6 }}>
+                                            {selectedTranslations.map((st) => {
+                                                const found = v.translations?.find((tr) => tr.translationId === st.id)
+                                                if (!found) return null
+                                                const rtl = isRtlLanguage(st.language)
+                                                return (
+                                                    <div
+                                                        key={st.id}
+                                                        className="translation"
+                                                        dir={rtl ? 'rtl' : 'ltr'}
+                                                        lang={st.language}
+                                                        style={{ textAlign: rtl ? 'right' : 'left' }}
+                                                    >
+                                                        <span style={{ color: 'var(--accent)' }}>{st.name}:</span>{' '}
+                                                        <span>{found.text}</span>
+                                                    </div>
+                                                )
+                                            })}
                                         </div>
-                                    </div>
-                                ) : (showNotes && !!getNote(v.ayah) ? (
-                                    <div className="card" style={{ marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
-                                        <div className="muted" style={{ marginBottom: 6 }}>Note for {surah}:{v.ayah}</div>
-                                        <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{getNote(v.ayah)}</div>
-                                    </div>
-                                ) : null)}
-                            </article>
-                        ))}
-                        {renderUpto < (verses[verses.length - 1]?.ayah || 0) ? (
-                            <div ref={bottomRef} className="skeleton" style={{ height: 32, marginTop: 8 }} />
-                        ) : null}
-                    </div>
-                )}
-            </section>
-
-            {/* Floating audio controls */}
-            <div className="floating-audio" role="region" aria-label="Audio controls">
-                <button type="button" className="icon-btn" aria-label="Previous ayah" title="Previous" onClick={goPrevAyah}>
-                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M15 18l-6-6 6-6" />
-                    </svg>
-                </button>
-                <button
-                    type="button"
-                    className="icon-btn"
-                    aria-label={playingAyah === activeAyah && playingAyah != null ? 'Pause' : 'Play'}
-                    title={playingAyah === activeAyah && playingAyah != null ? 'Pause' : 'Play'}
-                    onClick={toggleToolbarPlay}
-                >
-                    {playingAyah === activeAyah && playingAyah != null ? (
-                        <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <rect x="6" y="4" width="4" height="16" />
-                            <rect x="14" y="4" width="4" height="16" />
-                        </svg>
-                    ) : (
-                        <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <polygon points="6,4 20,12 6,20 6,4" />
-                        </svg>
+                                    ) : null}
+                                    {openNoteAyah === v.ayah ? (
+                                        <div className="card" style={{ marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
+                                            <div className="muted" style={{ marginBottom: 6 }}>Note for {surah}:{v.ayah}</div>
+                                            <textarea
+                                                className="textarea"
+                                                defaultValue={getNote(v.ayah)}
+                                                placeholder="Write your note in plain text or Markdown..."
+                                                rows={4}
+                                                style={{ width: '100%' }}
+                                                onKeyDown={(e) => e.stopPropagation()}
+                                                onClick={(e) => e.stopPropagation()}
+                                                id={`note-${surah}-${v.ayah}`}
+                                            />
+                                            <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'flex-end' }}>
+                                                <button
+                                                    type="button"
+                                                    className="button"
+                                                    onClick={() => {
+                                                        const el = document.getElementById(`note-${surah}-${v.ayah}`) as HTMLTextAreaElement | null
+                                                        const val = el?.value || ''
+                                                        saveNote(v.ayah, val)
+                                                        setOpenNoteAyah(null)
+                                                    }}
+                                                >
+                                                    Save
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    className="button"
+                                                    onClick={() => {
+                                                        saveNote(v.ayah, '')
+                                                        const el = document.getElementById(`note-${surah}-${v.ayah}`) as HTMLTextAreaElement | null
+                                                        if (el) el.value = ''
+                                                        setOpenNoteAyah(null)
+                                                    }}
+                                                >
+                                                    Clear
+                                                </button>
+                                                <button type="button" className="button" onClick={() => setOpenNoteAyah(null)}>Close</button>
+                                            </div>
+                                        </div>
+                                    ) : (showNotes && !!getNote(v.ayah) ? (
+                                        <div className="card" style={{ marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
+                                            <div className="muted" style={{ marginBottom: 6 }}>Note for {surah}:{v.ayah}</div>
+                                            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{getNote(v.ayah)}</div>
+                                        </div>
+                                    ) : null)}
+                                </article>
+                            ))}
+                            {renderUpto < (verses[verses.length - 1]?.ayah || 0) ? (
+                                <div ref={bottomRef} className="skeleton" style={{ height: 32, marginTop: 8 }} />
+                            ) : null}
+                        </div>
                     )}
-                </button>
-                <button type="button" className="icon-btn" aria-label="Next ayah" title="Next" onClick={goNextAyah}>
-                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M9 6l6 6-6 6" />
-                    </svg>
-                </button>
-                <span className="sep" aria-hidden="true" />
-                <button
-                    type="button"
-                    className={`icon-btn${autoplay ? ' active' : ''}`}
-                    aria-pressed={autoplay}
-                    aria-label={autoplay ? 'Disable autoplay' : 'Enable autoplay'}
-                    title="Autoplay"
-                    onClick={() => setAutoplay(!autoplay)}
-                >
-                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                        <path d="M3 12a9 9 0 1 0 3-6.7M3 5v6h6" />
-                    </svg>
-                </button>
-            </div>
+                </section>
 
-            {/* Sidebar */}
-            {isSidebarOpen ? <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} aria-hidden="true" /> : null}
-            <aside className={`sidebar${isSidebarOpen ? ' open' : ''}`} aria-hidden={!isSidebarOpen} aria-label="Settings sidebar">
-                <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-                    <div className="muted">Settings</div>
-                    <button type="button" className="icon-btn" aria-label="Close sidebar" onClick={() => setSidebarOpen(false)}>
+                {/* Floating audio controls */}
+                <div className="floating-audio" role="region" aria-label="Audio controls">
+                    <button type="button" className="icon-btn" aria-label="Previous ayah" title="Previous" onClick={goPrevAyah}>
                         <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                            <path d="M6 18L18 6M6 6l12 12" />
+                            <path d="M15 18l-6-6 6-6" />
+                        </svg>
+                    </button>
+                    <button
+                        type="button"
+                        className="icon-btn"
+                        aria-label={playingAyah === activeAyah && playingAyah != null ? 'Pause' : 'Play'}
+                        title={playingAyah === activeAyah && playingAyah != null ? 'Pause' : 'Play'}
+                        onClick={toggleToolbarPlay}
+                    >
+                        {playingAyah === activeAyah && playingAyah != null ? (
+                            <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <rect x="6" y="4" width="4" height="16" />
+                                <rect x="14" y="4" width="4" height="16" />
+                            </svg>
+                        ) : (
+                            <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                <polygon points="6,4 20,12 6,20 6,4" />
+                            </svg>
+                        )}
+                    </button>
+                    <button type="button" className="icon-btn" aria-label="Next ayah" title="Next" onClick={goNextAyah}>
+                        <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M9 6l6 6-6 6" />
+                        </svg>
+                    </button>
+                    <span className="sep" aria-hidden="true" />
+                    <button
+                        type="button"
+                        className={`icon-btn${autoplay ? ' active' : ''}`}
+                        aria-pressed={autoplay}
+                        aria-label={autoplay ? 'Disable autoplay' : 'Enable autoplay'}
+                        title="Autoplay"
+                        onClick={() => setAutoplay(!autoplay)}
+                    >
+                        <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                            <path d="M3 12a9 9 0 1 0 3-6.7M3 5v6h6" />
                         </svg>
                     </button>
                 </div>
 
-                <div className="section">
-                    <div className="muted" style={{ marginBottom: 8 }}>Theme</div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                        <button
-                            type="button"
-                            className={`icon-btn${theme === 'light' ? ' active' : ''}`}
-                            aria-pressed={theme === 'light'}
-                            aria-label="Light theme"
-                            onClick={() => setTheme('light')}
-                            title="Light"
-                        >
+                {/* Sidebar */}
+                {isSidebarOpen ? <div className="sidebar-backdrop" onClick={() => setSidebarOpen(false)} aria-hidden="true" /> : null}
+                <aside className={`sidebar${isSidebarOpen ? ' open' : ''}`} aria-hidden={!isSidebarOpen} aria-label="Settings sidebar">
+                    <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
+                        <div className="muted">Settings</div>
+                        <button type="button" className="icon-btn" aria-label="Close sidebar" onClick={() => setSidebarOpen(false)}>
                             <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <circle cx="12" cy="12" r="4" />
-                                <path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l-1.5-1.5M20.5 20.5L19 19M5 19l-1.5 1.5M20.5 3.5L19 5" />
-                            </svg>
-                        </button>
-                        <button
-                            type="button"
-                            className={`icon-btn${theme === 'dark' ? ' active' : ''}`}
-                            aria-pressed={theme === 'dark'}
-                            aria-label="Dark theme"
-                            onClick={() => setTheme('dark')}
-                            title="Dark"
-                        >
-                            <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
-                                <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                                <path d="M6 18L18 6M6 6l12 12" />
                             </svg>
                         </button>
                     </div>
-                </div>
 
-                <div className="section">
-                    <div className="muted" style={{ marginBottom: 8 }}>Font size</div>
-                    <div style={{ display: 'flex', gap: 8 }}>
-                        <button type="button" className={`icon-btn${font === 'sm' ? ' active' : ''}`} aria-pressed={font === 'sm'} aria-label="Small font" onClick={() => setFont('sm')} title="Small">
-                            <span style={{ fontSize: 12, fontWeight: 700 }}>A</span>
-                        </button>
-                        <button type="button" className={`icon-btn${font === 'md' ? ' active' : ''}`} aria-pressed={font === 'md'} aria-label="Medium font" onClick={() => setFont('md')} title="Medium">
-                            <span style={{ fontSize: 14, fontWeight: 700 }}>A</span>
-                        </button>
-                        <button type="button" className={`icon-btn${font === 'lg' ? ' active' : ''}`} aria-pressed={font === 'lg'} aria-label="Large font" onClick={() => setFont('lg')} title="Large">
-                            <span style={{ fontSize: 16, fontWeight: 700 }}>A</span>
-                        </button>
+                    <div className="section">
+                        <div className="muted" style={{ marginBottom: 8 }}>Theme</div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <button
+                                type="button"
+                                className={`icon-btn${theme === 'light' ? ' active' : ''}`}
+                                aria-pressed={theme === 'light'}
+                                aria-label="Light theme"
+                                onClick={() => setTheme('light')}
+                                title="Light"
+                            >
+                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <circle cx="12" cy="12" r="4" />
+                                    <path d="M12 2v2M12 20v2M4 12H2M22 12h-2M5 5l-1.5-1.5M20.5 20.5L19 19M5 19l-1.5 1.5M20.5 3.5L19 5" />
+                                </svg>
+                            </button>
+                            <button
+                                type="button"
+                                className={`icon-btn${theme === 'dark' ? ' active' : ''}`}
+                                aria-pressed={theme === 'dark'}
+                                aria-label="Dark theme"
+                                onClick={() => setTheme('dark')}
+                                title="Dark"
+                            >
+                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+                                    <path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z" />
+                                </svg>
+                            </button>
+                        </div>
                     </div>
-                </div>
 
-                <div className="section">
-                    <div className="muted" style={{ marginBottom: 8 }}>Translations</div>
-                    <div style={{ display: 'grid', gap: 8, maxHeight: 260, overflow: 'auto' }}>
-                        {translations.map((t) => {
-                            const checked = enabledTranslations.includes(t.id)
-                            return (
-                                <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                    <input
-                                        type="checkbox"
-                                        checked={checked}
-                                        onChange={(e) => {
-                                            setEnabledTranslations((prev) => {
-                                                const set = new Set(prev)
-                                                if (e.target.checked) set.add(t.id)
-                                                else set.delete(t.id)
-                                                return Array.from(set)
+                    <div className="section">
+                        <div className="muted" style={{ marginBottom: 8 }}>Font size</div>
+                        <div style={{ display: 'flex', gap: 8 }}>
+                            <button type="button" className={`icon-btn${font === 'sm' ? ' active' : ''}`} aria-pressed={font === 'sm'} aria-label="Small font" onClick={() => setFont('sm')} title="Small">
+                                <span style={{ fontSize: 12, fontWeight: 700 }}>A</span>
+                            </button>
+                            <button type="button" className={`icon-btn${font === 'md' ? ' active' : ''}`} aria-pressed={font === 'md'} aria-label="Medium font" onClick={() => setFont('md')} title="Medium">
+                                <span style={{ fontSize: 14, fontWeight: 700 }}>A</span>
+                            </button>
+                            <button type="button" className={`icon-btn${font === 'lg' ? ' active' : ''}`} aria-pressed={font === 'lg'} aria-label="Large font" onClick={() => setFont('lg')} title="Large">
+                                <span style={{ fontSize: 16, fontWeight: 700 }}>A</span>
+                            </button>
+                        </div>
+                    </div>
+
+                    <div className="section">
+                        <div className="muted" style={{ marginBottom: 8 }}>Translations</div>
+                        <div style={{ display: 'grid', gap: 8, maxHeight: 260, overflow: 'auto' }}>
+                            {translations.map((t) => {
+                                const checked = enabledTranslations.includes(t.id)
+                                return (
+                                    <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <input
+                                            type="checkbox"
+                                            checked={checked}
+                                            onChange={(e) => {
+                                                setEnabledTranslations((prev) => {
+                                                    const set = new Set(prev)
+                                                    if (e.target.checked) set.add(t.id)
+                                                    else set.delete(t.id)
+                                                    return Array.from(set)
+                                                })
+                                            }}
+                                        />
+                                        <span>{t.language}: {t.name}</span>
+                                    </label>
+                                )
+                            })}
+                            {translations.length === 0 ? (
+                                <div className="muted">No translations available</div>
+                            ) : null}
+                        </div>
+                    </div>
+
+                    <div className="section">
+                        <div className="muted" style={{ marginBottom: 8 }}>Reciter</div>
+                        <select className="select" value={reciter} onChange={(e) => setReciter(e.target.value)} aria-label="Select reciter">
+                            {reciterOptions.map((r) => (
+                                <option key={r.id} value={r.id}>{r.name}</option>
+                            ))}
+                        </select>
+                    </div>
+
+                    <div className="section">
+                        <div className="muted" style={{ marginBottom: 8 }}>Bookmarks & Notes</div>
+                        <div style={{ display: 'grid', gap: 8 }}>
+                            <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
+                                    <span className="muted" suppressHydrationWarning>{(hydrated ? Object.keys(bookmarks).length : 0)} bookmarks</span>
+                                </div>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    {/* Use the same note icon as verses */}
+                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 4h12a2 2 0 0 1 2 2v12l-4-4H6a2 2 0 0 1-2-2V4z" /></svg>
+                                    <span className="muted" suppressHydrationWarning>{(hydrated ? Object.keys(notes).length : 0)} notes</span>
+                                </div>
+                            </div>
+                            <div className="card" style={{ display: 'grid', gap: 8 }}>
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16l6-3 6 3V8" /><path d="M14 2v6h6" /></svg>
+                                    <span style={{ fontWeight: 600 }}>Export & Import</span>
+                                </div>
+                                <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+                                    {/* Export actions */}
+                                    <button type="button" className="icon-btn" title="Download JSON" aria-label="Download JSON" onClick={downloadExport}>
+                                        <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M7 10l5 5 5-5" /><path d="M12 15V3" /></svg>
+                                    </button>
+                                    <button type="button" className="icon-btn" title="Copy JSON" aria-label="Copy JSON" onClick={copyExportToClipboard}>
+                                        <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
+                                    </button>
+                                    <button type="button" className="icon-btn" title="Copy Share Link" aria-label="Copy Share Link" onClick={() => {
+                                        const res = shareAllAsLink()
+                                        if (!res.url) { alert(res.reason || 'Could not build link'); return }
+                                        try { void navigator.clipboard.writeText(res.url) } catch { }
+                                    }}>
+                                        <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" /></svg>
+                                    </button>
+                                    <button type="button" className="icon-btn" title="Show QR" aria-label="Show QR" onClick={() => {
+                                        const res = shareAllAsLink()
+                                        if (!res.url) { alert(res.reason || 'Could not build link'); return }
+                                        const img = qrImageUrl(res.url)
+                                        const w = window.open('', 'oqr-qr', 'width=260,height=300')
+                                        if (w) w.document.body.innerHTML = `<div style=\"display:flex;align-items:center;justify-content:center;height:100%;padding:12px;background:#fff\"><img alt=\"QR\" src=\"${img}\"/></div>`
+                                    }}>
+                                        <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><path d="M3 14h7v7H3z" /></svg>
+                                    </button>
+
+                                    {/* Import actions */}
+                                    <input id="oqr-import-json" type="file" accept="application/json" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleImportFile(f) }} style={{ display: 'none' }} />
+                                    <button type="button" className="icon-btn" title="Import from file" aria-label="Import from file" onClick={() => {
+                                        const el = document.getElementById('oqr-import-json') as HTMLInputElement | null
+                                        el?.click()
+                                    }}>
+                                        {/* Upload tray icon */}
+                                        <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M12 3v12" /><path d="M7 8l5-5 5 5" /></svg>
+                                    </button>
+                                    <button type="button" className="icon-btn" title="Paste JSON" aria-label="Paste JSON" onClick={async () => {
+                                        try {
+                                            const txt = await navigator.clipboard.readText()
+                                            const obj = JSON.parse(txt)
+                                            mergeImported(obj)
+                                        } catch { }
+                                    }}>
+                                        {/* Clipboard icon */}
+                                        <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="3" width="13" height="18" rx="2" ry="2" /><path d="M5 7V5a2 2 0 0 1 2-2h8" /></svg>
+                                    </button>
+                                </div>
+                            </div>
+
+                            <div className="card">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                                    {/* Note icon */}
+                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 4h12a2 2 0 0 1 2 2v12l-4-4H6a2 2 0 0 1-2-2V4z" /></svg>
+                                    <span style={{ fontWeight: 600 }}>Notes</span>
+                                </div>
+                                <div style={{ display: 'grid', gap: 4, maxHeight: 180, overflow: 'auto' }}>
+                                    {(!hydrated || Object.keys(notes).length === 0) ? (
+                                        <div className="muted">No notes yet</div>
+                                    ) : (
+                                        Object.keys(notes)
+                                            .sort((a, b) => a.localeCompare(b))
+                                            .map((k) => {
+                                                const [s, a] = k.split(':').map((x) => Number(x))
+                                                const here = s === surah
+                                                return (
+                                                    <button
+                                                        key={`note-${k}`}
+                                                        className="button"
+                                                        style={{ display: 'flex', justifyContent: 'space-between' }}
+                                                        onClick={() => {
+                                                            const params = new URLSearchParams()
+                                                            const t = enabledTranslations.join(',')
+                                                            if (t) params.set('t', t)
+                                                            params.set('v', String(a))
+                                                            const href = (`/s/${s}?${params.toString()}`) as Route
+                                                            setSidebarOpen(false)
+                                                            if (here) { setActiveAyah(a); setOpenNoteAyah(a) }
+                                                            else { router.push(href, { scroll: false }); setTimeout(() => setOpenNoteAyah(a), 50) }
+                                                        }}
+                                                    >
+                                                        <span>{s}:{a}</span>
+                                                    </button>
+                                                )
                                             })
-                                        }}
-                                    />
-                                    <span>{t.language}: {t.name}</span>
-                                </label>
-                            )
-                        })}
-                        {translations.length === 0 ? (
-                            <div className="muted">No translations available</div>
-                        ) : null}
-                    </div>
-                </div>
+                                    )}
+                                </div>
+                            </div>
 
-                <div className="section">
-                    <div className="muted" style={{ marginBottom: 8 }}>Reciter</div>
-                    <select className="select" value={reciter} onChange={(e) => setReciter(e.target.value)} aria-label="Select reciter">
-                        {reciterOptions.map((r) => (
-                            <option key={r.id} value={r.id}>{r.name}</option>
-                        ))}
-                    </select>
-                </div>
-
-                <div className="section">
-                    <div className="muted" style={{ marginBottom: 8 }}>Bookmarks & Notes</div>
-                    <div style={{ display: 'grid', gap: 8 }}>
-                        <div className="card" style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
-                                <span className="muted" suppressHydrationWarning>{(hydrated ? Object.keys(bookmarks).length : 0)} bookmarks</span>
-                            </div>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                {/* Use the same note icon as verses */}
-                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 4h12a2 2 0 0 1 2 2v12l-4-4H6a2 2 0 0 1-2-2V4z" /></svg>
-                                <span className="muted" suppressHydrationWarning>{(hydrated ? Object.keys(notes).length : 0)} notes</span>
-                            </div>
-                        </div>
-                        <div className="card" style={{ display: 'grid', gap: 8 }}>
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M14 2H6a2 2 0 0 0-2 2v16l6-3 6 3V8" /><path d="M14 2v6h6" /></svg>
-                                <span style={{ fontWeight: 600 }}>Export & Import</span>
-                            </div>
-                            <div style={{ display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                                {/* Export actions */}
-                                <button type="button" className="icon-btn" title="Download JSON" aria-label="Download JSON" onClick={downloadExport}>
-                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M7 10l5 5 5-5" /><path d="M12 15V3" /></svg>
-                                </button>
-                                <button type="button" className="icon-btn" title="Copy JSON" aria-label="Copy JSON" onClick={copyExportToClipboard}>
-                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="9" width="13" height="13" rx="2" ry="2" /><path d="M5 15H4a2 2 0 0 1-2-2V4a2 2 0 0 1 2-2h9a2 2 0 0 1 2 2v1" /></svg>
-                                </button>
-                                <button type="button" className="icon-btn" title="Copy Share Link" aria-label="Copy Share Link" onClick={() => {
-                                    const res = shareAllAsLink()
-                                    if (!res.url) { alert(res.reason || 'Could not build link'); return }
-                                    try { void navigator.clipboard.writeText(res.url) } catch { }
-                                }}>
-                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><circle cx="18" cy="5" r="3" /><circle cx="6" cy="12" r="3" /><circle cx="18" cy="19" r="3" /><path d="M8.59 13.51l6.83 3.98M15.41 6.51l-6.82 3.98" /></svg>
-                                </button>
-                                <button type="button" className="icon-btn" title="Show QR" aria-label="Show QR" onClick={() => {
-                                    const res = shareAllAsLink()
-                                    if (!res.url) { alert(res.reason || 'Could not build link'); return }
-                                    const img = qrImageUrl(res.url)
-                                    const w = window.open('', 'oqr-qr', 'width=260,height=300')
-                                    if (w) w.document.body.innerHTML = `<div style=\"display:flex;align-items:center;justify-content:center;height:100%;padding:12px;background:#fff\"><img alt=\"QR\" src=\"${img}\"/></div>`
-                                }}>
-                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="3" y="3" width="7" height="7" /><rect x="14" y="3" width="7" height="7" /><rect x="14" y="14" width="7" height="7" /><path d="M3 14h7v7H3z" /></svg>
-                                </button>
-
-                                {/* Import actions */}
-                                <input id="oqr-import-json" type="file" accept="application/json" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleImportFile(f) }} style={{ display: 'none' }} />
-                                <button type="button" className="icon-btn" title="Import from file" aria-label="Import from file" onClick={() => {
-                                    const el = document.getElementById('oqr-import-json') as HTMLInputElement | null
-                                    el?.click()
-                                }}>
-                                    {/* Upload tray icon */}
-                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4" /><path d="M12 3v12" /><path d="M7 8l5-5 5 5" /></svg>
-                                </button>
-                                <button type="button" className="icon-btn" title="Paste JSON" aria-label="Paste JSON" onClick={async () => {
-                                    try {
-                                        const txt = await navigator.clipboard.readText()
-                                        const obj = JSON.parse(txt)
-                                        mergeImported(obj)
-                                    } catch { }
-                                }}>
-                                    {/* Clipboard icon */}
-                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><rect x="9" y="3" width="13" height="18" rx="2" ry="2" /><path d="M5 7V5a2 2 0 0 1 2-2h8" /></svg>
-                                </button>
-                            </div>
-                        </div>
-
-                        <div className="card">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                                {/* Note icon */}
-                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M4 4h12a2 2 0 0 1 2 2v12l-4-4H6a2 2 0 0 1-2-2V4z" /></svg>
-                                <span style={{ fontWeight: 600 }}>Notes</span>
-                            </div>
-                            <div style={{ display: 'grid', gap: 4, maxHeight: 180, overflow: 'auto' }}>
-                                {(!hydrated || Object.keys(notes).length === 0) ? (
-                                    <div className="muted">No notes yet</div>
-                                ) : (
-                                    Object.keys(notes)
-                                        .sort((a, b) => a.localeCompare(b))
-                                        .map((k) => {
-                                            const [s, a] = k.split(':').map((x) => Number(x))
-                                            const here = s === surah
-                                            return (
-                                                <button
-                                                    key={`note-${k}`}
-                                                    className="button"
-                                                    style={{ display: 'flex', justifyContent: 'space-between' }}
-                                                    onClick={() => {
-                                                        const params = new URLSearchParams()
-                                                        const t = enabledTranslations.join(',')
-                                                        if (t) params.set('t', t)
-                                                        params.set('v', String(a))
-                                                        const href = (`/s/${s}?${params.toString()}`) as Route
-                                                        setSidebarOpen(false)
-                                                        if (here) { setActiveAyah(a); setOpenNoteAyah(a) }
-                                                        else { router.push(href, { scroll: false }); setTimeout(() => setOpenNoteAyah(a), 50) }
-                                                    }}
-                                                >
-                                                    <span>{s}:{a}</span>
-                                                </button>
-                                            )
-                                        })
-                                )}
-                            </div>
-                        </div>
-
-                        <div className="card">
-                            <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
-                                <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
-                                <span style={{ fontWeight: 600 }}>Bookmarks</span>
-                            </div>
-                            <div style={{ display: 'grid', gap: 4, maxHeight: 180, overflow: 'auto' }}>
-                                {(!hydrated || Object.keys(bookmarks).length === 0) ? (
-                                    <div className="muted">No bookmarks yet</div>
-                                ) : (
-                                    Object.keys(bookmarks)
-                                        .sort((a, b) => a.localeCompare(b))
-                                        .map((k) => {
-                                            const [s, a] = k.split(':').map((x) => Number(x))
-                                            const here = s === surah
-                                            return (
-                                                <button
-                                                    key={k}
-                                                    className="button"
-                                                    style={{ display: 'flex', justifyContent: 'space-between' }}
-                                                    onClick={() => {
-                                                        const params = new URLSearchParams()
-                                                        const t = enabledTranslations.join(',')
-                                                        if (t) params.set('t', t)
-                                                        params.set('v', String(a))
-                                                        const href = (`/s/${s}?${params.toString()}`) as Route
-                                                        setSidebarOpen(false)
-                                                        if (here) setActiveAyah(a)
-                                                        else router.push(href, { scroll: false })
-                                                    }}
-                                                >
-                                                    <span>{s}:{a}</span>
-                                                </button>
-                                            )
-                                        })
-                                )}
+                            <div className="card">
+                                <div style={{ display: 'flex', alignItems: 'center', gap: 8, marginBottom: 6 }}>
+                                    <svg className="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true"><path d="M19 21l-7-5-7 5V5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2z" /></svg>
+                                    <span style={{ fontWeight: 600 }}>Bookmarks</span>
+                                </div>
+                                <div style={{ display: 'grid', gap: 4, maxHeight: 180, overflow: 'auto' }}>
+                                    {(!hydrated || Object.keys(bookmarks).length === 0) ? (
+                                        <div className="muted">No bookmarks yet</div>
+                                    ) : (
+                                        Object.keys(bookmarks)
+                                            .sort((a, b) => a.localeCompare(b))
+                                            .map((k) => {
+                                                const [s, a] = k.split(':').map((x) => Number(x))
+                                                const here = s === surah
+                                                return (
+                                                    <button
+                                                        key={k}
+                                                        className="button"
+                                                        style={{ display: 'flex', justifyContent: 'space-between' }}
+                                                        onClick={() => {
+                                                            const params = new URLSearchParams()
+                                                            const t = enabledTranslations.join(',')
+                                                            if (t) params.set('t', t)
+                                                            params.set('v', String(a))
+                                                            const href = (`/s/${s}?${params.toString()}`) as Route
+                                                            setSidebarOpen(false)
+                                                            if (here) setActiveAyah(a)
+                                                            else router.push(href, { scroll: false })
+                                                        }}
+                                                    >
+                                                        <span>{s}:{a}</span>
+                                                    </button>
+                                                )
+                                            })
+                                    )}
+                                </div>
                             </div>
                         </div>
                     </div>
-                </div>
-            </aside>
+                </aside>
 
-            <footer className="footer">Showing all verses. Data is loaded from static files.</footer>
-        </main>
+                <footer className="footer">Showing all verses. Data is loaded from static files.</footer>
+            </main>
+        </>
     )
 }
 
