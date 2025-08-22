@@ -179,8 +179,10 @@ a {
   cursor: pointer;
 }
 
-.icon-btn:hover {
-  border-color: var(--accent);
+@media (hover: hover) and (pointer: fine) {
+  .icon-btn:hover {
+    border-color: var(--accent);
+  }
 }
 
 .icon-btn.active {

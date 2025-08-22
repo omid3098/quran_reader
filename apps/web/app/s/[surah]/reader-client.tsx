@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
-import { Menu, Book, ChevronDown, FileText, Share2, ChevronLeft, ChevronRight, Pause, Play, RotateCcw, X, Sun, Moon, Bookmark, File, Download, Copy, QrCode, Upload, Clipboard, Languages, FolderOutput, FolderInput, Check } from 'lucide-react'
+import { Menu, Book, ChevronDown, FileText, Share2, ChevronLeft, ChevronRight, Pause, Play, ListEnd, X, Sun, Moon, Bookmark, File, Download, Copy, QrCode, Upload, Clipboard, Languages, FolderOutput, FolderInput, Check } from 'lucide-react'
 import type { Route } from 'next'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -1002,7 +1002,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                         title="Autoplay"
                         onClick={() => setAutoplay(!autoplay)}
                     >
-                        <RotateCcw className="icon" strokeWidth={2} aria-hidden />
+                        <ListEnd className="icon" strokeWidth={2} aria-hidden />
                     </button>
                 </div>
 
