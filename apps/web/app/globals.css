@@ -236,6 +236,10 @@ a {
   transform: translateX(0);
 }
 
+.sidebar input[type="checkbox"] {
+  accent-color: var(--accent);
+}
+
 .section {
   margin-bottom: 16px;
 }
