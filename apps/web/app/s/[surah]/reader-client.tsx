@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import { Menu, Book, BookMarked, Settings, ChevronDown, FileText, Share2, ChevronLeft, ChevronRight, Pause, Play, ListEnd, X, Sun, Moon, Bookmark, File, Download, Copy, QrCode, Upload, Clipboard, Languages, FolderOutput, FolderInput, Check, Github } from 'lucide-react'
+import Stemmer from 'arabic-stem'
 import type { Route } from 'next'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -23,6 +24,11 @@ const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || ''
 function isRtlLanguage(lang: string | undefined): boolean {
     const rtlLangs = new Set(['ar', 'fa', 'ur', 'he', 'ps', 'sd', 'ug', 'ku', 'yi'])
     return !!lang && rtlLangs.has(lang.toLowerCase())
+}
+
+function normalizeRoot(r: string): string {
+    if (r === 'اتق' || r === 'متق' || r === 'تقي') return 'وقي'
+    return r
 }
 
 function useLocalStorage<T>(key: string, initial: T) {
@@ -75,6 +81,10 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const [incomingShare, setIncomingShare] = useState<null | { bookmarks: VerseKey[]; notes: Array<[VerseKey, string]> }>(null)
     const [showQr, setShowQr] = useState(false)
     const [hydrated, setHydrated] = useState(false)
+    const [roots, setRoots] = useState<Record<string, { count: number; verses: string[] }> | null>(null)
+    const [rootResult, setRootResult] = useState<{ root: string; data: { count: number; verses: string[] } } | null>(null)
+    const stemmerRef = useRef<any>(null)
+    const longPressTimer = useRef<NodeJS.Timeout | null>(null)
     // Sidebar accordions
     const [isNotesOpen, setIsNotesOpen] = useState(false)
     const [isBookmarksOpen, setIsBookmarksOpen] = useState(false)
@@ -120,6 +130,11 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         }
     }, [])
 
+    useEffect(() => {
+        stemmerRef.current = new Stemmer()
+        fetch(`${BASE_PATH}/roots.json`).then(r => r.json()).then(setRoots).catch(() => {})
+    }, [])
+
     // Clear helpers
     function clearAllNavigations() {
         try {
@@ -151,6 +166,40 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         if (clearNt) clearAllNotes()
         if (clearSt) clearSettingsToDefaults()
         setClearNav(false); setClearBm(false); setClearNt(false); setClearSt(false)
+    }
+
+    function lookupRoot(word: string) {
+        const stemmer = stemmerRef.current
+        if (!stemmer || !roots) return
+        const cleaned = word.replace(/[^\u0621-\u064A]/g, '')
+        if (!cleaned) return
+        let root: string | null = null
+        try {
+            const res = stemmer.stem(cleaned)
+            root = Array.isArray(res.stem) ? res.stem[0] : null
+        } catch {
+            root = null
+        }
+        if (!root) return
+        root = normalizeRoot(root)
+        const data = roots[root]
+        setRootResult({ root, data: data || { count: 0, verses: [] } })
+    }
+
+    function handleContextMenu(e: React.MouseEvent, word: string) {
+        e.preventDefault()
+        lookupRoot(word)
+    }
+
+    function handlePointerDown(word: string) {
+        longPressTimer.current = setTimeout(() => lookupRoot(word), 500)
+    }
+
+    function cancelPointer() {
+        if (longPressTimer.current) {
+            clearTimeout(longPressTimer.current)
+            longPressTimer.current = null
+        }
     }
 
     // Media Session metadata
@@ -794,6 +843,53 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
 
     return (
         <>
+            {rootResult ? (
+                <div
+                    onClick={() => setRootResult(null)}
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(0,0,0,0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1000,
+                    }}
+                >
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            background: 'var(--bg)',
+                            color: 'var(--fg)',
+                            padding: 16,
+                            maxHeight: '80%',
+                            overflow: 'auto',
+                            maxWidth: '90%',
+                        }}
+                    >
+                        <h2 dir="rtl" style={{ marginTop: 0 }}>{rootResult.root}</h2>
+                        <p>Occurrences: {rootResult.data.count}</p>
+                        {rootResult.data.verses.length ? (
+                            <ul>
+                                {rootResult.data.verses.map((v) => (
+                                    <li key={v}>{v}</li>
+                                ))}
+                            </ul>
+                        ) : (
+                            <p>No occurrences in dataset.</p>
+                        )}
+                        <button
+                            type="button"
+                            className="icon-btn"
+                            onClick={() => setRootResult(null)}
+                            style={{ marginTop: 8 }}
+                            aria-label="Close"
+                        >
+                            <X className="icon" strokeWidth={2} aria-hidden />
+                        </button>
+                    </div>
+                </div>
+            ) : null}
             <header className="header" role="banner">
                 <div className="header-inner">
                     <nav className="toolbar" aria-label="Reader controls" style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
@@ -985,7 +1081,19 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                     ) : null}
                                     <div className="arabic" dir="rtl" lang="ar">
                                         <span className="ayah-num">{v.ayah}</span>
-                                        <span>{v.text_ar_simple}</span>
+                                        {v.text_ar_simple.split(/\s+/).map((w, i, arr) => (
+                                            <span
+                                                key={i}
+                                                onContextMenu={(e) => handleContextMenu(e, w)}
+                                                onPointerDown={() => handlePointerDown(w)}
+                                                onPointerUp={cancelPointer}
+                                                onPointerLeave={cancelPointer}
+                                                style={{ cursor: 'pointer' }}
+                                            >
+                                                {w}
+                                                {i < arr.length - 1 ? ' ' : ''}
+                                            </span>
+                                        ))}
                                     </div>
                                     {v.translations?.length ? (
                                         <div style={{ display: 'grid', gap: 6 }}>
