@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
-import { Menu, Book, ChevronDown, FileText, Share2, ChevronLeft, ChevronRight, Pause, Play, ListEnd, X, Sun, Moon, Bookmark, File, Download, Copy, QrCode, Upload, Clipboard, Languages, FolderOutput, FolderInput, Check } from 'lucide-react'
+import { Menu, Book, ChevronDown, FileText, Share2, ChevronLeft, ChevronRight, Pause, Play, ListEnd, X, Sun, Moon, Bookmark, File, Download, Copy, QrCode, Upload, Clipboard, Languages, FolderOutput, FolderInput, Check, Github } from 'lucide-react'
 import type { Route } from 'next'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -79,7 +79,6 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const [isBookmarksOpen, setIsBookmarksOpen] = useState(false)
     const [isExportOpen, setIsExportOpen] = useState(false)
     const [isImportOpen, setIsImportOpen] = useState(false)
-    const [isThemeOpen, setIsThemeOpen] = useState(false)
     const [isFontOpen, setIsFontOpen] = useState(false)
 
     // Audio state
@@ -1016,48 +1015,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                         </button>
                     </div>
 
-                    <div className="section">
-                        <div role="region" aria-label="Theme">
-                            <button
-                                type="button"
-                                className="button"
-                                aria-expanded={isThemeOpen}
-                                aria-controls="accordion-theme"
-                                onClick={() => setIsThemeOpen((o) => !o)}
-                                style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                            >
-                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                                    <Sun className="icon" strokeWidth={2} aria-hidden />
-                                    <span>Theme</span>
-                                </span>
-                                <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isThemeOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
-                            </button>
-                            {isThemeOpen ? (
-                                <div id="accordion-theme" style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-                                    <button
-                                        type="button"
-                                        className={`icon-btn${theme === 'light' ? ' active' : ''}`}
-                                        aria-pressed={theme === 'light'}
-                                        aria-label="Light theme"
-                                        onClick={() => setTheme('light')}
-                                        title="Light"
-                                    >
-                                        <Sun className="icon" strokeWidth={2} aria-hidden />
-                                    </button>
-                                    <button
-                                        type="button"
-                                        className={`icon-btn${theme === 'dark' ? ' active' : ''}`}
-                                        aria-pressed={theme === 'dark'}
-                                        aria-label="Dark theme"
-                                        onClick={() => setTheme('dark')}
-                                        title="Dark"
-                                    >
-                                        <Moon className="icon" strokeWidth={2} aria-hidden />
-                                    </button>
-                                </div>
-                            ) : null}
-                        </div>
-                    </div>
+
 
                     <div className="section">
                         <div role="region" aria-label="Font size">
@@ -1374,6 +1332,31 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                 </div>
                             ) : null}
                         </div>
+                    </div>
+                    <div style={{ position: 'sticky', bottom: 0, paddingTop: 12, marginTop: 12, borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <a
+                            className="icon-btn"
+                            href="https://github.com/omid3098/quran_reader"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            aria-label="Open GitHub repository"
+                            title="GitHub repository"
+                        >
+                            <Github className="icon" strokeWidth={2} aria-hidden />
+                        </a>
+                        <button
+                            type="button"
+                            className="icon-btn"
+                            aria-label="Toggle theme"
+                            title={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
+                            onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
+                        >
+                            {theme === 'dark' ? (
+                                <Sun className="icon" strokeWidth={2} aria-hidden />
+                            ) : (
+                                <Moon className="icon" strokeWidth={2} aria-hidden />
+                            )}
+                        </button>
                     </div>
                 </aside>
 
