@@ -734,7 +734,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                     }}
                                 >
                                     <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6, justifyContent: 'space-between' }}>
-                                        <span className="muted">Ayah {v.ayah}</span>
+                                        <span className="muted">{v.ayah}</span>
                                         {activeAyah === v.ayah ? (
                                             <div style={{ display: 'inline-flex', gap: 6 }}>
                                                 <button
