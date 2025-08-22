@@ -1,7 +1,7 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
-import { Menu, Book, ChevronDown, FileText, Share2, ChevronLeft, ChevronRight, Pause, Play, ListEnd, X, Sun, Moon, Bookmark, File, Download, Copy, QrCode, Upload, Clipboard, Languages, FolderOutput, FolderInput, Check, Github } from 'lucide-react'
+import { Menu, Book, BookMarked, Settings, ChevronDown, FileText, Share2, ChevronLeft, ChevronRight, Pause, Play, ListEnd, X, Sun, Moon, Bookmark, File, Download, Copy, QrCode, Upload, Clipboard, Languages, FolderOutput, FolderInput, Check, Github } from 'lucide-react'
 import type { Route } from 'next'
 import { useRouter, useSearchParams } from 'next/navigation'
 
@@ -81,6 +81,11 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const [isExportOpen, setIsExportOpen] = useState(false)
     const [isImportOpen, setIsImportOpen] = useState(false)
     const [isFontOpen, setIsFontOpen] = useState(false)
+    const [isClearOpen, setIsClearOpen] = useState(false)
+    const [clearNav, setClearNav] = useState(false)
+    const [clearBm, setClearBm] = useState(false)
+    const [clearNt, setClearNt] = useState(false)
+    const [clearSt, setClearSt] = useState(false)
 
     // Audio state
     const reciterOptions = useMemo(
@@ -114,6 +119,39 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
             audioRef.current = audio
         }
     }, [])
+
+    // Clear helpers
+    function clearAllNavigations() {
+        try {
+            localStorage.removeItem('oqr:lastPosition')
+            localStorage.removeItem('oqr:lastSurah')
+            for (let i = 1; i <= 114; i++) localStorage.removeItem(`oqr:lastAyah:${i}`)
+        } catch { }
+    }
+
+    function clearAllBookmarks() {
+        try { localStorage.removeItem('oqr:bookmarks') } catch { }
+        setBookmarks({})
+    }
+
+    function clearAllNotes() {
+        try { localStorage.removeItem('oqr:notes') } catch { }
+        setNotes({})
+    }
+
+    function clearSettingsToDefaults() {
+        setEnabledTranslations(['en.arberry'])
+        setReciter('Alafasy_128kbps')
+    }
+
+    function handleClearSelected() {
+        if (!clearNav && !clearBm && !clearNt && !clearSt) return
+        if (clearNav) clearAllNavigations()
+        if (clearBm) clearAllBookmarks()
+        if (clearNt) clearAllNotes()
+        if (clearSt) clearSettingsToDefaults()
+        setClearNav(false); setClearBm(false); setClearNt(false); setClearSt(false)
+    }
 
     // Media Session metadata
     useEffect(() => {
@@ -1298,6 +1336,69 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                                 )
                                             })
                                     )}
+                                </div>
+                            ) : null}
+                        </div>
+                    </div>
+
+                    <div className="section">
+                        {/* Clear */}
+                        <div role="region" aria-label="Clear">
+                            <button
+                                type="button"
+                                className="button"
+                                aria-expanded={isClearOpen}
+                                aria-controls="accordion-clear"
+                                onClick={() => setIsClearOpen((o) => !o)}
+                                style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+                            >
+                                <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                                    <Settings className="icon" strokeWidth={2} aria-hidden />
+                                    <span>Clear</span>
+                                </span>
+                                <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isClearOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
+                            </button>
+                            {isClearOpen ? (
+                                <div id="accordion-clear" style={{ marginTop: 8, display: 'grid', gap: 10 }}>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <input type="checkbox" checked={clearNav} onChange={(e) => setClearNav(e.target.checked)} aria-label="Clear navigations" />
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} title="Clear navigations">
+                                            <BookMarked className="icon" strokeWidth={2} aria-hidden />
+                                            <span>Navigations</span>
+                                        </span>
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <input type="checkbox" checked={clearBm} onChange={(e) => setClearBm(e.target.checked)} aria-label="Clear bookmarks" />
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} title="Clear bookmarks">
+                                            <Bookmark className="icon" strokeWidth={2} aria-hidden />
+                                            <span>Bookmarks</span>
+                                        </span>
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <input type="checkbox" checked={clearNt} onChange={(e) => setClearNt(e.target.checked)} aria-label="Clear notes" />
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} title="Clear notes">
+                                            <FileText className="icon" strokeWidth={2} aria-hidden />
+                                            <span>Notes</span>
+                                        </span>
+                                    </label>
+                                    <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                                        <input type="checkbox" checked={clearSt} onChange={(e) => setClearSt(e.target.checked)} aria-label="Clear settings" />
+                                        <span style={{ display: 'inline-flex', alignItems: 'center', gap: 6 }} title="Clear settings">
+                                            <Settings className="icon" strokeWidth={2} aria-hidden />
+                                            <span>Settings</span>
+                                        </span>
+                                    </label>
+                                    <div style={{ display: 'flex', gap: 8 }}>
+                                        <button
+                                            type="button"
+                                            className="button"
+                                            disabled={!clearNav && !clearBm && !clearNt && !clearSt}
+                                            onClick={() => { handleClearSelected() }}
+                                            style={{ flex: 1 }}
+                                        >
+                                            Clear
+                                        </button>
+                                    </div>
                                 </div>
                             ) : null}
                         </div>
