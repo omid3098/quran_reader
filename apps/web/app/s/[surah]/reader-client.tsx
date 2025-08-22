@@ -62,8 +62,6 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const reciterDropdownRef = useRef<HTMLDivElement>(null)
     const surahListRef = useRef<HTMLDivElement>(null)
     const [activeAyah, setActiveAyah] = useState<number | null>(null)
-    const [renderUpto, setRenderUpto] = useState<number>(0)
-    const RENDER_STEP = 50
     const [isSidebarOpen, setSidebarOpen] = useState(false)
     // Local bookmarks and notes
     type VerseKey = `${number}:${number}`
@@ -398,15 +396,6 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         return () => clearTimeout(t)
     }, [verses, activeAyah])
 
-    // If the progressive window grows to include activeAyah, scroll to it
-    useEffect(() => {
-        if (!verses || !verses.length) return
-        if (!activeAyah) return
-        if (renderUpto < activeAyah) return
-        const el = document.getElementById(`ayah-${activeAyah}`)
-        if (el) el.scrollIntoView({ behavior: 'smooth', block: 'center' })
-    }, [renderUpto, activeAyah, verses])
-
     // persist last position (surah + ayah) and per-surah last ayah
     useEffect(() => {
         if (!activeAyah) return
@@ -416,41 +405,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         } catch { }
     }, [surah, activeAyah])
 
-    // Initialize and maintain progressive rendering window
-    useEffect(() => {
-        if (!verses || !verses.length) return
-        const lastAyah = verses[verses.length - 1]?.ayah || 0
-        const baseline = activeAyah && activeAyah > 0 ? activeAyah : 1
-        setRenderUpto((prev) => {
-            const target = Math.min(lastAyah, baseline + RENDER_STEP)
-            return prev > target ? prev : target
-        })
-    }, [verses, activeAyah])
-
-    // Ensure window grows when navigating past current boundary
-    useEffect(() => {
-        if (!verses || !verses.length || !activeAyah) return
-        const lastAyah = verses[verses.length - 1]?.ayah || 0
-        if (activeAyah > renderUpto) {
-            setRenderUpto(Math.min(lastAyah, activeAyah + RENDER_STEP))
-        }
-    }, [activeAyah, verses, renderUpto])
-
-    // Infinite bottom sentinel to progressively render more verses
-    const bottomRef = useRef<HTMLDivElement>(null)
-    useEffect(() => {
-        if (!verses || !verses.length) return
-        const el = bottomRef.current
-        if (!el) return
-        const lastAyah = verses[verses.length - 1]?.ayah || 0
-        const io = new IntersectionObserver((entries) => {
-            if (entries[0]?.isIntersecting) {
-                setRenderUpto((prev) => Math.min(lastAyah, prev + RENDER_STEP))
-            }
-        })
-        io.observe(el)
-        return () => io.disconnect()
-    }, [verses, bottomRef])
+    // All verses are rendered at once; no lazy loading needed
 
     // Keyboard navigation: ←/k previous, →/j next
     useEffect(() => {
@@ -921,7 +876,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                         </div>
                     ) : (
                         <div ref={listRef} style={{ '--arabic-size': arabicSizeVar } as React.CSSProperties}>
-                            {verses.filter((v) => v.ayah <= renderUpto).map((v) => (
+                            {verses.map((v) => (
                                 <article
                                     key={v.ayah}
                                     id={`ayah-${v.ayah}`}
@@ -1057,9 +1012,6 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                     ) : null)}
                                 </article>
                             ))}
-                            {renderUpto < (verses[verses.length - 1]?.ayah || 0) ? (
-                                <div ref={bottomRef} className="skeleton" style={{ height: 32, marginTop: 8 }} />
-                            ) : null}
                         </div>
                     )}
                 </section>
