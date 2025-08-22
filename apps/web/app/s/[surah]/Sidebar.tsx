@@ -23,6 +23,9 @@ import {
   Github,
   Sun,
   Moon,
+  MapPin,
+  Settings,
+  Trash2,
 } from 'lucide-react'
 import type { TranslationMeta } from '@openquranreader/types'
 import type { BookmarksSet, NotesMap, VerseKey } from './types'
@@ -561,8 +564,8 @@ export default function Sidebar({
               style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <File className="icon" strokeWidth={2} aria-hidden />
-                <span>Clear data</span>
+                <Trash2 className="icon" strokeWidth={2} aria-hidden />
+                <span>Clear</span>
               </span>
               <ChevronDown
                 className="icon"
@@ -575,22 +578,26 @@ export default function Sidebar({
               <div id="accordion-clear" style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <input type="checkbox" checked={clearNav} onChange={(e) => setClearNav(e.target.checked)} aria-label="Clear navigations" />
-                  <span>Clear navigations</span>
+                  <MapPin className="icon" strokeWidth={2} aria-hidden />
+                  <span>Navigations</span>
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <input type="checkbox" checked={clearBm} onChange={(e) => setClearBm(e.target.checked)} aria-label="Clear bookmarks" />
-                  <span>Clear bookmarks</span>
+                  <Bookmark className="icon" strokeWidth={2} aria-hidden />
+                  <span>Bookmarks</span>
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <input type="checkbox" checked={clearNt} onChange={(e) => setClearNt(e.target.checked)} aria-label="Clear notes" />
-                  <span>Clear notes</span>
+                  <FileText className="icon" strokeWidth={2} aria-hidden />
+                  <span>Notes</span>
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <input type="checkbox" checked={clearSt} onChange={(e) => setClearSt(e.target.checked)} aria-label="Clear settings" />
-                  <span>Clear settings</span>
+                  <Settings className="icon" strokeWidth={2} aria-hidden />
+                  <span>Settings</span>
                 </label>
                 <button type="button" className="button" disabled={!clearNav && !clearBm && !clearNt && !clearSt} onClick={handleClearSelected}>
-                  Clear selected
+                  Clear
                 </button>
               </div>
             ) : null}
