@@ -1198,7 +1198,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                 </span>
                             </button>
                             {isNotesOpen ? (
-                                <div id="accordion-notes" style={{ marginTop: 8, display: 'grid', gap: 6, gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', maxHeight: 220, overflow: 'auto' }}>
+                                <div id="accordion-notes" style={{ marginTop: 8, display: 'grid', gap: 6, gridTemplateColumns: 'repeat(auto-fill, minmax(6ch, 1fr))', maxHeight: 220, overflow: 'auto' }}>
                                     {(!hydrated || Object.keys(notes).length === 0) ? (
                                         <div className="muted">No notes yet</div>
                                     ) : (
@@ -1255,7 +1255,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                 </span>
                             </button>
                             {isBookmarksOpen ? (
-                                <div id="accordion-bookmarks" style={{ marginTop: 8, display: 'grid', gap: 6, gridTemplateColumns: 'repeat(auto-fill, minmax(110px, 1fr))', maxHeight: 220, overflow: 'auto' }}>
+                                <div id="accordion-bookmarks" style={{ marginTop: 8, display: 'grid', gap: 6, gridTemplateColumns: 'repeat(auto-fill, minmax(6ch, 1fr))', maxHeight: 220, overflow: 'auto' }}>
                                     {(!hydrated || Object.keys(bookmarks).length === 0) ? (
                                         <div className="muted">No bookmarks yet</div>
                                     ) : (
