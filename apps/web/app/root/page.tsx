@@ -23,12 +23,26 @@ export default function RootSearchPage() {
       {query ? (
         data ? (
           <div style={{ marginTop: 16 }}>
-            <p>Occurrences: {data.count}</p>
-            <ul>
-              {data.verses.map((v) => (
-                <li key={v}>{v}</li>
-              ))}
-            </ul>
+            <h2 dir="rtl" style={{ marginTop: 0 }}>
+              {query.trim()} ({data.count} times)
+            </h2>
+            {data.verses.length ? (
+              <details open>
+                <summary>Verses</summary>
+                <ul style={{ marginTop: 8 }}>
+                  {data.verses.map((v) => {
+                    const [s, a] = v.split(':')
+                    return (
+                      <li key={v}>
+                        <a href={`/s/${s}?v=${a}`}>{s}:{a}</a>
+                      </li>
+                    )
+                  })}
+                </ul>
+              </details>
+            ) : (
+              <p>No occurrences in dataset.</p>
+            )}
           </div>
         ) : (
           <p style={{ marginTop: 16 }}>No results</p>

@@ -861,32 +861,43 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                         style={{
                             background: 'var(--bg)',
                             color: 'var(--fg)',
-                            padding: 16,
+                            padding: 24,
                             maxHeight: '80%',
                             overflow: 'auto',
-                            maxWidth: '90%',
+                            width: '90%',
+                            maxWidth: 600,
+                            position: 'relative',
                         }}
                     >
-                        <h2 dir="rtl" style={{ marginTop: 0 }}>{rootResult.root}</h2>
-                        <p>Occurrences: {rootResult.data.count}</p>
-                        {rootResult.data.verses.length ? (
-                            <ul>
-                                {rootResult.data.verses.map((v) => (
-                                    <li key={v}>{v}</li>
-                                ))}
-                            </ul>
-                        ) : (
-                            <p>No occurrences in dataset.</p>
-                        )}
                         <button
                             type="button"
                             className="icon-btn"
                             onClick={() => setRootResult(null)}
-                            style={{ marginTop: 8 }}
                             aria-label="Close"
+                            style={{ position: 'absolute', top: 8, right: 8 }}
                         >
                             <X className="icon" strokeWidth={2} aria-hidden />
                         </button>
+                        <h2 dir="rtl" style={{ marginTop: 0, textAlign: 'center' }}>
+                            {rootResult.root} ({rootResult.data.count} times)
+                        </h2>
+                        {rootResult.data.verses.length ? (
+                            <details open>
+                                <summary>Verses</summary>
+                                <ul style={{ marginTop: 8 }}>
+                                    {rootResult.data.verses.map((v) => {
+                                        const [s, a] = v.split(':')
+                                        return (
+                                            <li key={v}>
+                                                <a href={`${BASE_PATH}/s/${s}?v=${a}`}>{s}:{a}</a>
+                                            </li>
+                                        )
+                                    })}
+                                </ul>
+                            </details>
+                        ) : (
+                            <p>No occurrences in dataset.</p>
+                        )}
                     </div>
                 </div>
             ) : null}
