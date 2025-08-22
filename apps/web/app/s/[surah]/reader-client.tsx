@@ -60,6 +60,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const translationsDropdownRef = useRef<HTMLDivElement>(null)
     const [isReciterOpen, setReciterOpen] = useState(false)
     const reciterDropdownRef = useRef<HTMLDivElement>(null)
+    const surahListRef = useRef<HTMLDivElement>(null)
     const [activeAyah, setActiveAyah] = useState<number | null>(null)
     const [renderUpto, setRenderUpto] = useState<number>(0)
     const RENDER_STEP = 50
@@ -168,6 +169,18 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         document.addEventListener('mousedown', onDocClick)
         return () => document.removeEventListener('mousedown', onDocClick)
     }, [])
+
+    // Auto-scroll surah list to current selection when dropdown opens
+    useEffect(() => {
+        if (!isSurahOpen) return
+        const t = setTimeout(() => {
+            const container = surahListRef.current
+            if (!container) return
+            const active = container.querySelector('button[aria-selected="true"]') as HTMLElement | null
+            active?.scrollIntoView({ block: 'center' })
+        }, 0)
+        return () => clearTimeout(t)
+    }, [isSurahOpen, surah])
 
     const tParam = useMemo(() => enabledTranslations.join(','), [enabledTranslations])
 
@@ -413,12 +426,24 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
             const last = verses[verses.length - 1]?.ayah || first
             if (e.key === 'ArrowRight' || e.key.toLowerCase() === 'j') {
                 e.preventDefault()
+                const curr = (activeAyah || first)
+                if (curr >= last) {
+                    const nextSurah = surah + 1
+                    if (nextSurah <= 114) navigateToSurah(nextSurah, 1)
+                    return
+                }
                 setActiveAyah((prev) => {
                     const next = Math.min(last, (prev || first) + 1)
                     return next
                 })
             } else if (e.key === 'ArrowLeft' || e.key.toLowerCase() === 'k') {
                 e.preventDefault()
+                const curr = (activeAyah || first)
+                if (curr <= first) {
+                    const prevSurah = surah - 1
+                    if (prevSurah >= 1) navigateToSurah(prevSurah, AYAH_COUNT[prevSurah] || 1)
+                    return
+                }
                 setActiveAyah((prev) => {
                     const next = Math.max(first, (prev || first) - 1)
                     return next
@@ -476,6 +501,24 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         const s = pad3(surahNum)
         const a = pad3(ayahNum)
         return `https://everyayah.com/data/${reciter}/${s}${a}.mp3`
+    }
+
+    function navigateToSurah(targetSurah: number, fallbackAyah: number) {
+        if (targetSurah < 1 || targetSurah > 114) return
+        try { localStorage.setItem('oqr:lastSurah', JSON.stringify(targetSurah)) } catch { }
+        const t = enabledTranslations.join(',')
+        let v: number | null = null
+        try {
+            const raw = localStorage.getItem(`oqr:lastAyah:${targetSurah}`)
+            const parsed = raw ? JSON.parse(raw) : null
+            if (typeof parsed === 'number' && parsed > 0) v = parsed
+        } catch { }
+        const params = new URLSearchParams()
+        if (t) params.set('t', t)
+        params.set('v', String(v || fallbackAyah))
+        const href = (`/s/${targetSurah}?${params.toString()}`) as Route
+        setSurahOpen(false)
+        router.push(href, { scroll: false })
     }
 
     function playAyah(ayah: number) {
@@ -542,6 +585,12 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     function goPrevAyah() {
         if (!verses || !verses.length) return
         const first = verses[0]?.ayah || 1
+        const current = (activeAyah || first)
+        if (current <= first) {
+            const prevSurah = surah - 1
+            if (prevSurah >= 1) navigateToSurah(prevSurah, AYAH_COUNT[prevSurah] || 1)
+            return
+        }
         setActiveAyah((prev) => {
             const next = Math.max(first, (prev || first) - 1)
             if (playingAyah != null) setTimeout(() => playAyah(next), 0)
@@ -553,6 +602,12 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         if (!verses || !verses.length) return
         const first = verses[0]?.ayah || 1
         const last = verses[verses.length - 1]?.ayah || first
+        const current = (activeAyah || first)
+        if (current >= last) {
+            const nextSurah = surah + 1
+            if (nextSurah <= 114) navigateToSurah(nextSurah, 1)
+            return
+        }
         setActiveAyah((prev) => {
             const curr = prev || first
             const next = Math.min(last, curr + 1)
@@ -730,7 +785,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                 <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                                     {/* Book icon */}
                                     <Book className="icon" strokeWidth={2} aria-hidden />
-                                    <span dir="rtl" lang="ar">سورة {surahs.find((s) => s.number === surah)?.name_ar || surah}</span>
+                                    <span dir="rtl" lang="ar">سورة {surahs.find((s) => s.number === surah)?.name_ar || surah} — {surah}</span>
                                     <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ marginInlineStart: 4 }} />
                                 </span>
                             </button>
@@ -745,7 +800,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                             onChange={(e) => setSurahQuery(e.target.value)}
                                             autoFocus
                                         />
-                                        <div role="listbox" aria-label="Surah list" style={{ display: 'grid', gap: 4 }}>
+                                        <div role="listbox" aria-label="Surah list" style={{ display: 'grid', gap: 4 }} ref={surahListRef}>
                                             {(surahQuery ? surahs.filter((s) => `${s.name_ar} ${s.number}`.includes(surahQuery)) : surahs).map((s) => (
                                                 <button
                                                     key={s.number}
@@ -771,10 +826,10 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                                         setSurahOpen(false)
                                                         router.push(href, { scroll: false })
                                                     }}
-                                                    style={{ textAlign: 'unset', justifyContent: 'space-between', display: 'flex' }}
+                                                    style={{ textAlign: 'unset', justifyContent: 'space-between', display: 'flex', ...(s.number === surah ? { borderColor: 'var(--accent)', color: 'var(--accent)' } : {}) }}
                                                 >
                                                     <span>سورة {s.name_ar}</span>
-                                                    <span className="muted">{s.number}</span>
+                                                    <span className="muted" style={s.number === surah ? { color: 'var(--accent)' } : undefined}>{s.number}</span>
                                                 </button>
                                             ))}
                                             {!surahs.length ? (
