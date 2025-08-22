@@ -152,7 +152,7 @@ a {
 }
 
 .translation {
-  font-size: 14px;
+  font-size: var(--translation-size, 14px);
   color: var(--muted);
   margin-top: 6px;
 }
