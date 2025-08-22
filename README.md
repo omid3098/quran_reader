@@ -1,8 +1,8 @@
 # OpenQuranReader — Quickstart
 
-This project is now a fully static Next.js site. No backend or database is required.
+A simple Quran reader I developed for my personal use.
 
-## Demo:
+## Live at:
 https://www.omid-saadat.com/quran_reader
 
 ## Prerequisites
