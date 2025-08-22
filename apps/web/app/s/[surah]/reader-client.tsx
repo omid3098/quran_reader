@@ -1377,7 +1377,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                     </div>
                 </aside>
 
-                <footer className="footer">Showing all verses. Data is loaded from static files.</footer>
+                <footer className="footer" style={{ textAlign: 'left' }}>Open Qur’an Reader | Made with love and surrender</footer>
             </main>
         </>
     )
