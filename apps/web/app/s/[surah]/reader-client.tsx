@@ -89,10 +89,30 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     } | null>(null)
     const [previewVerse, setPreviewVerse] = useState<Verse | null>(null)
     const [previewPos, setPreviewPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
+    const previewRef = useRef<HTMLDivElement>(null)
+    const pointerTypeRef = useRef<'mouse' | 'touch' | 'pen' | null>(null)
     const stemmerRef = useRef<any>(null)
     const longPressTimer = useRef<NodeJS.Timeout | null>(null)
     const previewTimer = useRef<NodeJS.Timeout | null>(null)
     const previewReq = useRef(0)
+    useEffect(() => {
+        if (previewVerse && pointerTypeRef.current !== 'touch') {
+            const tooltip = previewRef.current
+            if (tooltip && typeof window !== 'undefined') {
+                const margin = 8
+                const width = tooltip.offsetWidth
+                const height = tooltip.offsetHeight
+                let { x, y } = previewPos
+                const maxX = window.innerWidth - width - margin
+                const maxY = window.innerHeight - height - margin
+                if (x > maxX) x = maxX
+                if (y > maxY) y = maxY
+                if (x < margin) x = margin
+                if (y < margin) y = margin
+                if (x !== previewPos.x || y !== previewPos.y) setPreviewPos({ x, y })
+            }
+        }
+    }, [previewVerse])
     // Sidebar accordions
     const [isNotesOpen, setIsNotesOpen] = useState(false)
     const [isBookmarksOpen, setIsBookmarksOpen] = useState(false)
@@ -248,11 +268,26 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         }
     }
 
-    function updatePreviewPos(e: { clientX: number; clientY: number }) {
-        setPreviewPos({ x: e.clientX + 12, y: e.clientY + 12 })
+    function updatePreviewPos(e: { clientX: number; clientY: number; pointerType?: string }) {
+        if (pointerTypeRef.current === 'touch' || e.pointerType === 'touch') return
+        const margin = 8
+        const tooltip = previewRef.current
+        const width = tooltip?.offsetWidth || 300
+        const height = tooltip?.offsetHeight || 200
+        let x = e.clientX + 12
+        let y = e.clientY + 12
+        if (typeof window !== 'undefined') {
+            const maxX = window.innerWidth - width - margin
+            const maxY = window.innerHeight - height - margin
+            if (x > maxX) x = maxX
+            if (y > maxY) y = maxY
+            if (x < margin) x = margin
+            if (y < margin) y = margin
+        }
+        setPreviewPos({ x, y })
     }
 
-    function showPreview(s: number, a: number, e?: { clientX: number; clientY: number }) {
+    function showPreview(s: number, a: number, e?: { clientX: number; clientY: number; pointerType?: string }) {
         if (e) updatePreviewPos(e)
         if (previewTimer.current) {
             clearTimeout(previewTimer.current)
@@ -266,7 +301,16 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
 
     function handleResultPointerDown(s: number, a: number, e: ReactPointerEvent<HTMLAnchorElement>) {
         e.preventDefault()
-        updatePreviewPos(e)
+        pointerTypeRef.current = e.pointerType as any
+        if (e.pointerType === 'touch') {
+            const margin = 8
+            const width = 300
+            const x = Math.max(margin, (window.innerWidth - width) / 2)
+            const y = margin
+            setPreviewPos({ x, y })
+        } else {
+            updatePreviewPos(e)
+        }
         previewTimer.current = setTimeout(() => showPreview(s, a), 500)
     }
 
@@ -277,6 +321,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         }
         previewReq.current++
         setPreviewVerse(null)
+        pointerTypeRef.current = null
     }
 
     // Media Session metadata
@@ -956,11 +1001,11 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                             <X className="icon" strokeWidth={2} aria-hidden />
                         </button>
                         <h2 dir="rtl" style={{ marginTop: 0, textAlign: 'center' }}>
-                            {rootResult.word} → {rootResult.root} → {rootResult.data.count} times
+                            {rootResult.word} → {rootResult.root} ({rootResult.data.count} times)
                         </h2>
                         <div style={{ flex: 1, overflow: 'auto' }}>
                             {rootResult.data.verses.length ? (
-                                <details>
+                                <details open>
                                     <summary>Verses with this root</summary>
                                     <div
                                         style={{
@@ -1009,6 +1054,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
 
             {previewVerse ? (
                 <div
+                    ref={previewRef}
                     style={{
                         position: 'fixed',
                         top: previewPos.y,
