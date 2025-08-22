@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
+import { useEffect, useMemo, useRef, useState, type MutableRefObject, type PointerEvent as ReactPointerEvent } from 'react'
 import { Menu, Book, BookMarked, Settings, ChevronDown, FileText, Share2, ChevronLeft, ChevronRight, Pause, Play, ListEnd, X, Sun, Moon, Bookmark, File, Download, Copy, QrCode, Upload, Clipboard, Languages, FolderOutput, FolderInput, Check, Github } from 'lucide-react'
 import Stemmer from 'arabic-stem'
 import type { Route } from 'next'
@@ -88,9 +88,11 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         data: { count: number; verses: string[] }
     } | null>(null)
     const [previewVerse, setPreviewVerse] = useState<Verse | null>(null)
+    const [previewPos, setPreviewPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
     const stemmerRef = useRef<any>(null)
     const longPressTimer = useRef<NodeJS.Timeout | null>(null)
     const previewTimer = useRef<NodeJS.Timeout | null>(null)
+    const previewReq = useRef(0)
     // Sidebar accordions
     const [isNotesOpen, setIsNotesOpen] = useState(false)
     const [isBookmarksOpen, setIsBookmarksOpen] = useState(false)
@@ -246,17 +248,25 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         }
     }
 
-    function showPreview(s: number, a: number) {
+    function updatePreviewPos(e: { clientX: number; clientY: number }) {
+        setPreviewPos({ x: e.clientX + 12, y: e.clientY + 12 })
+    }
+
+    function showPreview(s: number, a: number, e?: { clientX: number; clientY: number }) {
+        if (e) updatePreviewPos(e)
         if (previewTimer.current) {
             clearTimeout(previewTimer.current)
             previewTimer.current = null
         }
+        const reqId = ++previewReq.current
         void fetchVerseWithTranslations(s, a).then((v) => {
-            if (v) setPreviewVerse(v)
+            if (previewReq.current === reqId && v) setPreviewVerse(v)
         })
     }
 
-    function handleResultPointerDown(s: number, a: number) {
+    function handleResultPointerDown(s: number, a: number, e: ReactPointerEvent<HTMLAnchorElement>) {
+        e.preventDefault()
+        updatePreviewPos(e)
         previewTimer.current = setTimeout(() => showPreview(s, a), 500)
     }
 
@@ -265,6 +275,8 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
             clearTimeout(previewTimer.current)
             previewTimer.current = null
         }
+        previewReq.current++
+        setPreviewVerse(null)
     }
 
     // Media Session metadata
@@ -910,7 +922,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         <>
             {rootResult ? (
                 <div
-                    onClick={() => setRootResult(null)}
+                    onClick={() => { setRootResult(null); setPreviewVerse(null) }}
                     style={{
                         position: 'fixed',
                         inset: 0,
@@ -937,7 +949,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                         <button
                             type="button"
                             className="icon-btn"
-                            onClick={() => setRootResult(null)}
+                            onClick={() => { setRootResult(null); setPreviewVerse(null) }}
                             aria-label="Close"
                             style={{ position: 'absolute', top: 8, right: 8 }}
                         >
@@ -973,10 +985,13 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                                         borderRadius: 4,
                                                         textAlign: 'center',
                                                     }}
-                                                    onMouseEnter={() => showPreview(surahNum, ayahNum)}
-                                                    onPointerDown={() => handleResultPointerDown(surahNum, ayahNum)}
+                                                    onMouseEnter={(e) => showPreview(surahNum, ayahNum, e)}
+                                                    onPointerDown={(e) => handleResultPointerDown(surahNum, ayahNum, e)}
                                                     onPointerUp={cancelPreview}
                                                     onPointerLeave={cancelPreview}
+                                                    onMouseMove={updatePreviewPos}
+                                                    onPointerMove={updatePreviewPos}
+                                                    onContextMenu={(e) => e.preventDefault()}
                                                 >
                                                     {s}:{a}
                                                 </a>
@@ -994,55 +1009,36 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
 
             {previewVerse ? (
                 <div
-                    onClick={() => setPreviewVerse(null)}
                     style={{
                         position: 'fixed',
-                        inset: 0,
-                        background: 'rgba(0,0,0,0.5)',
-                        display: 'flex',
-                        alignItems: 'center',
-                        justifyContent: 'center',
+                        top: previewPos.y,
+                        left: previewPos.x,
                         zIndex: 1100,
+                        background: 'var(--bg)',
+                        color: 'var(--fg)',
+                        border: '1px solid var(--border, #ccc)',
+                        padding: 12,
+                        maxWidth: 300,
+                        pointerEvents: 'none',
+                        boxShadow: '0 2px 6px rgba(0,0,0,0.2)',
+                        transition: 'top 0.05s linear, left 0.05s linear',
                     }}
                 >
-                    <div
-                        onClick={(e) => e.stopPropagation()}
-                        style={{
-                            background: 'var(--bg)',
-                            color: 'var(--fg)',
-                            width: '90%',
-                            maxWidth: 600,
-                            maxHeight: '80%',
-                            overflow: 'auto',
-                            position: 'relative',
-                            padding: 24,
-                        }}
-                    >
-                        <button
-                            type="button"
-                            className="icon-btn"
-                            onClick={() => setPreviewVerse(null)}
-                            aria-label="Close"
-                            style={{ position: 'absolute', top: 8, right: 8 }}
-                        >
-                            <X className="icon" strokeWidth={2} aria-hidden />
-                        </button>
-                        <h3 style={{ marginTop: 0 }}>
-                            {previewVerse.surah}:{previewVerse.ayah}
-                        </h3>
-                        <p dir="rtl" lang="ar" style={{ fontSize: '1.25rem' }}>
-                            {previewVerse.text_ar_simple}
-                        </p>
-                        {previewVerse.translations?.map((tr) => {
-                            const meta = translations.find((t) => t.id === tr.translationId)
-                            const rtl = isRtlLanguage(meta?.language)
-                            return (
-                                <p key={tr.translationId} dir={rtl ? 'rtl' : 'ltr'} style={{ marginTop: 12 }}>
-                                    <strong>{meta?.name || tr.translationId}:</strong> {tr.text}
-                                </p>
-                            )
-                        })}
-                    </div>
+                    <h3 style={{ marginTop: 0, marginBottom: 4 }}>
+                        {previewVerse.surah}:{previewVerse.ayah}
+                    </h3>
+                    <p dir="rtl" lang="ar" style={{ fontSize: '1.25rem', margin: 0 }}>
+                        {previewVerse.text_ar_simple}
+                    </p>
+                    {previewVerse.translations?.map((tr) => {
+                        const meta = translations.find((t) => t.id === tr.translationId)
+                        const rtl = isRtlLanguage(meta?.language)
+                        return (
+                            <p key={tr.translationId} dir={rtl ? 'rtl' : 'ltr'} style={{ marginTop: 8 }}>
+                                <strong>{meta?.name || tr.translationId}:</strong> {tr.text}
+                            </p>
+                        )
+                    })}
                 </div>
             ) : null}
             <header className="header" role="banner">
