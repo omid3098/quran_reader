@@ -1415,7 +1415,9 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                     </div>
                 </aside>
 
-                <footer className="footer" style={{ textAlign: 'left' }}>Open Qur’an Reader | Made with love and surrender</footer>
+                <footer className="footer" style={{ textAlign: 'left' }}>
+                    Open Qur’an Reader | Made with love and surrender · Audio: <a href="https://everyayah.com" target="_blank" rel="noreferrer">EveryAyah</a> · <a href="https://quran.com" target="_blank" rel="noreferrer">Quran.com</a>
+                </footer>
             </main>
         </>
     )

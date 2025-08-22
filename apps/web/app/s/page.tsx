@@ -49,7 +49,9 @@ export default async function SurahListPage() {
           )}
         </section>
 
-        <footer className="footer">Data loaded from static files; generated via Tanzil</footer>
+        <footer className="footer">
+          Data loaded from static files; source: <a href="https://tanzil.net" target="_blank" rel="noreferrer">Tanzil</a>
+        </footer>
       </main>
     </>
   )

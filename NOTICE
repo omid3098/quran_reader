@@ -1,0 +1,19 @@
+OpenQuranReader includes data from the Tanzil Project:
+
+- Arabic text: "Tanzil Quran Text (Simple, Version 1.1)"
+  Copyright © 2007–2025 Tanzil Project
+  License: Creative Commons Attribution 3.0 (CC BY 3.0)
+  Source and updates: https://tanzil.net
+
+- Translations (XML files): en.arberry, fa.bahrampour, fa.fooladvand, fa.gharaati, fa.makarem
+  Source: Tanzil.net; see each file header for translator and last update.
+
+Per Tanzil terms of use:
+- Clearly indicate the source as the Tanzil Project
+- Provide a link to https://tanzil.net to enable users to track updates
+- Include this notice in distributions containing the texts above
+
+Audio streaming services used at runtime (no redistribution):
+- EveryAyah per-ayah MP3 streams — https://everyayah.com
+- Islamic Network (Quran.com CDN) for Alafasy global-indexed MP3 — https://cdn.islamic.network
+
