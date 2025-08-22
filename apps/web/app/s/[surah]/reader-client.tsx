@@ -82,9 +82,15 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const [showQr, setShowQr] = useState(false)
     const [hydrated, setHydrated] = useState(false)
     const [roots, setRoots] = useState<Record<string, { count: number; verses: string[] }> | null>(null)
-    const [rootResult, setRootResult] = useState<{ root: string; data: { count: number; verses: string[] } } | null>(null)
+    const [rootResult, setRootResult] = useState<{
+        word: string
+        root: string
+        data: { count: number; verses: string[] }
+    } | null>(null)
+    const [previewVerse, setPreviewVerse] = useState<Verse | null>(null)
     const stemmerRef = useRef<any>(null)
     const longPressTimer = useRef<NodeJS.Timeout | null>(null)
+    const previewTimer = useRef<NodeJS.Timeout | null>(null)
     // Sidebar accordions
     const [isNotesOpen, setIsNotesOpen] = useState(false)
     const [isBookmarksOpen, setIsBookmarksOpen] = useState(false)
@@ -168,7 +174,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         setClearNav(false); setClearBm(false); setClearNt(false); setClearSt(false)
     }
 
-    function lookupRoot(word: string) {
+    async function lookupRoot(word: string) {
         const stemmer = stemmerRef.current
         if (!stemmer || !roots) return
         const cleaned = word.replace(/[^\u0621-\u064A]/g, '')
@@ -183,7 +189,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         if (!root) return
         root = normalizeRoot(root)
         const data = roots[root]
-        setRootResult({ root, data: data || { count: 0, verses: [] } })
+        setRootResult({ word, root, data: data || { count: 0, verses: [] } })
     }
 
     function handleContextMenu(e: React.MouseEvent, word: string) {
@@ -199,6 +205,65 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         if (longPressTimer.current) {
             clearTimeout(longPressTimer.current)
             longPressTimer.current = null
+        }
+    }
+
+    async function fetchVerseWithTranslations(s: number, a: number): Promise<Verse | null> {
+        try {
+            const baseRes = await fetch(`${STATIC_BASE}/quran-simple.xml`)
+            const xml = await baseRes.text()
+            const suraRe = new RegExp(`<sura\\s+index=\\"${s}\\"[\\s\\S]*?<\\/sura>`, 'm')
+            const sMatch = xml.match(suraRe)
+            if (!sMatch) return null
+            const inner = sMatch[0]
+            const ayaRe = new RegExp(`<aya\\s+index=\\"${a}\\"\\s+text=\\"([\\s\\S]*?)\\"(?:\\s+bismillah=\\"([^\\"]*)\\")?\\s*\\/>`)
+            const aMatch = inner.match(ayaRe)
+            if (!aMatch) return null
+            const decode = (t: string) => t.replace(/&quot;/g, '"').replace(/&apos;/g, "'").replace(/&amp;/g, '&').replace(/&lt;/g, '<').replace(/&gt;/g, '>')
+            const text = decode(aMatch[1])
+            const bism = aMatch[2] ? decode(aMatch[2]) : undefined
+            const verse: Verse = { surah: s, ayah: a, text_ar_simple: text, ...(bism ? { bismillah: bism } : {}) }
+            const ids = enabledTranslations
+            if (ids.length) {
+                const trans: Array<{ translationId: string; text: string }> = []
+                for (const id of ids) {
+                    const trRes = await fetch(`${STATIC_BASE}/${id}.xml`)
+                    if (!trRes.ok) continue
+                    const txml = await trRes.text()
+                    const tMatch = txml.match(suraRe)
+                    if (!tMatch) continue
+                    const tInner = tMatch[0]
+                    const tAyaRe = new RegExp(`<aya\\s+index=\\"${a}\\"\\s+text=\\"([\\s\\S]*?)\\"\\s*\\/>`)
+                    const tm = tAyaRe.exec(tInner)
+                    if (!tm) continue
+                    trans.push({ translationId: id, text: decode(tm[1]) })
+                }
+                if (trans.length) verse.translations = trans
+            }
+            return verse
+        } catch {
+            return null
+        }
+    }
+
+    function showPreview(s: number, a: number) {
+        if (previewTimer.current) {
+            clearTimeout(previewTimer.current)
+            previewTimer.current = null
+        }
+        void fetchVerseWithTranslations(s, a).then((v) => {
+            if (v) setPreviewVerse(v)
+        })
+    }
+
+    function handleResultPointerDown(s: number, a: number) {
+        previewTimer.current = setTimeout(() => showPreview(s, a), 500)
+    }
+
+    function cancelPreview() {
+        if (previewTimer.current) {
+            clearTimeout(previewTimer.current)
+            previewTimer.current = null
         }
     }
 
@@ -861,11 +926,11 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                         style={{
                             background: 'var(--bg)',
                             color: 'var(--fg)',
-                            padding: 24,
-                            maxHeight: '80%',
-                            overflow: 'auto',
                             width: '90%',
                             maxWidth: 600,
+                            height: 500,
+                            display: 'flex',
+                            flexDirection: 'column',
                             position: 'relative',
                         }}
                     >
@@ -879,25 +944,104 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                             <X className="icon" strokeWidth={2} aria-hidden />
                         </button>
                         <h2 dir="rtl" style={{ marginTop: 0, textAlign: 'center' }}>
-                            {rootResult.root} ({rootResult.data.count} times)
+                            {rootResult.word} → {rootResult.root} → {rootResult.data.count} times
                         </h2>
-                        {rootResult.data.verses.length ? (
-                            <details open>
-                                <summary>Verses</summary>
-                                <ul style={{ marginTop: 8 }}>
-                                    {rootResult.data.verses.map((v) => {
-                                        const [s, a] = v.split(':')
-                                        return (
-                                            <li key={v}>
-                                                <a href={`${BASE_PATH}/s/${s}?v=${a}`}>{s}:{a}</a>
-                                            </li>
-                                        )
-                                    })}
-                                </ul>
-                            </details>
-                        ) : (
-                            <p>No occurrences in dataset.</p>
-                        )}
+                        <div style={{ flex: 1, overflow: 'auto' }}>
+                            {rootResult.data.verses.length ? (
+                                <details>
+                                    <summary>Verses with this root</summary>
+                                    <div
+                                        style={{
+                                            marginTop: 8,
+                                            display: 'grid',
+                                            gap: 8,
+                                            gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
+                                        }}
+                                    >
+                                        {rootResult.data.verses.map((v) => {
+                                            const [s, a] = v.split(':')
+                                            const surahNum = Number(s)
+                                            const ayahNum = Number(a)
+                                            return (
+                                                <a
+                                                    key={v}
+                                                    href={`${BASE_PATH}/s/${s}?v=${a}`}
+                                                    style={{
+                                                        display: 'block',
+                                                        border: '1px solid var(--border, #ccc)',
+                                                        padding: 4,
+                                                        borderRadius: 4,
+                                                        textAlign: 'center',
+                                                    }}
+                                                    onMouseEnter={() => showPreview(surahNum, ayahNum)}
+                                                    onPointerDown={() => handleResultPointerDown(surahNum, ayahNum)}
+                                                    onPointerUp={cancelPreview}
+                                                    onPointerLeave={cancelPreview}
+                                                >
+                                                    {s}:{a}
+                                                </a>
+                                            )
+                                        })}
+                                    </div>
+                                </details>
+                            ) : (
+                                <p>No occurrences in dataset.</p>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
+            {previewVerse ? (
+                <div
+                    onClick={() => setPreviewVerse(null)}
+                    style={{
+                        position: 'fixed',
+                        inset: 0,
+                        background: 'rgba(0,0,0,0.5)',
+                        display: 'flex',
+                        alignItems: 'center',
+                        justifyContent: 'center',
+                        zIndex: 1100,
+                    }}
+                >
+                    <div
+                        onClick={(e) => e.stopPropagation()}
+                        style={{
+                            background: 'var(--bg)',
+                            color: 'var(--fg)',
+                            width: '90%',
+                            maxWidth: 600,
+                            maxHeight: '80%',
+                            overflow: 'auto',
+                            position: 'relative',
+                            padding: 24,
+                        }}
+                    >
+                        <button
+                            type="button"
+                            className="icon-btn"
+                            onClick={() => setPreviewVerse(null)}
+                            aria-label="Close"
+                            style={{ position: 'absolute', top: 8, right: 8 }}
+                        >
+                            <X className="icon" strokeWidth={2} aria-hidden />
+                        </button>
+                        <h3 style={{ marginTop: 0 }}>
+                            {previewVerse.surah}:{previewVerse.ayah}
+                        </h3>
+                        <p dir="rtl" lang="ar" style={{ fontSize: '1.25rem' }}>
+                            {previewVerse.text_ar_simple}
+                        </p>
+                        {previewVerse.translations?.map((tr) => {
+                            const meta = translations.find((t) => t.id === tr.translationId)
+                            const rtl = isRtlLanguage(meta?.language)
+                            return (
+                                <p key={tr.translationId} dir={rtl ? 'rtl' : 'ltr'} style={{ marginTop: 12 }}>
+                                    <strong>{meta?.name || tr.translationId}:</strong> {tr.text}
+                                </p>
+                            )
+                        })}
                     </div>
                 </div>
             ) : null}
