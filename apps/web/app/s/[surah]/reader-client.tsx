@@ -367,6 +367,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     }, [verses, isSurahOpen, isSidebarOpen])
 
     const arabicSizeVar = font === 'sm' ? '20px' : font === 'lg' ? '28px' : '24px'
+    const translationSizeVar = font === 'sm' ? '12px' : font === 'lg' ? '16px' : '14px'
     const selectedTranslations = translations.filter((t) => enabledTranslations.includes(t.id))
 
     function pad3(n: number) {
@@ -713,7 +714,10 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                             ))}
                         </div>
                     ) : (
-                        <div ref={listRef} style={{ '--arabic-size': arabicSizeVar } as React.CSSProperties}>
+                        <div
+                            ref={listRef}
+                            style={{ '--arabic-size': arabicSizeVar, '--translation-size': translationSizeVar } as React.CSSProperties}
+                        >
                             {verses.map((v) => (
                                 <article
                                     key={v.ayah}
