@@ -79,6 +79,7 @@ export default function Sidebar({
   const [isBookmarksOpen, setIsBookmarksOpen] = useState(false)
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [isImportOpen, setIsImportOpen] = useState(false)
+  const [isClearOpen, setIsClearOpen] = useState(false)
   const [clearNav, setClearNav] = useState(false)
   const [clearBm, setClearBm] = useState(false)
   const [clearNt, setClearNt] = useState(false)
@@ -308,9 +309,26 @@ export default function Sidebar({
                 <Play className="icon" strokeWidth={2} aria-hidden />
                 <span>Reciter</span>
               </span>
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8, maxWidth: 160, overflow: 'hidden' }}>
-                <span className="muted" title={reciterDisplayName}>{reciterDisplayName}</span>
-                <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isReciterOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <span
+                  className="muted"
+                  title={reciterDisplayName}
+                  style={{
+                    maxWidth: 160,
+                    overflow: 'hidden',
+                    textOverflow: 'ellipsis',
+                    whiteSpace: 'nowrap',
+                    display: 'inline-block',
+                  }}
+                >
+                  {reciterDisplayName}
+                </span>
+                <ChevronDown
+                  className="icon"
+                  strokeWidth={2}
+                  aria-hidden
+                  style={{ transform: isReciterOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}
+                />
               </span>
             </button>
             {isReciterOpen ? (
@@ -323,7 +341,7 @@ export default function Sidebar({
                     aria-pressed={r.id === reciter}
                     onClick={() => setReciter(r.id)}
                   >
-                    <span>{r.name}</span>
+                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
                     {r.id === reciter ? <Check className="icon" strokeWidth={3} aria-hidden /> : null}
                   </button>
                 ))}
@@ -535,37 +553,45 @@ export default function Sidebar({
             <button
               type="button"
               className="button"
-              aria-expanded={clearNav || clearBm || clearNt || clearSt}
+              aria-expanded={isClearOpen}
               aria-controls="accordion-clear"
-              onClick={() => {}}
+              onClick={() => setIsClearOpen((o) => !o)}
               style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <File className="icon" strokeWidth={2} aria-hidden />
                 <span>Clear data</span>
               </span>
+              <ChevronDown
+                className="icon"
+                strokeWidth={2}
+                aria-hidden
+                style={{ transform: isClearOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}
+              />
             </button>
-            <div id="accordion-clear" style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input type="checkbox" checked={clearNav} onChange={(e) => setClearNav(e.target.checked)} aria-label="Clear navigations" />
-                <span>Clear navigations</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input type="checkbox" checked={clearBm} onChange={(e) => setClearBm(e.target.checked)} aria-label="Clear bookmarks" />
-                <span>Clear bookmarks</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input type="checkbox" checked={clearNt} onChange={(e) => setClearNt(e.target.checked)} aria-label="Clear notes" />
-                <span>Clear notes</span>
-              </label>
-              <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                <input type="checkbox" checked={clearSt} onChange={(e) => setClearSt(e.target.checked)} aria-label="Clear settings" />
-                <span>Clear settings</span>
-              </label>
-              <button type="button" className="button" disabled={!clearNav && !clearBm && !clearNt && !clearSt} onClick={handleClearSelected}>
-                Clear selected
-              </button>
-            </div>
+            {isClearOpen ? (
+              <div id="accordion-clear" style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input type="checkbox" checked={clearNav} onChange={(e) => setClearNav(e.target.checked)} aria-label="Clear navigations" />
+                  <span>Clear navigations</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input type="checkbox" checked={clearBm} onChange={(e) => setClearBm(e.target.checked)} aria-label="Clear bookmarks" />
+                  <span>Clear bookmarks</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input type="checkbox" checked={clearNt} onChange={(e) => setClearNt(e.target.checked)} aria-label="Clear notes" />
+                  <span>Clear notes</span>
+                </label>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input type="checkbox" checked={clearSt} onChange={(e) => setClearSt(e.target.checked)} aria-label="Clear settings" />
+                  <span>Clear settings</span>
+                </label>
+                <button type="button" className="button" disabled={!clearNav && !clearBm && !clearNt && !clearSt} onClick={handleClearSelected}>
+                  Clear selected
+                </button>
+              </div>
+            ) : null}
           </div>
         </div>
 
