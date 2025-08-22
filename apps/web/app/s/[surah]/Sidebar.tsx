@@ -94,6 +94,8 @@ export default function Sidebar({
     { id: 'Minshawy_Murattal_128kbps', name: 'Minshawy' },
   ]
   const reciterDisplayName = reciterOptions.find((r) => r.id === reciter)?.name || 'Choose'
+  const reciterDisplayShort =
+    reciterDisplayName === 'Choose' ? reciterDisplayName : `${reciterDisplayName.slice(0, 7)}...`
 
   function clearAllNavigations() {
     try {
@@ -321,7 +323,7 @@ export default function Sidebar({
                     display: 'inline-block',
                   }}
                 >
-                  {reciterDisplayName}
+                  {reciterDisplayShort}
                 </span>
                 <ChevronDown
                   className="icon"
@@ -341,7 +343,7 @@ export default function Sidebar({
                     aria-pressed={r.id === reciter}
                     onClick={() => setReciter(r.id)}
                   >
-                    <span style={{ flex: 1, overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>{r.name}</span>
+                    <span style={{ flex: 1 }}>{r.name}</span>
                     {r.id === reciter ? <Check className="icon" strokeWidth={3} aria-hidden /> : null}
                   </button>
                 ))}
