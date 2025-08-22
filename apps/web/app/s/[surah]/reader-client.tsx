@@ -87,6 +87,17 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         root: string
         data: { count: number; verses: string[] }
     } | null>(null)
+    const groupedRootVerses = useMemo(() => {
+        if (!rootResult) return [] as Array<{ surah: number; ayahs: number[] }>
+        const map = new Map<number, number[]>()
+        for (const v of rootResult.data.verses) {
+            const [s, a] = v.split(':').map(Number)
+            const arr = map.get(s)
+            if (arr) arr.push(a)
+            else map.set(s, [a])
+        }
+        return Array.from(map.entries()).map(([surah, ayahs]) => ({ surah, ayahs }))
+    }, [rootResult])
     const [previewVerse, setPreviewVerse] = useState<Verse | null>(null)
     const [previewPos, setPreviewPos] = useState<{ x: number; y: number }>({ x: 0, y: 0 })
     const previewRef = useRef<HTMLDivElement>(null)
@@ -1007,39 +1018,44 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                             {rootResult.data.verses.length ? (
                                 <details open>
                                     <summary>Verses with this root</summary>
-                                    <div
-                                        style={{
-                                            marginTop: 8,
-                                            display: 'grid',
-                                            gap: 8,
-                                            gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
-                                        }}
-                                    >
-                                        {rootResult.data.verses.map((v) => {
-                                            const [s, a] = v.split(':')
-                                            const surahNum = Number(s)
-                                            const ayahNum = Number(a)
+                                    <div style={{ marginTop: 8 }}>
+                                        {groupedRootVerses.map(({ surah: s, ayahs }) => {
+                                            const meta = surahs.find((m) => m.number === s)
                                             return (
-                                                <a
-                                                    key={v}
-                                                    href={`${BASE_PATH}/s/${s}?v=${a}`}
-                                                    style={{
-                                                        display: 'block',
-                                                        border: '1px solid var(--border, #ccc)',
-                                                        padding: 4,
-                                                        borderRadius: 4,
-                                                        textAlign: 'center',
-                                                    }}
-                                                    onMouseEnter={(e) => showPreview(surahNum, ayahNum, e)}
-                                                    onPointerDown={(e) => handleResultPointerDown(surahNum, ayahNum, e)}
-                                                    onPointerUp={cancelPreview}
-                                                    onPointerLeave={cancelPreview}
-                                                    onMouseMove={updatePreviewPos}
-                                                    onPointerMove={updatePreviewPos}
-                                                    onContextMenu={(e) => e.preventDefault()}
-                                                >
-                                                    {s}:{a}
-                                                </a>
+                                                <details key={s} style={{ marginTop: 4 }}>
+                                                    <summary>{meta?.name_ar || s}</summary>
+                                                    <div
+                                                        style={{
+                                                            marginTop: 8,
+                                                            display: 'grid',
+                                                            gap: 8,
+                                                            gridTemplateColumns: 'repeat(auto-fill, minmax(80px, 1fr))',
+                                                        }}
+                                                    >
+                                                        {ayahs.map((a) => (
+                                                            <a
+                                                                key={a}
+                                                                href={`${BASE_PATH}/s/${s}?v=${a}`}
+                                                                style={{
+                                                                    display: 'block',
+                                                                    border: '1px solid var(--border, #ccc)',
+                                                                    padding: 4,
+                                                                    borderRadius: 4,
+                                                                    textAlign: 'center',
+                                                                }}
+                                                                onMouseEnter={(e) => showPreview(s, a, e)}
+                                                                onPointerDown={(e) => handleResultPointerDown(s, a, e)}
+                                                                onPointerUp={cancelPreview}
+                                                                onPointerLeave={cancelPreview}
+                                                                onMouseMove={updatePreviewPos}
+                                                                onPointerMove={updatePreviewPos}
+                                                                onContextMenu={(e) => e.preventDefault()}
+                                                            >
+                                                                {a}
+                                                            </a>
+                                                        ))}
+                                                    </div>
+                                                </details>
                                             )
                                         })}
                                     </div>
