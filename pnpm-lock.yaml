@@ -7,6 +7,10 @@ settings:
 importers:
 
   .:
+    dependencies:
+      arabic-stem:
+        specifier: ^0.0.7
+        version: 0.0.7
     devDependencies:
       '@eslint/js':
         specifier: ^9.33.0
@@ -232,6 +236,9 @@ packages:
   ansi-styles@4.3.0:
     resolution: {integrity: sha512-zbB9rCJAT1rbjiVDb2hqKFHNYLxgtk8NURxZ3IZwD3F6NtxbXZQCnnSi1Lkx+IDohdPlFp222wVALIheZJQSEg==}
     engines: {node: '>=8'}
+
+  arabic-stem@0.0.7:
+    resolution: {integrity: sha512-9Qwj8ndTZWNwH72oM0I14ZshU+sOGSWZS31PNTq+hh+apRcVfmBjS7qPNSoQed4JyUuzvDw8bml8WQS8OXDxnA==}
 
   argparse@2.0.1:
     resolution: {integrity: sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q==}
@@ -844,6 +851,8 @@ snapshots:
   ansi-styles@4.3.0:
     dependencies:
       color-convert: 2.0.1
+
+  arabic-stem@0.0.7: {}
 
   argparse@2.0.1: {}
 

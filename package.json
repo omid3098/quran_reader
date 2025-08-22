@@ -19,5 +19,7 @@
     "eslint": "9.9.0",
     "globals": "^16.3.0"
   },
-  "dependencies": {}
+  "dependencies": {
+    "arabic-stem": "^0.0.7"
+  }
 }
