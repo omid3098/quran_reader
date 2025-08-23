@@ -1,3 +1,5 @@
+"use client"
+
 import { Ollama } from 'ollama/browser'
 
 export class OllamaClient {
