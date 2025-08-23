@@ -18,17 +18,19 @@ export class OllamaClient {
     }
   }
 
-  async getRoot(word: string, model: string): Promise<string> {
+  async getRoot(word: string, model: string, signal?: AbortSignal): Promise<string> {
     try {
       const res = await this.client.generate({
         model,
         prompt: `You are a concise morphological analyzer. Determine the three-letter Arabic root of the word "${word}". Reply with only the root letters in Arabic, separated by spaces, and no other text. Do not explain your reasoning.`,
         stream: false,
+        signal,
       })
       let answer = (res.response || '').trim()
       answer = answer.replace(/<think>[\s\S]*?<\/think>/i, '').trim()
       return answer
-    } catch {
+    } catch (err: any) {
+      if (err?.name === 'AbortError') throw err
       return ''
     }
   }
