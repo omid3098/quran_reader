@@ -4,18 +4,21 @@ import { Ollama } from 'ollama/browser'
 
 export class OllamaClient {
   private client: Ollama
+  private host: string
 
   constructor(endpoint: string) {
     // Ensure the endpoint includes a protocol and no trailing slash
     if (!/^https?:\/\//i.test(endpoint)) endpoint = `http://${endpoint}`
-    const host = endpoint.replace(/\/+$/, '')
-    this.client = new Ollama({ host })
+    this.host = endpoint.replace(/\/+$/, '')
+    this.client = new Ollama({ host: this.host })
   }
 
   async listModels(): Promise<string[]> {
     try {
-      const res = await this.client.list()
-      return res.models?.map((m: any) => m.name) ?? []
+      const res = await fetch(`${this.host}/api/tags`)
+      if (!res.ok) return []
+      const data = await res.json()
+      return data.models?.map((m: any) => m.name) ?? []
     } catch {
       return []
     }
