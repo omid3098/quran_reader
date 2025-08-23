@@ -1,6 +1,6 @@
 'use client'
 
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Route } from 'next'
 import {
@@ -31,6 +31,7 @@ import {
 import type { TranslationMeta } from '@openquranreader/types'
 import type { BookmarksSet, NotesMap, VerseKey } from './types'
 import { encodeSharePayload } from '../../../lib/share'
+import { OllamaClient } from '../../../lib/ollama'
 
 interface SidebarProps {
   isOpen: boolean
@@ -53,6 +54,8 @@ interface SidebarProps {
   setOllamaEnabled: React.Dispatch<React.SetStateAction<boolean>>
   ollamaEndpoint: string
   setOllamaEndpoint: React.Dispatch<React.SetStateAction<string>>
+  ollamaModel: string
+  setOllamaModel: React.Dispatch<React.SetStateAction<string>>
   setActiveAyah: (a: number) => void
   setOpenNoteAyah: (a: number) => void
   hydrated: boolean
@@ -79,6 +82,8 @@ export default function Sidebar({
   setOllamaEnabled,
   ollamaEndpoint,
   setOllamaEndpoint,
+  ollamaModel,
+  setOllamaModel,
   setActiveAyah,
   setOpenNoteAyah,
   hydrated,
@@ -93,6 +98,7 @@ export default function Sidebar({
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [isClearOpen, setIsClearOpen] = useState(false)
   const [isOllamaOpen, setIsOllamaOpen] = useState(false)
+  const [models, setModels] = useState<string[]>([])
   const [clearNav, setClearNav] = useState(false)
   const [clearBm, setClearBm] = useState(false)
   const [clearNt, setClearNt] = useState(false)
@@ -109,6 +115,12 @@ export default function Sidebar({
   const reciterDisplayName = reciterOptions.find((r) => r.id === reciter)?.name || 'Choose'
   const reciterDisplayShort =
     reciterDisplayName === 'Choose' ? reciterDisplayName : `${reciterDisplayName.slice(0, 7)}...`
+
+  useEffect(() => {
+    if (!ollamaEnabled || !isOllamaOpen) return
+    const client = new OllamaClient(ollamaEndpoint)
+    void client.listModels().then(setModels)
+  }, [ollamaEnabled, isOllamaOpen, ollamaEndpoint])
 
   function clearAllNavigations() {
     try {
@@ -366,46 +378,6 @@ export default function Sidebar({
         </div>
 
         <div className="section">
-          <div role="region" aria-label="Ollama">
-            <button
-              type="button"
-              className="button"
-              aria-expanded={isOllamaOpen}
-              aria-controls="accordion-ollama"
-              onClick={() => setIsOllamaOpen((o) => !o)}
-              style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-            >
-              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
-                <Cpu className="icon" strokeWidth={2} aria-hidden />
-                <span>Ollama</span>
-              </span>
-              <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isOllamaOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
-            </button>
-            {isOllamaOpen ? (
-              <div id="accordion-ollama" style={{ marginTop: 8, display: 'grid', gap: 8 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <input
-                    type="checkbox"
-                    checked={ollamaEnabled}
-                    onChange={(e) => setOllamaEnabled(e.target.checked)}
-                  />
-                  <span>Enable Ollama</span>
-                </label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span className="muted">Endpoint</span>
-                  <input
-                    type="text"
-                    className="input"
-                    value={ollamaEndpoint}
-                    onChange={(e) => setOllamaEndpoint(e.target.value)}
-                  />
-                </label>
-              </div>
-            ) : null}
-          </div>
-        </div>
-
-        <div className="section">
           {/* Notes */}
           <div role="region" aria-label="Notes">
             <button
@@ -649,6 +621,59 @@ export default function Sidebar({
                 <button type="button" className="button" disabled={!clearNav && !clearBm && !clearNt && !clearSt} onClick={handleClearSelected}>
                   Clear
                 </button>
+              </div>
+            ) : null}
+        </div>
+        </div>
+
+        <div className="section">
+          <div role="region" aria-label="Ollama">
+            <button
+              type="button"
+              className="button"
+              aria-expanded={isOllamaOpen}
+              aria-controls="accordion-ollama"
+              onClick={() => setIsOllamaOpen((o) => !o)}
+              style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+            >
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <Cpu className="icon" strokeWidth={2} aria-hidden />
+                <span>Ollama</span>
+              </span>
+              <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isOllamaOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
+            </button>
+            {isOllamaOpen ? (
+              <div id="accordion-ollama" style={{ marginTop: 8, display: 'grid', gap: 8 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={ollamaEnabled}
+                    onChange={(e) => setOllamaEnabled(e.target.checked)}
+                  />
+                  <span>Enable Ollama</span>
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span className="muted">Endpoint</span>
+                  <input
+                    type="text"
+                    className="input"
+                    value={ollamaEndpoint}
+                    onChange={(e) => setOllamaEndpoint(e.target.value)}
+                  />
+                </label>
+                {ollamaEnabled ? (
+                  <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                    <span className="muted">Model</span>
+                    <select className="input" value={ollamaModel} onChange={(e) => setOllamaModel(e.target.value)}>
+                      <option value="">Select model</option>
+                      {models.map((m) => (
+                        <option key={m} value={m}>
+                          {m}
+                        </option>
+                      ))}
+                    </select>
+                  </label>
+                ) : null}
               </div>
             ) : null}
           </div>

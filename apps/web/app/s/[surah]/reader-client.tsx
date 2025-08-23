@@ -7,6 +7,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useLocalStorage } from '../../../hooks/use-local-storage'
 import { isRtlLanguage } from '../../../lib/is-rtl-language'
 import { encodeSharePayload, decodeSharePayload } from '../../../lib/share'
+import { OllamaClient } from '../../../lib/ollama'
 import Sidebar from './Sidebar'
 import type { TranslationMeta } from '@openquranreader/types'
 import type { BookmarksSet, NotesMap, VerseKey } from './types'
@@ -56,6 +57,8 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const [showNotes, setShowNotes] = useLocalStorage<boolean>('oqr:showNotes', true)
     const [ollamaEnabled, setOllamaEnabled] = useLocalStorage<boolean>('oqr:ollamaEnabled', false)
     const [ollamaEndpoint, setOllamaEndpoint] = useLocalStorage<string>('oqr:ollamaEndpoint', 'http://localhost:11434')
+    const [ollamaModel, setOllamaModel] = useLocalStorage<string>('oqr:ollamaModel', '')
+    const ollamaClient = useMemo(() => new OllamaClient(ollamaEndpoint), [ollamaEndpoint])
     const [rootPanel, setRootPanel] = useState<{ x: number; y: number; text: string } | null>(null)
     const [playingAyah, setPlayingAyah] = useState<number | null>(null)
     const audioRef = useRef<HTMLAudioElement | null>(null) as MutableRefObject<HTMLAudioElement | null>
@@ -176,26 +179,12 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     }
 
     async function handleWordContext(e: React.MouseEvent<HTMLSpanElement>, word: string) {
-        if (!ollamaEnabled) return
+        if (!ollamaEnabled || !ollamaModel) return
         e.preventDefault()
         const { clientX: x, clientY: y } = e
         setRootPanel({ x, y, text: '...' })
-        try {
-            const res = await fetch(`${ollamaEndpoint}/api/generate`, {
-                method: 'POST',
-                headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({
-                    model: 'quran',
-                    prompt: `Provide the three-letter Arabic root of the word "${word}". Respond with only the root.`,
-                    stream: false,
-                }),
-            })
-            const data = await res.json()
-            const root = (data.response || '').trim()
-            setRootPanel({ x, y, text: root || 'N/A' })
-        } catch {
-            setRootPanel({ x, y, text: 'Error' })
-        }
+        const root = await ollamaClient.getRoot(word, ollamaModel)
+        setRootPanel({ x, y, text: root || 'N/A' })
     }
 
     function handleWordLeave() {
@@ -964,6 +953,8 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                     setOllamaEnabled={setOllamaEnabled}
                     ollamaEndpoint={ollamaEndpoint}
                     setOllamaEndpoint={setOllamaEndpoint}
+                    ollamaModel={ollamaModel}
+                    setOllamaModel={setOllamaModel}
                     setActiveAyah={setActiveAyah}
                     setOpenNoteAyah={setOpenNoteAyah}
                     hydrated={hydrated}
