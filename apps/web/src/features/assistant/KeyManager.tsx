@@ -1,5 +1,7 @@
 'use client'
 
+import { Key as KeyIcon } from 'lucide-react';
+
 export function KeyManager({
   provider,
   keys,
@@ -28,15 +30,16 @@ export function KeyManager({
   return (
     <div className="grid gap-2">
       {fields.map((f) => (
-        <label key={f.key} className="text-sm">
-          {f.label}
+        <div key={f.key} className="flex items-center gap-2">
+          <KeyIcon className="icon" aria-hidden />
           <input
-            className="w-full border rounded p-1"
-            placeholder={f.placeholder ?? ''}
+            type={f.key.includes('URL') ? 'text' : 'password'}
+            className="input flex-1"
+            placeholder={f.placeholder ?? f.label}
             value={keys[f.key] ?? ''}
             onChange={(e) => onSave({ ...keys, [f.key]: e.target.value })}
           />
-        </label>
+        </div>
       ))}
     </div>
   );

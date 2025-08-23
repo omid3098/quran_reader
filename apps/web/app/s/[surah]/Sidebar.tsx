@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo } from 'react'
+import { useEffect, useState, useMemo, useRef } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Route } from 'next'
 import {
@@ -106,6 +106,26 @@ export default function Sidebar({
     () => createAssistant({ selected: aiSettings.selected, keys: aiSettings.keys }),
     [aiSettings.selected, aiSettings.keys]
   )
+  const [width, setWidth] = useState(250)
+  const startX = useRef(0)
+  const startW = useRef(0)
+  function beginResize(e: React.MouseEvent) {
+    startX.current = e.clientX
+    startW.current = width
+    function move(ev: MouseEvent) {
+      const next = Math.min(
+        Math.max(220, startW.current + ev.clientX - startX.current),
+        480
+      )
+      setWidth(next)
+    }
+    function up() {
+      window.removeEventListener('mousemove', move)
+      window.removeEventListener('mouseup', up)
+    }
+    window.addEventListener('mousemove', move)
+    window.addEventListener('mouseup', up)
+  }
   const isHttps = typeof window !== 'undefined' && location.protocol === 'https:'
   const ollamaUrl = aiSettings.keys.OLLAMA_URL || 'http://localhost:11434'
   const ollamaBlocked = isHttps && !ollamaUrl.startsWith('https:')
@@ -268,7 +288,12 @@ export default function Sidebar({
   return (
     <>
       {isOpen ? <div className="sidebar-backdrop" onClick={onClose} aria-hidden="true" /> : null}
-      <aside className={`sidebar${isOpen ? ' open' : ''}`} aria-hidden={!isOpen} aria-label="Settings sidebar">
+      <aside
+        className={`sidebar${isOpen ? ' open' : ''}`}
+        aria-hidden={!isOpen}
+        aria-label="Settings sidebar"
+        style={{ width }}
+      >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
           <div className="muted">Settings</div>
           <button type="button" className="icon-btn" aria-label="Close sidebar" onClick={onClose}>
@@ -777,6 +802,7 @@ export default function Sidebar({
             )}
           </button>
         </div>
+        <div className="sidebar-resizer" onMouseDown={beginResize} />
       </aside>
     </>
   )

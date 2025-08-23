@@ -1,6 +1,7 @@
 'use client'
 
 import { listProviders } from '@openquran/ai/registry';
+import { HelpCircle, Sparkles, Share2, Cpu, Smile } from 'lucide-react';
 
 export function ProviderPicker({
   value,
@@ -12,36 +13,45 @@ export function ProviderPicker({
   disableOllama?: boolean;
 }) {
   const providers = listProviders();
+  const icons: Record<string, any> = {
+    gemini: Sparkles,
+    openrouter: Share2,
+    ollama: Cpu,
+    huggingface: Smile,
+  };
+  const infoLinks: Record<string, string> = {
+    gemini: 'https://aistudio.google.com/app/apikey',
+    openrouter: 'https://openrouter.ai/docs/api-reference/authentication',
+    huggingface: 'https://huggingface.co/settings/tokens',
+    ollama: 'https://ollama.com/download',
+  };
   return (
-    <div className="flex gap-2 items-center">
-      <label className="text-sm">Provider</label>
-      <select
-        className="border rounded p-1"
-        value={value}
-        onChange={(e) => onChange(e.target.value)}
-      >
-        {providers.map((p) => (
-          <option key={p.id} value={p.id} disabled={p.id === 'ollama' && disableOllama}>
-            {p.label}
-          </option>
-        ))}
-      </select>
-      <a
-        className="text-blue-500 underline text-xs"
-        href=
-          {value === 'gemini'
-            ? 'https://aistudio.google.com/app/apikey'
-            : value === 'openrouter'
-            ? 'https://openrouter.ai/docs/api-reference/authentication'
-            : value === 'huggingface'
-            ? 'https://huggingface.co/settings/tokens'
-            : 'https://ollama.com/download'}
-        target="_blank"
-        rel="noreferrer"
-        title="Where to get an API key / install"
-      >
-        ℹ︎ Get key / Install
-      </a>
+    <div className="flex items-center gap-2">
+      {providers.map((p) => {
+        const Icon = icons[p.id];
+        return (
+          <div key={p.id} className="flex flex-col items-center gap-1">
+            <button
+              type="button"
+              className={`icon-btn${value === p.id ? ' active' : ''}`}
+              onClick={() => onChange(p.id)}
+              aria-label={p.label}
+              disabled={p.id === 'ollama' && disableOllama}
+            >
+              <Icon className="icon" aria-hidden />
+            </button>
+            <a
+              href={infoLinks[p.id]}
+              target="_blank"
+              rel="noreferrer"
+              className="icon-btn text-xs"
+              aria-label={`Get ${p.label} key / install`}
+            >
+              <HelpCircle className="icon" aria-hidden />
+            </a>
+          </div>
+        );
+      })}
     </div>
   );
 }

@@ -200,7 +200,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                 },
                 { role: 'user', content: `Verse: ${verse}\nWord: ${word}` },
             ]
-            const root = await assistant.ask(messages, { model: currentModel })
+            const root = (await assistant.ask(messages, { model: currentModel })).trim()
             if (!controller.signal.aborted) setRootPanel({ x, y, text: root || 'N/A', loading: false })
         } catch {
             if (!controller.signal.aborted) setRootPanel({ x, y, text: 'N/A', loading: false })

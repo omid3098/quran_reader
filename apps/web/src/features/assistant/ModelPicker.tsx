@@ -44,9 +44,9 @@ export function ModelPicker({
 
   return (
     <div className="grid gap-2">
-      <div className="flex gap-2 items-center">
+      <div className="flex items-center gap-2">
         <input
-          className="border rounded p-1 flex-1"
+          className="input flex-1"
           placeholder="Search models…"
           value={q}
           onChange={(e) => setQ(e.target.value)}
@@ -63,7 +63,7 @@ export function ModelPicker({
         ) : null}
       </div>
       <select
-        className="border rounded p-1"
+        className="select"
         value={value}
         onChange={(e) => onChange(e.target.value)}
       >
