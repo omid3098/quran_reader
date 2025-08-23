@@ -10,12 +10,8 @@ export class OllamaClient {
   }
 
   async listModels(): Promise<string[]> {
-    try {
-      const res = await this.client.list()
-      return res.models?.map((m: any) => m.name) ?? []
-    } catch {
-      return []
-    }
+    const res = await this.client.list()
+    return res.models?.map((m: any) => m.name) ?? []
   }
 
   async getRoot(word: string, model: string): Promise<string> {
