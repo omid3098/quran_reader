@@ -1,0 +1,57 @@
+'use client'
+
+import { Key as KeyIcon } from 'lucide-react';
+
+export function KeyManager({
+  provider,
+  keys,
+  onSave,
+}: {
+  provider: string;
+  keys: Record<string, string>;
+  onSave: (k: Record<string, string>) => void;
+}) {
+  const fieldsByProvider: Record<
+    string,
+    Array<{ key: string; label: string; placeholder?: string }>
+  > = {
+    gemini: [{ key: 'GEMINI_API_KEY', label: 'Gemini API Key' }],
+    openrouter: [{ key: 'OPENROUTER_API_KEY', label: 'OpenRouter API Key' }],
+    huggingface: [{ key: 'HF_API_TOKEN', label: 'Hugging Face Access Token' }],
+    ollama: [
+      {
+        key: 'OLLAMA_URL',
+        label: 'Ollama URL',
+        placeholder: 'http://localhost:11434',
+      },
+    ],
+  };
+  const fields = fieldsByProvider[provider] ?? [];
+  return (
+    <div style={{ display: 'grid', gap: 8 }}>
+      {fields.map((f) => (
+        <div
+          key={f.key}
+          style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+        >
+          <KeyIcon className="icon" aria-hidden />
+          <input
+            type="text"
+            autoComplete="off"
+            spellCheck={false}
+            className="input"
+            placeholder={f.placeholder ?? f.label}
+            value={keys[f.key] ?? ''}
+            onChange={(e) => onSave({ ...keys, [f.key]: e.target.value })}
+            style={{
+              flex: 1,
+              ...(f.key.includes('URL')
+                ? {}
+                : ({ WebkitTextSecurity: 'disc' } as any)),
+            }}
+          />
+        </div>
+      ))}
+    </div>
+  );
+}

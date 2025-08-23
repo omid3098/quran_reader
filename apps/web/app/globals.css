@@ -240,6 +240,16 @@ a {
   accent-color: var(--accent);
 }
 
+.sidebar-resizer {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 4px;
+  cursor: col-resize;
+  user-select: none;
+  height: 100%;
+}
+
 .section {
   margin-bottom: 16px;
 }

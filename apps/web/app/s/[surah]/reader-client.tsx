@@ -7,10 +7,12 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useLocalStorage } from '../../../hooks/use-local-storage'
 import { isRtlLanguage } from '../../../lib/is-rtl-language'
 import { encodeSharePayload, decodeSharePayload } from '../../../lib/share'
-import { OllamaClient } from '../../../lib/ollama'
 import Sidebar from './Sidebar'
 import type { TranslationMeta } from '@openquranreader/types'
 import type { BookmarksSet, NotesMap, VerseKey } from './types'
+import { createAssistant } from '../../../src/features/assistant/useAssistant'
+import { useAISettings } from '../../../src/state/settings'
+import type { ChatMessage } from '@openquran/ai/types'
 
 type Verse = {
     surah: number
@@ -27,7 +29,7 @@ const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || ''
 
 export default function ReaderClient({ params }: { params: { surah: string } }) {
     const router = useRouter()
-    const sp = useSearchParams()
+    const sp = useSearchParams()!
 
     const surah = Number(params.surah)
     const [font, setFont] = useLocalStorage<'sm' | 'md' | 'lg'>('oqr:font', 'md')
@@ -55,10 +57,12 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const [reciter, setReciter] = useLocalStorage<string>('oqr:reciter', 'Alafasy_128kbps')
     const [autoplay, setAutoplay] = useLocalStorage<boolean>('oqr:autoplay', true)
     const [showNotes, setShowNotes] = useLocalStorage<boolean>('oqr:showNotes', true)
-    const [ollamaEnabled, setOllamaEnabled] = useLocalStorage<boolean>('oqr:ollamaEnabled', false)
-    const [ollamaEndpoint, setOllamaEndpoint] = useLocalStorage<string>('oqr:ollamaEndpoint', 'http://localhost:11434')
-    const [ollamaModel, setOllamaModel] = useLocalStorage<string>('oqr:ollamaModel', '')
-    const ollamaClient = useMemo(() => new OllamaClient(ollamaEndpoint), [ollamaEndpoint])
+    const [aiSettings, setAISettings] = useAISettings()
+    const assistant = useMemo(
+        () => createAssistant({ selected: aiSettings.selected, keys: aiSettings.keys }),
+        [aiSettings.selected, aiSettings.keys]
+    )
+    const currentModel = aiSettings.models[aiSettings.selected]
     const [rootPanel, setRootPanel] = useState<{ x: number; y: number; text: string; loading: boolean } | null>(null)
     const rootAbortRef = useRef<AbortController | null>(null)
     const [playingAyah, setPlayingAyah] = useState<number | null>(null)
@@ -180,7 +184,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     }
 
     async function handleWordContext(e: React.MouseEvent<HTMLSpanElement>, word: string, verse: string) {
-        if (!ollamaEnabled || !ollamaModel) return
+        if (!aiSettings.enabled || !currentModel) return
         e.preventDefault()
         const { clientX: x, clientY: y } = e
         rootAbortRef.current?.abort()
@@ -188,7 +192,15 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         rootAbortRef.current = controller
         setRootPanel({ x, y, text: '', loading: true })
         try {
-            const root = await ollamaClient.getRoot(word, verse, ollamaModel, controller.signal)
+            const messages: ChatMessage[] = [
+                {
+                    role: 'system',
+                    content:
+                        'You are a concise morphological analyzer. Reply with only the three-letter Arabic root of the target word in the given verse, separated by spaces.',
+                },
+                { role: 'user', content: `Verse: ${verse}\nWord: ${word}` },
+            ]
+            const root = (await assistant.ask(messages, { model: currentModel })).trim()
             if (!controller.signal.aborted) setRootPanel({ x, y, text: root || 'N/A', loading: false })
         } catch {
             if (!controller.signal.aborted) setRootPanel({ x, y, text: 'N/A', loading: false })
@@ -818,7 +830,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                                 key={i}
                                                 onContextMenu={(e) => handleWordContext(e, w, v.text_ar_simple)}
                                                 onMouseLeave={handleWordLeave}
-                                                style={{ cursor: ollamaEnabled ? 'context-menu' : undefined }}
+                                                style={{ cursor: aiSettings.enabled ? 'context-menu' : undefined }}
                                             >
                                                 {w}
                                                 {i < words.length - 1 ? ' ' : ''}
@@ -963,12 +975,8 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                     notes={notes}
                     setBookmarks={setBookmarks}
                     setNotes={setNotes}
-                    ollamaEnabled={ollamaEnabled}
-                    setOllamaEnabled={setOllamaEnabled}
-                    ollamaEndpoint={ollamaEndpoint}
-                    setOllamaEndpoint={setOllamaEndpoint}
-                    ollamaModel={ollamaModel}
-                    setOllamaModel={setOllamaModel}
+                    aiSettings={aiSettings}
+                    setAISettings={setAISettings}
                     setActiveAyah={setActiveAyah}
                     setOpenNoteAyah={setOpenNoteAyah}
                     hydrated={hydrated}

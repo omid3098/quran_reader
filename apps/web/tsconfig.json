@@ -5,6 +5,12 @@
     "paths": {
       "@openquranreader/types": [
         "../../packages/types/src"
+      ],
+      "@openquran/ai": [
+        "../../packages/ai/src"
+      ],
+      "@openquran/ai/*": [
+        "../../packages/ai/src/*"
       ]
     },
     "allowJs": true,
