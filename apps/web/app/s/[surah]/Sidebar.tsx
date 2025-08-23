@@ -99,6 +99,7 @@ export default function Sidebar({
   const [isClearOpen, setIsClearOpen] = useState(false)
   const [isOllamaOpen, setIsOllamaOpen] = useState(false)
   const [models, setModels] = useState<string[]>([])
+  const [modelsError, setModelsError] = useState<string | null>(null)
   const [clearNav, setClearNav] = useState(false)
   const [clearBm, setClearBm] = useState(false)
   const [clearNt, setClearNt] = useState(false)
@@ -119,10 +120,16 @@ export default function Sidebar({
   useEffect(() => {
     if (!ollamaEnabled || !isOllamaOpen) return
     const client = new OllamaClient(ollamaEndpoint)
-    void client.listModels().then((ms) => {
-      setModels(ms)
-      if (ms.length && (!ollamaModel || !ms.includes(ollamaModel))) setOllamaModel(ms[0])
-    })
+    ;(async () => {
+      try {
+        const ms = await client.listModels()
+        setModels(ms)
+        setModelsError(null)
+        if (ms.length && (!ollamaModel || !ms.includes(ollamaModel))) setOllamaModel(ms[0])
+      } catch {
+        setModelsError('Failed to fetch models. Check CORS or endpoint configuration.')
+      }
+    })()
   }, [ollamaEnabled, isOllamaOpen, ollamaEndpoint])
 
   function clearAllNavigations() {
@@ -675,6 +682,11 @@ export default function Sidebar({
                         </option>
                       ))}
                     </select>
+                    {modelsError ? (
+                      <span className="muted" style={{ color: 'red' }}>
+                        {modelsError}
+                      </span>
+                    ) : null}
                   </label>
                 ) : null}
               </div>
