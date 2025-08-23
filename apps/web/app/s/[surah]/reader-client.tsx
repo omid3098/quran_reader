@@ -1,12 +1,13 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
-import { Menu, Book, BookMarked, Settings, ChevronDown, FileText, Share2, ChevronLeft, ChevronRight, Pause, Play, ListEnd, Bookmark } from 'lucide-react'
+import { Menu, Book, BookMarked, Settings, ChevronDown, FileText, Share2, ChevronLeft, ChevronRight, Pause, Play, ListEnd, Bookmark, LoaderCircle } from 'lucide-react'
 import type { Route } from 'next'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useLocalStorage } from '../../../hooks/use-local-storage'
 import { isRtlLanguage } from '../../../lib/is-rtl-language'
 import { encodeSharePayload, decodeSharePayload } from '../../../lib/share'
+import { OllamaClient } from '../../../lib/ollama'
 import Sidebar from './Sidebar'
 import type { TranslationMeta } from '@openquranreader/types'
 import type { BookmarksSet, NotesMap, VerseKey } from './types'
@@ -54,6 +55,11 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const [reciter, setReciter] = useLocalStorage<string>('oqr:reciter', 'Alafasy_128kbps')
     const [autoplay, setAutoplay] = useLocalStorage<boolean>('oqr:autoplay', true)
     const [showNotes, setShowNotes] = useLocalStorage<boolean>('oqr:showNotes', true)
+    const [ollamaEnabled, setOllamaEnabled] = useLocalStorage<boolean>('oqr:ollamaEnabled', false)
+    const [ollamaEndpoint, setOllamaEndpoint] = useLocalStorage<string>('oqr:ollamaEndpoint', 'http://localhost:11434')
+    const [ollamaModel, setOllamaModel] = useLocalStorage<string>('oqr:ollamaModel', '')
+    const ollamaClient = useMemo(() => new OllamaClient(ollamaEndpoint), [ollamaEndpoint])
+    const [rootPanel, setRootPanel] = useState<{ x: number; y: number; text: string; loading: boolean } | null>(null)
     const [playingAyah, setPlayingAyah] = useState<number | null>(null)
     const audioRef = useRef<HTMLAudioElement | null>(null) as MutableRefObject<HTMLAudioElement | null>
 
@@ -170,6 +176,19 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
             else delete next[key]
             return next
         })
+    }
+
+    async function handleWordContext(e: React.MouseEvent<HTMLSpanElement>, word: string) {
+        if (!ollamaEnabled || !ollamaModel) return
+        e.preventDefault()
+        const { clientX: x, clientY: y } = e
+        setRootPanel({ x, y, text: '', loading: true })
+        const root = await ollamaClient.getRoot(word, ollamaModel)
+        setRootPanel({ x, y, text: root || 'N/A', loading: false })
+    }
+
+    function handleWordLeave() {
+        setRootPanel(null)
     }
 
     // Share helpers (URL-safe base64)
@@ -718,7 +737,9 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                             ref={listRef}
                             style={{ '--arabic-size': arabicSizeVar, '--translation-size': translationSizeVar } as React.CSSProperties}
                         >
-                            {verses.map((v) => (
+                            {verses.map((v) => {
+                                const words = v.text_ar_simple.split(' ')
+                                return (
                                 <article
                                     key={v.ayah}
                                     id={`ayah-${v.ayah}`}
@@ -782,7 +803,17 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                     ) : null}
                                     <div className="arabic" dir="rtl" lang="ar">
                                         <span className="ayah-num">{v.ayah}</span>
-                                        <span>{v.text_ar_simple}</span>
+                                        {words.map((w, i) => (
+                                            <span
+                                                key={i}
+                                                onContextMenu={(e) => handleWordContext(e, w)}
+                                                onMouseLeave={handleWordLeave}
+                                                style={{ cursor: ollamaEnabled ? 'context-menu' : undefined }}
+                                            >
+                                                {w}
+                                                {i < words.length - 1 ? ' ' : ''}
+                                            </span>
+                                        ))}
                                     </div>
                                     {v.translations?.length ? (
                                         <div style={{ display: 'grid', gap: 6 }}>
@@ -853,7 +884,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                         </div>
                                     ) : null)}
                                 </article>
-                            ))}
+                                )})}
                         </div>
                     )}
                 </section>
@@ -892,6 +923,19 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                     </button>
                 </div>
 
+                {rootPanel ? (
+                    <div
+                        className="card"
+                        style={{ position: 'fixed', top: rootPanel.y + 4, left: rootPanel.x + 4, zIndex: 50, pointerEvents: 'none' }}
+                    >
+                        {rootPanel.loading ? (
+                            <LoaderCircle className="icon spin" strokeWidth={2} aria-hidden />
+                        ) : (
+                            rootPanel.text
+                        )}
+                    </div>
+                ) : null}
+
                 <Sidebar
                     isOpen={isSidebarOpen}
                     onClose={() => setSidebarOpen(false)}
@@ -909,6 +953,12 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                     notes={notes}
                     setBookmarks={setBookmarks}
                     setNotes={setNotes}
+                    ollamaEnabled={ollamaEnabled}
+                    setOllamaEnabled={setOllamaEnabled}
+                    ollamaEndpoint={ollamaEndpoint}
+                    setOllamaEndpoint={setOllamaEndpoint}
+                    ollamaModel={ollamaModel}
+                    setOllamaModel={setOllamaModel}
                     setActiveAyah={setActiveAyah}
                     setOpenNoteAyah={setOpenNoteAyah}
                     hydrated={hydrated}

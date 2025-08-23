@@ -266,3 +266,13 @@ a {
   height: 24px;
   background: rgba(255, 255, 255, 0.08);
 }
+
+@keyframes spin {
+  to {
+    transform: rotate(360deg);
+  }
+}
+
+.spin {
+  animation: spin 1s linear infinite;
+}
