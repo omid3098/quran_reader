@@ -735,6 +735,7 @@ export default function Sidebar({
                       />
                       <div
                         style={{
+                          width: '100%',
                           display: 'grid',
                           gap: 8,
                           marginTop: 8,
@@ -746,8 +747,13 @@ export default function Sidebar({
                           href={infoLinks[aiSettings.selected]}
                           target="_blank"
                           rel="noreferrer"
-                          className="flex items-center gap-2 text-sm"
-                          style={{ color: 'var(--accent)' }}
+                          style={{
+                            display: 'inline-flex',
+                            alignItems: 'center',
+                            gap: 8,
+                            fontSize: 14,
+                            color: 'var(--accent)',
+                          }}
                         >
                           <HelpCircle className="icon" aria-hidden />
                           <span>Get key / install</span>

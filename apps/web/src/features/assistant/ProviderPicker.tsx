@@ -20,7 +20,7 @@ export function ProviderPicker({
     huggingface: Smile,
   };
   return (
-    <div className="grid gap-2">
+    <div style={{ display: 'grid', gap: 8 }}>
       {providers.map((p) => {
         const Icon = icons[p.id];
         const isActive = value === p.id;
@@ -28,15 +28,20 @@ export function ProviderPicker({
           <button
             key={p.id}
             type="button"
-            className="button w-full flex items-center gap-2 justify-start"
+            className="button"
             onClick={() => onChange(p.id)}
             aria-label={p.label}
             disabled={p.id === 'ollama' && disableOllama}
-            style={
-              isActive
+            style={{
+              width: '100%',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 8,
+              justifyContent: 'flex-start',
+              ...(isActive
                 ? { borderColor: 'var(--accent)', color: 'var(--accent)' }
-                : undefined
-            }
+                : {}),
+            }}
           >
             <Icon className="icon" aria-hidden />
             <span>{p.label}</span>

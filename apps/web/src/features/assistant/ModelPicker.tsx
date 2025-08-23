@@ -47,7 +47,7 @@ export function ModelPicker({
   const showFreeToggle = providerId === 'openrouter'
 
   return (
-    <div ref={boxRef} style={{ position: 'relative' }}>
+    <div ref={boxRef} style={{ position: 'relative', width: '100%' }}>
       <button
         type="button"
         className="button"
@@ -95,7 +95,14 @@ export function ModelPicker({
             autoFocus
           />
           {showFreeToggle ? (
-            <label className="flex items-center gap-1 text-sm">
+            <label
+              style={{
+                display: 'inline-flex',
+                alignItems: 'center',
+                gap: 4,
+                fontSize: 14,
+              }}
+            >
               <input
                 type="checkbox"
                 checked={onlyFree}
