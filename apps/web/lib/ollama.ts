@@ -5,7 +5,10 @@ import { Ollama } from 'ollama/browser'
 export class OllamaClient {
   private client: Ollama
 
-  constructor(host: string) {
+  constructor(endpoint: string) {
+    // Ensure the endpoint includes a protocol and no trailing slash
+    if (!/^https?:\/\//i.test(endpoint)) endpoint = `http://${endpoint}`
+    const host = endpoint.replace(/\/+$/, '')
     this.client = new Ollama({ host })
   }
 
