@@ -21,6 +21,7 @@ import {
   FolderOutput,
   FolderInput,
   Github,
+  Cpu,
   Sun,
   Moon,
   MapPin,
@@ -48,6 +49,10 @@ interface SidebarProps {
   notes: NotesMap
   setBookmarks: React.Dispatch<React.SetStateAction<BookmarksSet>>
   setNotes: React.Dispatch<React.SetStateAction<NotesMap>>
+  ollamaEnabled: boolean
+  setOllamaEnabled: React.Dispatch<React.SetStateAction<boolean>>
+  ollamaEndpoint: string
+  setOllamaEndpoint: React.Dispatch<React.SetStateAction<string>>
   setActiveAyah: (a: number) => void
   setOpenNoteAyah: (a: number) => void
   hydrated: boolean
@@ -70,6 +75,10 @@ export default function Sidebar({
   notes,
   setBookmarks,
   setNotes,
+  ollamaEnabled,
+  setOllamaEnabled,
+  ollamaEndpoint,
+  setOllamaEndpoint,
   setActiveAyah,
   setOpenNoteAyah,
   hydrated,
@@ -83,6 +92,7 @@ export default function Sidebar({
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [isClearOpen, setIsClearOpen] = useState(false)
+  const [isOllamaOpen, setIsOllamaOpen] = useState(false)
   const [clearNav, setClearNav] = useState(false)
   const [clearBm, setClearBm] = useState(false)
   const [clearNt, setClearNt] = useState(false)
@@ -350,6 +360,46 @@ export default function Sidebar({
                     {r.id === reciter ? <Check className="icon" strokeWidth={3} aria-hidden /> : null}
                   </button>
                 ))}
+              </div>
+            ) : null}
+          </div>
+        </div>
+
+        <div className="section">
+          <div role="region" aria-label="Ollama">
+            <button
+              type="button"
+              className="button"
+              aria-expanded={isOllamaOpen}
+              aria-controls="accordion-ollama"
+              onClick={() => setIsOllamaOpen((o) => !o)}
+              style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+            >
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <Cpu className="icon" strokeWidth={2} aria-hidden />
+                <span>Ollama</span>
+              </span>
+              <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isOllamaOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
+            </button>
+            {isOllamaOpen ? (
+              <div id="accordion-ollama" style={{ marginTop: 8, display: 'grid', gap: 8 }}>
+                <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                  <input
+                    type="checkbox"
+                    checked={ollamaEnabled}
+                    onChange={(e) => setOllamaEnabled(e.target.checked)}
+                  />
+                  <span>Enable Ollama</span>
+                </label>
+                <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
+                  <span className="muted">Endpoint</span>
+                  <input
+                    type="text"
+                    className="input"
+                    value={ollamaEndpoint}
+                    onChange={(e) => setOllamaEndpoint(e.target.value)}
+                  />
+                </label>
               </div>
             ) : null}
           </div>
