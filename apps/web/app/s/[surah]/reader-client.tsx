@@ -179,7 +179,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         })
     }
 
-    async function handleWordContext(e: React.MouseEvent<HTMLSpanElement>, word: string) {
+    async function handleWordContext(e: React.MouseEvent<HTMLSpanElement>, word: string, verse: string) {
         if (!ollamaEnabled || !ollamaModel) return
         e.preventDefault()
         const { clientX: x, clientY: y } = e
@@ -188,7 +188,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         rootAbortRef.current = controller
         setRootPanel({ x, y, text: '', loading: true })
         try {
-            const root = await ollamaClient.getRoot(word, ollamaModel, controller.signal)
+            const root = await ollamaClient.getRoot(word, verse, ollamaModel, controller.signal)
             if (!controller.signal.aborted) setRootPanel({ x, y, text: root || 'N/A', loading: false })
         } catch {
             if (!controller.signal.aborted) setRootPanel({ x, y, text: 'N/A', loading: false })
@@ -816,7 +816,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                         {words.map((w, i) => (
                                             <span
                                                 key={i}
-                                                onContextMenu={(e) => handleWordContext(e, w)}
+                                                onContextMenu={(e) => handleWordContext(e, w, v.text_ar_simple)}
                                                 onMouseLeave={handleWordLeave}
                                                 style={{ cursor: ollamaEnabled ? 'context-menu' : undefined }}
                                             >
