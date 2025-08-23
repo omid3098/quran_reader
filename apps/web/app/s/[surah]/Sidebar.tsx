@@ -705,73 +705,75 @@ export default function Sidebar({
               />
             </button>
             {isAssistantOpen ? (
-              <div id="accordion-ai" style={{ marginTop: 8, display: 'grid', gap: 8 }}>
-                <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <input
-                    type="checkbox"
-                    checked={aiSettings.enabled}
-                    onChange={(e) =>
-                      setAISettings((prev) => ({ ...prev, enabled: e.target.checked }))
-                    }
-                  />
-                  <span>Enable Assistant</span>
-                </label>
-                {aiSettings.enabled ? (
-                  <>
-                    <ProviderPicker
-                      value={aiSettings.selected}
-                      onChange={(v) =>
-                        setAISettings((prev) => ({ ...prev, selected: v }))
-                      }
-                      disableOllama={ollamaBlocked}
-                    />
-                    {ollamaBlocked && aiSettings.selected === 'ollama' ? (
-                      <span className="muted" style={{ color: 'red' }}>
-                        Ollama over HTTP is blocked on HTTPS pages.
-                      </span>
-                    ) : null}
-                    <KeyManager
-                      provider={aiSettings.selected}
-                      keys={aiSettings.keys}
-                      onSave={(k) => setAISettings((prev) => ({ ...prev, keys: k }))}
-                    />
-                    <ModelPicker
-                      providerId={aiSettings.selected}
-                      assistant={assistant}
-                      value={aiSettings.models[aiSettings.selected] || ''}
-                      onChange={(v) =>
-                        setAISettings((prev) => ({
-                          ...prev,
-                          models: { ...prev.models, [prev.selected]: v },
-                        }))
+              <div id="accordion-ai" style={{ marginTop: 8 }}>
+                <div className="card" style={{ padding: 4, display: 'grid', gap: 8 }}>
+                  <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <input
+                      type="checkbox"
+                      checked={aiSettings.enabled}
+                      onChange={(e) =>
+                        setAISettings((prev) => ({ ...prev, enabled: e.target.checked }))
                       }
                     />
-                    {modelsError ? (
-                      <span className="muted" style={{ color: 'red' }}>
-                        {modelsError}
-                      </span>
-                    ) : null}
-                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                      <button type="button" className="button" onClick={handleTest}>
-                        Test
-                      </button>
-                      {testStatus === 'loading' ? (
-                        <span className="muted">Testing…</span>
-                      ) : testStatus === 'ok' ? (
-                        <span className="muted" style={{ color: 'green' }}>
-                          OK
-                        </span>
-                      ) : testStatus === 'error' ? (
+                    <span>Enable Assistant</span>
+                  </label>
+                  {aiSettings.enabled ? (
+                    <div style={{ display: 'grid', gap: 8 }}>
+                      <ProviderPicker
+                        value={aiSettings.selected}
+                        onChange={(v) =>
+                          setAISettings((prev) => ({ ...prev, selected: v }))
+                        }
+                        disableOllama={ollamaBlocked}
+                      />
+                      {ollamaBlocked && aiSettings.selected === 'ollama' ? (
                         <span className="muted" style={{ color: 'red' }}>
-                          Failed
+                          Ollama over HTTP is blocked on HTTPS pages.
                         </span>
                       ) : null}
+                      <KeyManager
+                        provider={aiSettings.selected}
+                        keys={aiSettings.keys}
+                        onSave={(k) => setAISettings((prev) => ({ ...prev, keys: k }))}
+                      />
+                      <ModelPicker
+                        providerId={aiSettings.selected}
+                        models={models}
+                        value={aiSettings.models[aiSettings.selected] || ''}
+                        onChange={(v) =>
+                          setAISettings((prev) => ({
+                            ...prev,
+                            models: { ...prev.models, [prev.selected]: v },
+                          }))
+                        }
+                      />
+                      {modelsError ? (
+                        <span className="muted" style={{ color: 'red' }}>
+                          {modelsError}
+                        </span>
+                      ) : null}
+                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                        <button type="button" className="button" onClick={handleTest}>
+                          Test
+                        </button>
+                        {testStatus === 'loading' ? (
+                          <span className="muted">Testing…</span>
+                        ) : testStatus === 'ok' ? (
+                          <span className="muted" style={{ color: 'green' }}>
+                            OK
+                          </span>
+                        ) : testStatus === 'error' ? (
+                          <span className="muted" style={{ color: 'red' }}>
+                            Failed
+                          </span>
+                        ) : null}
+                      </div>
+                      <p className="muted" style={{ fontSize: 12 }}>
+                        Keys are stored in your browser. Do not use on shared devices.
+                      </p>
                     </div>
-                    <p className="muted" style={{ fontSize: 12 }}>
-                      Keys are stored in your browser. Do not use on shared devices.
-                    </p>
-                  </>
-                ) : null}
+                  ) : null}
+                </div>
               </div>
             ) : null}
           </div>

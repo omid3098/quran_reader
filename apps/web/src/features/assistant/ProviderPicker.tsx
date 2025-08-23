@@ -26,29 +26,42 @@ export function ProviderPicker({
     ollama: 'https://ollama.com/download',
   };
   return (
-    <div className="flex items-center gap-2">
+    <div className="grid gap-2">
       {providers.map((p) => {
         const Icon = icons[p.id];
+        const isActive = value === p.id;
         return (
-          <div key={p.id} className="flex flex-col items-center gap-1">
+          <div key={p.id} className="flex items-center gap-2">
             <button
               type="button"
-              className={`icon-btn${value === p.id ? ' active' : ''}`}
+              className="button flex-1"
               onClick={() => onChange(p.id)}
               aria-label={p.label}
               disabled={p.id === 'ollama' && disableOllama}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                gap: 8,
+                justifyContent: 'flex-start',
+                ...(isActive
+                  ? { borderColor: 'var(--accent)', color: 'var(--accent)' }
+                  : {}),
+              }}
             >
               <Icon className="icon" aria-hidden />
+              <span>{p.label}</span>
             </button>
-            <a
-              href={infoLinks[p.id]}
-              target="_blank"
-              rel="noreferrer"
-              className="icon-btn text-xs"
-              aria-label={`Get ${p.label} key / install`}
-            >
-              <HelpCircle className="icon" aria-hidden />
-            </a>
+            {isActive ? (
+              <a
+                href={infoLinks[p.id]}
+                target="_blank"
+                rel="noreferrer"
+                className="icon-btn"
+                aria-label={`Get ${p.label} key / install`}
+              >
+                <HelpCircle className="icon" aria-hidden />
+              </a>
+            ) : null}
           </div>
         );
       })}
