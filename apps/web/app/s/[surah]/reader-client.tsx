@@ -60,6 +60,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const [ollamaModel, setOllamaModel] = useLocalStorage<string>('oqr:ollamaModel', '')
     const ollamaClient = useMemo(() => new OllamaClient(ollamaEndpoint), [ollamaEndpoint])
     const [rootPanel, setRootPanel] = useState<{ x: number; y: number; text: string; loading: boolean } | null>(null)
+    const rootAbortRef = useRef<AbortController | null>(null)
     const [playingAyah, setPlayingAyah] = useState<number | null>(null)
     const audioRef = useRef<HTMLAudioElement | null>(null) as MutableRefObject<HTMLAudioElement | null>
 
@@ -182,12 +183,21 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         if (!ollamaEnabled || !ollamaModel) return
         e.preventDefault()
         const { clientX: x, clientY: y } = e
+        rootAbortRef.current?.abort()
+        const controller = new AbortController()
+        rootAbortRef.current = controller
         setRootPanel({ x, y, text: '', loading: true })
-        const root = await ollamaClient.getRoot(word, ollamaModel)
-        setRootPanel({ x, y, text: root || 'N/A', loading: false })
+        try {
+            const root = await ollamaClient.getRoot(word, ollamaModel, controller.signal)
+            if (!controller.signal.aborted) setRootPanel({ x, y, text: root || 'N/A', loading: false })
+        } catch {
+            if (!controller.signal.aborted) setRootPanel({ x, y, text: 'N/A', loading: false })
+        }
     }
 
     function handleWordLeave() {
+        rootAbortRef.current?.abort()
+        rootAbortRef.current = null
         setRootPanel(null)
     }
 
