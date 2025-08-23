@@ -8,7 +8,6 @@ export const metadata = {
 function ThemeScript() {
   // Persisted theme in localStorage
   const code = `try{const t=localStorage.getItem('oqr:theme')||'dark';document.documentElement.dataset.theme=t}catch{}`
-  // eslint-disable-next-line @next/next/no-before-interactive-script-outside-document
   return <script dangerouslySetInnerHTML={{ __html: code }} suppressHydrationWarning />
 }
 

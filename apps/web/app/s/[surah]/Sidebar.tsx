@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Route } from 'next'
 import {
@@ -31,7 +31,12 @@ import {
 import type { TranslationMeta } from '@openquranreader/types'
 import type { BookmarksSet, NotesMap, VerseKey } from './types'
 import { encodeSharePayload } from '../../../lib/share'
-import { OllamaClient } from '../../../lib/ollama'
+import { ProviderPicker } from '../../../src/features/assistant/ProviderPicker'
+import { KeyManager } from '../../../src/features/assistant/KeyManager'
+import { ModelPicker } from '../../../src/features/assistant/ModelPicker'
+import { createAssistant } from '../../../src/features/assistant/useAssistant'
+import type { AISettings } from '../../../src/state/settings'
+import type { ChatMessage } from '@openquran/ai/types'
 
 interface SidebarProps {
   isOpen: boolean
@@ -50,12 +55,8 @@ interface SidebarProps {
   notes: NotesMap
   setBookmarks: React.Dispatch<React.SetStateAction<BookmarksSet>>
   setNotes: React.Dispatch<React.SetStateAction<NotesMap>>
-  ollamaEnabled: boolean
-  setOllamaEnabled: React.Dispatch<React.SetStateAction<boolean>>
-  ollamaEndpoint: string
-  setOllamaEndpoint: React.Dispatch<React.SetStateAction<string>>
-  ollamaModel: string
-  setOllamaModel: React.Dispatch<React.SetStateAction<string>>
+  aiSettings: AISettings
+  setAISettings: React.Dispatch<React.SetStateAction<AISettings>>
   setActiveAyah: (a: number) => void
   setOpenNoteAyah: (a: number) => void
   hydrated: boolean
@@ -78,12 +79,8 @@ export default function Sidebar({
   notes,
   setBookmarks,
   setNotes,
-  ollamaEnabled,
-  setOllamaEnabled,
-  ollamaEndpoint,
-  setOllamaEndpoint,
-  ollamaModel,
-  setOllamaModel,
+  aiSettings,
+  setAISettings,
   setActiveAyah,
   setOpenNoteAyah,
   hydrated,
@@ -97,13 +94,21 @@ export default function Sidebar({
   const [isExportOpen, setIsExportOpen] = useState(false)
   const [isImportOpen, setIsImportOpen] = useState(false)
   const [isClearOpen, setIsClearOpen] = useState(false)
-  const [isOllamaOpen, setIsOllamaOpen] = useState(false)
-  const [models, setModels] = useState<string[]>([])
+  const [isAssistantOpen, setIsAssistantOpen] = useState(false)
+  const [models, setModels] = useState<Array<{ id: string; name?: string; free?: boolean }>>([])
   const [modelsError, setModelsError] = useState<string | null>(null)
+  const [testStatus, setTestStatus] = useState<'idle' | 'ok' | 'error' | 'loading'>('idle')
   const [clearNav, setClearNav] = useState(false)
   const [clearBm, setClearBm] = useState(false)
   const [clearNt, setClearNt] = useState(false)
   const [clearSt, setClearSt] = useState(false)
+  const assistant = useMemo(
+    () => createAssistant({ selected: aiSettings.selected, keys: aiSettings.keys }),
+    [aiSettings.selected, aiSettings.keys]
+  )
+  const isHttps = typeof window !== 'undefined' && location.protocol === 'https:'
+  const ollamaUrl = aiSettings.keys.OLLAMA_URL || 'http://localhost:11434'
+  const ollamaBlocked = isHttps && !ollamaUrl.startsWith('https:')
 
   const reciterOptions = [
     { id: 'Abu_Bakr_Ash-Shaatree_128kbps', name: 'Abu Bakr Ash-Shaatree' },
@@ -118,19 +123,24 @@ export default function Sidebar({
     reciterDisplayName === 'Choose' ? reciterDisplayName : `${reciterDisplayName.slice(0, 7)}...`
 
   useEffect(() => {
-    if (!ollamaEnabled || !isOllamaOpen) return
-    const client = new OllamaClient(ollamaEndpoint)
+    if (!aiSettings.enabled || !isAssistantOpen) return
     ;(async () => {
       try {
-        const ms = await client.listModels()
-        setModels(ms)
+        const list = (await assistant.listModels()) as any[]
+        setModels(list)
         setModelsError(null)
-        if (ms.length && (!ollamaModel || !ms.includes(ollamaModel))) setOllamaModel(ms[0])
+        const current = aiSettings.models[aiSettings.selected]
+        if (list.length && (!current || !list.some((m) => m.id === current))) {
+          setAISettings((prev) => ({
+            ...prev,
+            models: { ...prev.models, [prev.selected]: list[0].id },
+          }))
+        }
       } catch {
         setModelsError('Failed to fetch models. Check CORS or endpoint configuration.')
       }
     })()
-  }, [ollamaEnabled, isOllamaOpen, ollamaEndpoint])
+  }, [aiSettings.enabled, isAssistantOpen, assistant, aiSettings.selected, aiSettings.models, setAISettings])
 
   function clearAllNavigations() {
     try {
@@ -153,6 +163,18 @@ export default function Sidebar({
   function clearSettingsToDefaults() {
     setEnabledTranslations(['en.arberry'])
     setReciter('Alafasy_128kbps')
+  }
+
+  async function handleTest() {
+    setTestStatus('loading')
+    try {
+      const messages: ChatMessage[] = [{ role: 'user', content: 'Say ready' }]
+      const model = aiSettings.models[aiSettings.selected]
+      const text = await assistant.ask(messages, { model })
+      setTestStatus(text.toLowerCase().includes('ready') ? 'ok' : 'error')
+    } catch {
+      setTestStatus('error')
+    }
   }
 
   function handleClearSelected() {
@@ -637,57 +659,93 @@ export default function Sidebar({
         </div>
 
         <div className="section">
-          <div role="region" aria-label="Ollama">
+          <div role="region" aria-label="AI Assistant">
             <button
               type="button"
               className="button"
-              aria-expanded={isOllamaOpen}
-              aria-controls="accordion-ollama"
-              onClick={() => setIsOllamaOpen((o) => !o)}
+              aria-expanded={isAssistantOpen}
+              aria-controls="accordion-ai"
+              onClick={() => setIsAssistantOpen((o) => !o)}
               style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <Cpu className="icon" strokeWidth={2} aria-hidden />
-                <span>Ollama</span>
+                <span>Assistant</span>
               </span>
-              <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isOllamaOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
+              <ChevronDown
+                className="icon"
+                strokeWidth={2}
+                aria-hidden
+                style={{ transform: isAssistantOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}
+              />
             </button>
-            {isOllamaOpen ? (
-              <div id="accordion-ollama" style={{ marginTop: 8, display: 'grid', gap: 8 }}>
+            {isAssistantOpen ? (
+              <div id="accordion-ai" style={{ marginTop: 8, display: 'grid', gap: 8 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <input
                     type="checkbox"
-                    checked={ollamaEnabled}
-                    onChange={(e) => setOllamaEnabled(e.target.checked)}
+                    checked={aiSettings.enabled}
+                    onChange={(e) =>
+                      setAISettings((prev) => ({ ...prev, enabled: e.target.checked }))
+                    }
                   />
-                  <span>Enable Ollama</span>
+                  <span>Enable Assistant</span>
                 </label>
-                <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                  <span className="muted">Endpoint</span>
-                  <input
-                    type="text"
-                    className="input"
-                    value={ollamaEndpoint}
-                    onChange={(e) => setOllamaEndpoint(e.target.value)}
-                  />
-                </label>
-                {ollamaEnabled ? (
-                  <label style={{ display: 'flex', flexDirection: 'column', gap: 4 }}>
-                    <span className="muted">Model</span>
-                    <select className="input" value={ollamaModel} onChange={(e) => setOllamaModel(e.target.value)}>
-                      <option value="">Select model</option>
-                      {models.map((m) => (
-                        <option key={m} value={m}>
-                          {m}
-                        </option>
-                      ))}
-                    </select>
+                {aiSettings.enabled ? (
+                  <>
+                    <ProviderPicker
+                      value={aiSettings.selected}
+                      onChange={(v) =>
+                        setAISettings((prev) => ({ ...prev, selected: v }))
+                      }
+                      disableOllama={ollamaBlocked}
+                    />
+                    {ollamaBlocked && aiSettings.selected === 'ollama' ? (
+                      <span className="muted" style={{ color: 'red' }}>
+                        Ollama over HTTP is blocked on HTTPS pages.
+                      </span>
+                    ) : null}
+                    <KeyManager
+                      provider={aiSettings.selected}
+                      keys={aiSettings.keys}
+                      onSave={(k) => setAISettings((prev) => ({ ...prev, keys: k }))}
+                    />
+                    <ModelPicker
+                      providerId={aiSettings.selected}
+                      assistant={assistant}
+                      value={aiSettings.models[aiSettings.selected] || ''}
+                      onChange={(v) =>
+                        setAISettings((prev) => ({
+                          ...prev,
+                          models: { ...prev.models, [prev.selected]: v },
+                        }))
+                      }
+                    />
                     {modelsError ? (
                       <span className="muted" style={{ color: 'red' }}>
                         {modelsError}
                       </span>
                     ) : null}
-                  </label>
+                    <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <button type="button" className="button" onClick={handleTest}>
+                        Test
+                      </button>
+                      {testStatus === 'loading' ? (
+                        <span className="muted">Testing…</span>
+                      ) : testStatus === 'ok' ? (
+                        <span className="muted" style={{ color: 'green' }}>
+                          OK
+                        </span>
+                      ) : testStatus === 'error' ? (
+                        <span className="muted" style={{ color: 'red' }}>
+                          Failed
+                        </span>
+                      ) : null}
+                    </div>
+                    <p className="muted" style={{ fontSize: 12 }}>
+                      Keys are stored in your browser. Do not use on shared devices.
+                    </p>
+                  </>
                 ) : null}
               </div>
             ) : null}
