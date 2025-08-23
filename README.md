@@ -58,3 +58,43 @@ The app streams recitation audio from third-party services:
 Please credit these services if you distribute or deploy derivatives that rely on their streaming endpoints and respect their terms of use.
 
 
+## Use local Ollama in the browser (CORS)
+
+If you want the site to use your local Ollama models from a browser, allow your page’s origin in Ollama via the `OLLAMA_ORIGINS` environment variable and restart Ollama.
+
+Add both origins:
+
+```
+https://www.omid-saadat.com
+https://omid3098.github.io
+```
+
+### macOS
+```bash
+launchctl setenv OLLAMA_ORIGINS "https://www.omid-saadat.com,https://omid3098.github.io"
+# optional: only if you truly want LAN access
+# launchctl setenv OLLAMA_HOST "0.0.0.0:11434"
+# restart the Ollama app/service
+```
+
+### Linux (systemd)
+```bash
+sudo systemctl edit ollama.service
+# add under [Service]:
+# Environment="OLLAMA_ORIGINS=https://www.omid-saadat.com,https://omid3098.github.io"
+# (optional) Environment="OLLAMA_HOST=0.0.0.0:11434"
+sudo systemctl daemon-reload
+sudo systemctl restart ollama
+```
+
+### Windows
+Add a User environment variable `OLLAMA_ORIGINS` with value:
+
+```
+https://www.omid-saadat.com,https://omid3098.github.io
+```
+
+Then restart Ollama.
+
+These env-vars are the officially supported way to allow cross-origin browser access to a local Ollama API.
+
