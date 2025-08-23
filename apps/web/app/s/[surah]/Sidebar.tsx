@@ -22,6 +22,7 @@ import {
   FolderInput,
   Github,
   Cpu,
+  HelpCircle,
   Sun,
   Moon,
   MapPin,
@@ -129,6 +130,12 @@ export default function Sidebar({
   const isHttps = typeof window !== 'undefined' && location.protocol === 'https:'
   const ollamaUrl = aiSettings.keys.OLLAMA_URL || 'http://localhost:11434'
   const ollamaBlocked = isHttps && !ollamaUrl.startsWith('https:')
+  const infoLinks: Record<string, string> = {
+    gemini: 'https://aistudio.google.com/app/apikey',
+    openrouter: 'https://openrouter.ai/docs/api-reference/authentication',
+    huggingface: 'https://huggingface.co/settings/tokens',
+    ollama: 'https://ollama.com/download',
+  }
 
   const reciterOptions = [
     { id: 'Abu_Bakr_Ash-Shaatree_128kbps', name: 'Abu Bakr Ash-Shaatree' },
@@ -726,51 +733,80 @@ export default function Sidebar({
                         }
                         disableOllama={ollamaBlocked}
                       />
-                      {ollamaBlocked && aiSettings.selected === 'ollama' ? (
-                        <span className="muted" style={{ color: 'red' }}>
-                          Ollama over HTTP is blocked on HTTPS pages.
-                        </span>
-                      ) : null}
-                      <KeyManager
-                        provider={aiSettings.selected}
-                        keys={aiSettings.keys}
-                        onSave={(k) => setAISettings((prev) => ({ ...prev, keys: k }))}
-                      />
-                      <ModelPicker
-                        providerId={aiSettings.selected}
-                        models={models}
-                        value={aiSettings.models[aiSettings.selected] || ''}
-                        onChange={(v) =>
-                          setAISettings((prev) => ({
-                            ...prev,
-                            models: { ...prev.models, [prev.selected]: v },
-                          }))
-                        }
-                      />
-                      {modelsError ? (
-                        <span className="muted" style={{ color: 'red' }}>
-                          {modelsError}
-                        </span>
-                      ) : null}
-                      <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                        <button type="button" className="button" onClick={handleTest}>
-                          Test
-                        </button>
-                        {testStatus === 'loading' ? (
-                          <span className="muted">Testing…</span>
-                        ) : testStatus === 'ok' ? (
-                          <span className="muted" style={{ color: 'green' }}>
-                            OK
-                          </span>
-                        ) : testStatus === 'error' ? (
+                      <div
+                        style={{
+                          display: 'grid',
+                          gap: 8,
+                          marginTop: 8,
+                          paddingTop: 8,
+                          borderTop: '1px solid rgba(255, 255, 255, 0.08)',
+                        }}
+                      >
+                        <a
+                          href={infoLinks[aiSettings.selected]}
+                          target="_blank"
+                          rel="noreferrer"
+                          className="flex items-center gap-2 text-sm"
+                          style={{ color: 'var(--accent)' }}
+                        >
+                          <HelpCircle className="icon" aria-hidden />
+                          <span>Get key / install</span>
+                        </a>
+                        {ollamaBlocked && aiSettings.selected === 'ollama' ? (
                           <span className="muted" style={{ color: 'red' }}>
-                            Failed
+                            Ollama over HTTP is blocked on HTTPS pages.
                           </span>
                         ) : null}
+                        <KeyManager
+                          provider={aiSettings.selected}
+                          keys={aiSettings.keys}
+                          onSave={(k) =>
+                            setAISettings((prev) => ({ ...prev, keys: k }))
+                          }
+                        />
+                        <ModelPicker
+                          providerId={aiSettings.selected}
+                          models={models}
+                          value={aiSettings.models[aiSettings.selected] || ''}
+                          onChange={(v) =>
+                            setAISettings((prev) => ({
+                              ...prev,
+                              models: { ...prev.models, [prev.selected]: v },
+                            }))
+                          }
+                        />
+                        {modelsError ? (
+                          <span className="muted" style={{ color: 'red' }}>
+                            {modelsError}
+                          </span>
+                        ) : null}
+                        <div
+                          style={{ display: 'flex', alignItems: 'center', gap: 8 }}
+                        >
+                          <button
+                            type="button"
+                            className="button"
+                            onClick={handleTest}
+                          >
+                            Test
+                          </button>
+                          {testStatus === 'loading' ? (
+                            <span className="muted">Testing…</span>
+                          ) : testStatus === 'ok' ? (
+                            <span className="muted" style={{ color: 'green' }}>
+                              OK
+                            </span>
+                          ) : testStatus === 'error' ? (
+                            <span className="muted" style={{ color: 'red' }}>
+                              Failed
+                            </span>
+                          ) : null}
+                        </div>
+                        <p className="muted" style={{ fontSize: 12 }}>
+                          Keys are stored in your browser. Do not use on shared
+                          devices.
+                        </p>
                       </div>
-                      <p className="muted" style={{ fontSize: 12 }}>
-                        Keys are stored in your browser. Do not use on shared devices.
-                      </p>
                     </div>
                   ) : null}
                 </div>

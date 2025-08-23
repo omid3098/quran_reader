@@ -33,11 +33,16 @@ export function KeyManager({
         <div key={f.key} className="flex items-center gap-2">
           <KeyIcon className="icon" aria-hidden />
           <input
-            type={f.key.includes('URL') ? 'text' : 'password'}
+            type="text"
+            autoComplete="off"
+            spellCheck={false}
             className="input flex-1"
             placeholder={f.placeholder ?? f.label}
             value={keys[f.key] ?? ''}
             onChange={(e) => onSave({ ...keys, [f.key]: e.target.value })}
+            style={
+              f.key.includes('URL') ? undefined : ({ WebkitTextSecurity: 'disc' } as any)
+            }
           />
         </div>
       ))}
