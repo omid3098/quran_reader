@@ -29,6 +29,8 @@ pnpm --filter web build
 ## Deploy to GitHub Pages
 Push to `main`. The GitHub Actions workflow `.github/workflows/deploy.yml` builds with `NEXT_PUBLIC_BASE_PATH=/<repo>` and publishes `apps/web/out` to Pages.
 
+Add your Firebase configuration values and `NEXT_PUBLIC_ENCRYPTION_KEY` as **repository secrets** in **Settings → Secrets and variables → Actions** so the workflow can access them at build time.
+
 If you use a custom domain or serve at root, unset `NEXT_PUBLIC_BASE_PATH` in the workflow.
 
 ## Firebase setup
@@ -51,7 +53,7 @@ The web app can sync bookmarks, notes and preferences via Firebase when a user s
    }
    ```
 
-5. Define the following environment variables (locally in `.env` and in your deploy workflow):
+5. Define the following environment variables locally in `.env` **and** as GitHub repository secrets so the deploy workflow can access them:
 
 ```
 NEXT_PUBLIC_FIREBASE_API_KEY=yourKey
@@ -62,6 +64,8 @@ NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=yourSenderId
 NEXT_PUBLIC_FIREBASE_APP_ID=yourAppId
 NEXT_PUBLIC_ENCRYPTION_KEY=base64Secret16bytes
 ```
+
+In GitHub, add each of these as a repository secret under **Settings → Secrets and variables → Actions** using the same names; the deploy workflow reads them from `${{ secrets.NAME }}`.
 
 `NEXT_PUBLIC_ENCRYPTION_KEY` must decode to a 16‑byte secret used to encrypt synced data. If it is missing or invalid the app generates a random key for the session. Generate a valid value with:
 
