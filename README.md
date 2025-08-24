@@ -31,6 +31,9 @@ pnpm --filter web dev
    ```
 4. Find your laptop's IP address and open `http://<laptop_ip>:3000` on the phone.
 5. Tap **Sign in with Google**. After choosing an account you should return to the app signed in.
+6. If you see `Firebase: Error (auth/network-request-failed)`, double-check the IP is in the authorized domains and reachable.
+   Some browsers require HTTPS for Google sign-in; using a tunneling service such as `ngrok` or `cloudflared` to obtain an HTTPS URL
+   (and adding that host to the authorized domains) can help.
 
 ## Build (static export)
 ```bash

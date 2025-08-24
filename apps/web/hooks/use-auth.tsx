@@ -46,7 +46,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     } catch (e: any) {
       if (
         e.code === 'auth/operation-not-supported-in-this-environment' ||
-        e.code === 'auth/popup-blocked'
+        e.code === 'auth/popup-blocked' ||
+        e.code === 'auth/network-request-failed'
       ) {
         await signInWithRedirect(auth, provider)
       } else {
