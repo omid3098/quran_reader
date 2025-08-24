@@ -30,14 +30,18 @@ export function useSyncedStorage<T>(key: string, initial: T) {
         } catch {}
       }
       if (user) {
-        const ref = doc(db, 'users', user.uid, 'data', sanitize(key))
-        const snap = await getDoc(ref)
-        if (snap.exists()) {
-          const remote = JSON.parse(await decrypt(snap.data().value))
-          local = resolveConflict(key, local, remote)
-        }
-        if (local) {
-          await setDoc(ref, { value: await encrypt(JSON.stringify(local)) })
+        try {
+          const ref = doc(db, 'users', user.uid, 'data', sanitize(key))
+          const snap = await getDoc(ref)
+          if (snap.exists()) {
+            const remote = JSON.parse(await decrypt(snap.data().value))
+            local = resolveConflict(key, local, remote)
+          }
+          if (local) {
+            await setDoc(ref, { value: await encrypt(JSON.stringify(local)) })
+          }
+        } catch (err) {
+          console.error('sync read/write failed', err)
         }
       }
       if (!local) local = { value: initial, updatedAt: Date.now() }
@@ -59,8 +63,12 @@ export function useSyncedStorage<T>(key: string, initial: T) {
         localStorage.setItem('oqr:theme_plain', String((obj.value as any)))
       }
       if (user) {
-        const ref = doc(db, 'users', user.uid, 'data', sanitize(key))
-        await setDoc(ref, { value: await encrypt(JSON.stringify(obj)) })
+        try {
+          const ref = doc(db, 'users', user.uid, 'data', sanitize(key))
+          await setDoc(ref, { value: await encrypt(JSON.stringify(obj)) })
+        } catch (err) {
+          console.error('sync write failed', err)
+        }
       }
     })()
   }, [value, user, key, ready])

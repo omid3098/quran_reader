@@ -38,7 +38,20 @@ The web app can sync bookmarks, notes and preferences via Firebase when a user s
 1. Create a project at [Firebase Console](https://console.firebase.google.com).
 2. Add a Web app and copy its configuration values.
 3. Enable **Authentication → Google** and **Authentication → Email/Password**. Create a **Firestore** database.
-4. Define the following environment variables (locally in `.env` and in your deploy workflow):
+4. In **Firestore → Rules**, allow each signed-in user to read and write only their own data:
+
+   ```
+   rules_version = '2';
+   service cloud.firestore {
+     match /databases/{database}/documents {
+       match /users/{userId}/data/{document=**} {
+         allow read, write: if request.auth != null && request.auth.uid == userId;
+       }
+     }
+   }
+   ```
+
+5. Define the following environment variables (locally in `.env` and in your deploy workflow):
 
 ```
 NEXT_PUBLIC_FIREBASE_API_KEY=yourKey
