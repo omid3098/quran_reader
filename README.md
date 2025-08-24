@@ -86,7 +86,7 @@ In GitHub, add each of these as a repository secret under **Settings → Secrets
 node -e "console.log(require('crypto').randomBytes(16).toString('base64'))"
 ```
 
-If the browser lacks the Web Crypto API (for example when served over plain HTTP), the app skips encryption and stores this data in plain text.
+If the browser lacks the Web Crypto API or cannot run the required AES‑GCM operations (for example when served over plain HTTP), the app skips encryption and stores this data in plain text.
 
 ## Data sources
 - Arabic: `assets/quran/quran-simple.xml`
