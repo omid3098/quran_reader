@@ -311,23 +311,21 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         }
         if (initial == null) initial = 1
         setActiveAyah(initial)
-    }, [surah, sp, lastPos])
+    }, [surah, lastPos])
 
     // reflect URL (include selected translations and active ayah if set)
+    const shareParam = sp.get('share')
     useEffect(() => {
         const t = enabledTranslations.join(',')
         const params = new URLSearchParams()
         if (t) params.set('t', t)
         if (activeAyah && activeAyah > 0) params.set('v', String(activeAyah))
         // preserve share param only if currently reviewing incomingShare
-        if (incomingShare) {
-            const spShare = sp.get('share')
-            if (spShare) params.set('share', spShare)
-        }
+        if (incomingShare && shareParam) params.set('share', shareParam)
         const qs = params.toString()
         const href = (`/s/${surah}${qs ? `?${qs}` : ''}`) as Route
         router.replace(href, { scroll: false })
-    }, [router, surah, enabledTranslations, activeAyah, incomingShare, sp])
+    }, [router, surah, enabledTranslations, activeAyah, incomingShare, shareParam])
 
     const listRef = useRef<HTMLDivElement>(null)
 
