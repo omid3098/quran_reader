@@ -31,9 +31,7 @@ pnpm --filter web dev
    ```
 4. Find your laptop's IP address and open `http://<laptop_ip>:3000` on the phone.
 5. Tap **Sign in with Google**. After choosing an account you should return to the app signed in.
-6. If you see `Firebase: Error (auth/network-request-failed)`, double-check the IP is in the authorized domains and reachable.
-   Some browsers require HTTPS for Google sign-in; using a tunneling service such as `ngrok` or `cloudflared` to obtain an HTTPS URL
-   (and adding that host to the authorized domains) can help.
+6. If you see `Firebase: Error (auth/network-request-failed)` or a `TypeError` about `importKey`, double-check the IP is in the authorized domains and reachable. Some browsers require HTTPS for Google sign-in and Web Crypto; using a tunneling service such as `ngrok` or `cloudflared` to obtain an HTTPS URL (and adding that host to the authorized domains) can help.
 
 ## Build (static export)
 ```bash
@@ -87,6 +85,8 @@ In GitHub, add each of these as a repository secret under **Settings → Secrets
 ```
 node -e "console.log(require('crypto').randomBytes(16).toString('base64'))"
 ```
+
+If the browser lacks the Web Crypto API (for example when served over plain HTTP), the app skips encryption and stores this data in plain text.
 
 ## Data sources
 - Arabic: `assets/quran/quran-simple.xml`
