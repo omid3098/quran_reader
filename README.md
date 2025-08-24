@@ -50,7 +50,7 @@ NEXT_PUBLIC_FIREBASE_APP_ID=yourAppId
 NEXT_PUBLIC_ENCRYPTION_KEY=base64Secret16bytes
 ```
 
-`NEXT_PUBLIC_ENCRYPTION_KEY` is a Base64‑encoded 16‑byte secret used to encrypt synced data. Generate one with:
+`NEXT_PUBLIC_ENCRYPTION_KEY` must decode to a 16‑byte secret used to encrypt synced data. If it is missing or invalid the app generates a random key for the session. Generate a valid value with:
 
 ```
 node -e "console.log(require('crypto').randomBytes(16).toString('base64'))"

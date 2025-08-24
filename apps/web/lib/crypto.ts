@@ -1,8 +1,24 @@
 'use client'
 
+function decodeBase64(str: string) {
+  if (typeof window === 'undefined') return new Uint8Array(Buffer.from(str, 'base64'))
+  return Uint8Array.from(atob(str), c => c.charCodeAt(0))
+}
+
 const keyPromise = (async () => {
-  const base64 = process.env.NEXT_PUBLIC_ENCRYPTION_KEY || ''
-  const raw = Uint8Array.from(atob(base64), c => c.charCodeAt(0))
+  const base64 = process.env.NEXT_PUBLIC_ENCRYPTION_KEY
+  let raw: Uint8Array
+  if (base64) {
+    try {
+      raw = decodeBase64(base64)
+      if (raw.length !== 16) throw new Error('expected 16 bytes')
+    } catch {
+      console.warn('Invalid NEXT_PUBLIC_ENCRYPTION_KEY, generating a random key')
+      raw = crypto.getRandomValues(new Uint8Array(16))
+    }
+  } else {
+    raw = crypto.getRandomValues(new Uint8Array(16))
+  }
   return crypto.subtle.importKey('raw', raw, 'AES-GCM', false, ['encrypt', 'decrypt'])
 })()
 
