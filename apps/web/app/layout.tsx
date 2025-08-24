@@ -1,6 +1,5 @@
 import './globals.css'
 import { AuthProvider } from '../hooks/use-auth'
-import { AuthButton } from '../components/AuthButton'
 
 export const metadata = {
   title: 'OpenQuranReader',
@@ -24,7 +23,6 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
       <body>
         <AuthProvider>
           <ThemeScript />
-          <AuthButton />
           {children}
         </AuthProvider>
       </body>

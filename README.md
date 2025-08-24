@@ -33,11 +33,11 @@ If you use a custom domain or serve at root, unset `NEXT_PUBLIC_BASE_PATH` in th
 
 ## Firebase setup
 
-The web app can sync bookmarks, notes and preferences via Firebase when a user signs in with Google.
+The web app can sync bookmarks, notes and preferences via Firebase when a user signs in with Google or email.
 
 1. Create a project at [Firebase Console](https://console.firebase.google.com).
 2. Add a Web app and copy its configuration values.
-3. Enable **Authentication → Google** and create a **Firestore** database.
+3. Enable **Authentication → Google** and **Authentication → Email/Password**. Create a **Firestore** database.
 4. Define the following environment variables (locally in `.env` and in your deploy workflow):
 
 ```

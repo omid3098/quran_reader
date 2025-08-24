@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useState, useMemo, useRef } from 'react'
+import { useEffect, useState, useMemo, useRef, FormEvent } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Route } from 'next'
 import {
@@ -28,6 +28,10 @@ import {
   MapPin,
   Settings,
   Trash2,
+  User,
+  LogIn,
+  LogOut,
+  Mail,
 } from 'lucide-react'
 import type { TranslationMeta } from '@openquranreader/types'
 import type { BookmarksSet, NotesMap, VerseKey } from './types'
@@ -38,6 +42,7 @@ import { ModelPicker } from '../../../src/features/assistant/ModelPicker'
 import { createAssistant } from '../../../src/features/assistant/useAssistant'
 import type { AISettings } from '../../../src/state/settings'
 import type { ChatMessage } from '@openquran/ai/types'
+import { useAuth } from '../../../hooks/use-auth'
 
 interface SidebarProps {
   isOpen: boolean
@@ -89,6 +94,27 @@ export default function Sidebar({
   hydrated,
 }: SidebarProps) {
   const router = useRouter()
+  const { user, signInGoogle, signInEmail, registerEmail, signOut } = useAuth()
+  const [isAccountOpen, setAccountOpen] = useState(false)
+  const [showEmail, setShowEmail] = useState(false)
+  const [isRegister, setIsRegister] = useState(false)
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [authError, setAuthError] = useState<string | null>(null)
+  async function handleEmailSubmit(e: FormEvent) {
+    e.preventDefault()
+    setAuthError(null)
+    try {
+      if (isRegister) await registerEmail(email, password)
+      else await signInEmail(email, password)
+      setShowEmail(false)
+      setEmail('')
+      setPassword('')
+      setIsRegister(false)
+    } catch (err: any) {
+      setAuthError(err.message || 'Failed')
+    }
+  }
   const [isFontOpen, setIsFontOpen] = useState(false)
   const [isTranslationsOpen, setTranslationsOpen] = useState(false)
   const [isReciterOpen, setReciterOpen] = useState(false)
@@ -302,6 +328,112 @@ export default function Sidebar({
           <button type="button" className="icon-btn" aria-label="Close sidebar" onClick={onClose}>
             <X className="icon" strokeWidth={2} aria-hidden />
           </button>
+        </div>
+
+        <div className="section">
+          <div role="region" aria-label="Account">
+            <button
+              type="button"
+              className="button"
+              aria-expanded={isAccountOpen}
+              aria-controls="accordion-account"
+              onClick={() => setAccountOpen((o) => !o)}
+              style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
+            >
+              <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
+                <User className="icon" strokeWidth={2} aria-hidden />
+                <span>{user ? user.displayName || user.email || 'Account' : 'Sign in'}</span>
+              </span>
+              <ChevronDown
+                className="icon"
+                strokeWidth={2}
+                aria-hidden
+                style={{ transform: isAccountOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }}
+              />
+            </button>
+            {isAccountOpen ? (
+              <div id="accordion-account" style={{ marginTop: 8, display: 'grid', gap: 8 }}>
+                {user ? (
+                  <>
+                    <div className="muted" style={{ fontSize: 14 }}>
+                      {user.email || user.displayName}
+                    </div>
+                    <button
+                      type="button"
+                      className="button"
+                      onClick={signOut}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-start' }}
+                    >
+                      <LogOut className="icon" strokeWidth={2} aria-hidden />
+                      <span>Sign out</span>
+                    </button>
+                  </>
+                ) : showEmail ? (
+                  <form onSubmit={handleEmailSubmit} style={{ display: 'grid', gap: 8 }}>
+                    <input
+                      type="email"
+                      required
+                      placeholder="Email"
+                      value={email}
+                      onChange={(e) => setEmail(e.target.value)}
+                      style={{ padding: 6, border: '1px solid var(--color-border)', borderRadius: 4 }}
+                    />
+                    <input
+                      type="password"
+                      required
+                      placeholder="Password"
+                      value={password}
+                      onChange={(e) => setPassword(e.target.value)}
+                      style={{ padding: 6, border: '1px solid var(--color-border)', borderRadius: 4 }}
+                    />
+                    {authError ? <div className="muted" style={{ color: 'var(--color-danger, red)' }}>{authError}</div> : null}
+                    <div style={{ display: 'flex', gap: 8 }}>
+                      <button type="submit" className="button">
+                        {isRegister ? 'Register' : 'Sign in'}
+                      </button>
+                      <button type="button" className="button" onClick={() => setIsRegister((r) => !r)}>
+                        {isRegister ? 'Have account?' : 'Create account'}
+                      </button>
+                    </div>
+                    <button
+                      type="button"
+                      className="button"
+                      onClick={() => {
+                        setShowEmail(false)
+                        setIsRegister(false)
+                      }}
+                    >
+                      Back
+                    </button>
+                  </form>
+                ) : (
+                  <>
+                    <button
+                      type="button"
+                      className="button"
+                      onClick={signInGoogle}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-start' }}
+                    >
+                      <LogIn className="icon" strokeWidth={2} aria-hidden />
+                      <span>Sign in with Google</span>
+                    </button>
+                    <button
+                      type="button"
+                      className="button"
+                      onClick={() => {
+                        setShowEmail(true)
+                        setAuthError(null)
+                      }}
+                      style={{ display: 'flex', alignItems: 'center', gap: 8, justifyContent: 'flex-start' }}
+                    >
+                      <Mail className="icon" strokeWidth={2} aria-hidden />
+                      <span>Use email</span>
+                    </button>
+                  </>
+                )}
+              </div>
+            ) : null}
+          </div>
         </div>
 
         <div className="section">
