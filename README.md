@@ -31,6 +31,31 @@ Push to `main`. The GitHub Actions workflow `.github/workflows/deploy.yml` build
 
 If you use a custom domain or serve at root, unset `NEXT_PUBLIC_BASE_PATH` in the workflow.
 
+## Firebase setup
+
+The web app can sync bookmarks, notes and preferences via Firebase when a user signs in with Google.
+
+1. Create a project at [Firebase Console](https://console.firebase.google.com).
+2. Add a Web app and copy its configuration values.
+3. Enable **Authentication → Google** and create a **Firestore** database.
+4. Define the following environment variables (locally in `.env` and in your deploy workflow):
+
+```
+NEXT_PUBLIC_FIREBASE_API_KEY=yourKey
+NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=yourDomain
+NEXT_PUBLIC_FIREBASE_PROJECT_ID=yourProjectId
+NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=yourBucket
+NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=yourSenderId
+NEXT_PUBLIC_FIREBASE_APP_ID=yourAppId
+NEXT_PUBLIC_ENCRYPTION_KEY=base64Secret16bytes
+```
+
+`NEXT_PUBLIC_ENCRYPTION_KEY` is a Base64‑encoded 16‑byte secret used to encrypt synced data. Generate one with:
+
+```
+node -e "console.log(require('crypto').randomBytes(16).toString('base64'))"
+```
+
 ## Data sources
 - Arabic: `assets/quran/quran-simple.xml`
 - Translations: other `*.xml` files in `assets/quran/`

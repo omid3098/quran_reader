@@ -58,6 +58,7 @@ interface SidebarProps {
   setNotes: React.Dispatch<React.SetStateAction<NotesMap>>
   aiSettings: AISettings
   setAISettings: React.Dispatch<React.SetStateAction<AISettings>>
+  clearLastPos: () => void
   setActiveAyah: (a: number) => void
   setOpenNoteAyah: (a: number) => void
   hydrated: boolean
@@ -82,6 +83,7 @@ export default function Sidebar({
   setNotes,
   aiSettings,
   setAISettings,
+  clearLastPos,
   setActiveAyah,
   setOpenNoteAyah,
   hydrated,
@@ -170,20 +172,14 @@ export default function Sidebar({
   }, [aiSettings.enabled, isAssistantOpen, assistant, aiSettings.selected, aiSettings.models, setAISettings])
 
   function clearAllNavigations() {
-    try {
-      localStorage.removeItem('oqr:lastPosition')
-      localStorage.removeItem('oqr:lastSurah')
-      for (let i = 1; i <= 114; i++) localStorage.removeItem(`oqr:lastAyah:${i}`)
-    } catch {}
+    try { clearLastPos() } catch {}
   }
 
   function clearAllBookmarks() {
-    try { localStorage.removeItem('oqr:bookmarks') } catch {}
     setBookmarks({})
   }
 
   function clearAllNotes() {
-    try { localStorage.removeItem('oqr:notes') } catch {}
     setNotes({})
   }
 
