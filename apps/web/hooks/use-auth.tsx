@@ -4,6 +4,8 @@ import { auth, provider } from '../lib/firebase'
 import {
   onAuthStateChanged,
   signInWithPopup,
+  signInWithRedirect,
+  getRedirectResult,
   signOut,
   signInWithEmailAndPassword,
   createUserWithEmailAndPassword,
@@ -31,7 +33,17 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     return onAuthStateChanged(auth, setUser)
   }, [])
-  const signInGoogle = () => signInWithPopup(auth, provider).then(() => {})
+  useEffect(() => {
+    getRedirectResult(auth).catch(() => {})
+  }, [])
+  const signInGoogle = async () => {
+    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
+    if (isMobile) {
+      await signInWithRedirect(auth, provider)
+    } else {
+      await signInWithPopup(auth, provider)
+    }
+  }
   const signInEmail = (email: string, password: string) =>
     signInWithEmailAndPassword(auth, email, password).then(() => {})
   const registerEmail = (email: string, password: string) =>
