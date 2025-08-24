@@ -1,5 +1,4 @@
 import './globals.css'
-import { AuthProvider } from '../hooks/use-auth'
 
 export const metadata = {
   title: 'OpenQuranReader',
@@ -7,8 +6,8 @@ export const metadata = {
 }
 
 function ThemeScript() {
-  // Persisted theme in localStorage (plain for early load)
-  const code = `try{const t=localStorage.getItem('oqr:theme_plain')||'dark';document.documentElement.dataset.theme=t}catch{}`
+  // Persisted theme in localStorage
+  const code = `try{const t=localStorage.getItem('oqr:theme')||'dark';document.documentElement.dataset.theme=t}catch{}`
   return <script dangerouslySetInnerHTML={{ __html: code }} suppressHydrationWarning />
 }
 
@@ -21,10 +20,8 @@ export default function RootLayout({ children }: { children: React.ReactNode }) 
         <link href="https://fonts.googleapis.com/css2?family=Vazirmatn:wght@300;400;500;700&display=swap" rel="stylesheet" />
       </head>
       <body>
-        <AuthProvider>
-          <ThemeScript />
-          {children}
-        </AuthProvider>
+        <ThemeScript />
+        {children}
       </body>
     </html>
   )

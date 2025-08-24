@@ -1,6 +1,6 @@
 'use client'
 
-import { useSyncedStorage } from '../../hooks/use-synced-storage';
+import { useEffect, useState } from 'react';
 
 export interface AISettings {
   enabled: boolean;
@@ -18,5 +18,20 @@ const DEFAULT: AISettings = {
 };
 
 export function useAISettings() {
-  return useSyncedStorage<AISettings>(STORAGE_KEY, DEFAULT);
+  const [settings, setSettings] = useState<AISettings>(() => {
+    try {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      return raw ? { ...DEFAULT, ...JSON.parse(raw) } : DEFAULT;
+    } catch {
+      return DEFAULT;
+    }
+  });
+
+  useEffect(() => {
+    try {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(settings));
+    } catch {}
+  }, [settings]);
+
+  return [settings, setSettings] as const;
 }

@@ -29,49 +29,7 @@ pnpm --filter web build
 ## Deploy to GitHub Pages
 Push to `main`. The GitHub Actions workflow `.github/workflows/deploy.yml` builds with `NEXT_PUBLIC_BASE_PATH=/<repo>` and publishes `apps/web/out` to Pages.
 
-Add your Firebase configuration values and `NEXT_PUBLIC_ENCRYPTION_KEY` as **repository secrets** in **Settings → Secrets and variables → Actions** so the workflow can access them at build time.
-
 If you use a custom domain or serve at root, unset `NEXT_PUBLIC_BASE_PATH` in the workflow.
-
-## Firebase setup
-
-The web app can sync bookmarks, notes and preferences via Firebase when a user signs in with Google or email.
-
-1. Create a project at [Firebase Console](https://console.firebase.google.com).
-2. Add a Web app and copy its configuration values.
-3. Enable **Authentication → Google** and **Authentication → Email/Password**. Create a **Firestore** database.
-4. In **Firestore → Rules**, allow each signed-in user to read and write only their own data:
-
-   ```
-   rules_version = '2';
-   service cloud.firestore {
-     match /databases/{database}/documents {
-       match /users/{userId}/data/{document=**} {
-         allow read, write: if request.auth != null && request.auth.uid == userId;
-       }
-     }
-   }
-   ```
-
-5. Define the following environment variables locally in `.env` **and** as GitHub repository secrets so the deploy workflow can access them:
-
-```
-NEXT_PUBLIC_FIREBASE_API_KEY=yourKey
-NEXT_PUBLIC_FIREBASE_AUTH_DOMAIN=yourDomain
-NEXT_PUBLIC_FIREBASE_PROJECT_ID=yourProjectId
-NEXT_PUBLIC_FIREBASE_STORAGE_BUCKET=yourBucket
-NEXT_PUBLIC_FIREBASE_MESSAGING_SENDER_ID=yourSenderId
-NEXT_PUBLIC_FIREBASE_APP_ID=yourAppId
-NEXT_PUBLIC_ENCRYPTION_KEY=base64Secret16bytes
-```
-
-In GitHub, add each of these as a repository secret under **Settings → Secrets and variables → Actions** using the same names; the deploy workflow reads them from `${{ secrets.NAME }}`.
-
-`NEXT_PUBLIC_ENCRYPTION_KEY` must decode to a 16‑byte secret used to encrypt synced data. If it is missing or invalid the app generates a random key for the session. Generate a valid value with:
-
-```
-node -e "console.log(require('crypto').randomBytes(16).toString('base64'))"
-```
 
 ## Data sources
 - Arabic: `assets/quran/quran-simple.xml`

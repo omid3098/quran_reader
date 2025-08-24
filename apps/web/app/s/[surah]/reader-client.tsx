@@ -4,7 +4,7 @@ import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'rea
 import { Menu, Book, BookMarked, Settings, ChevronDown, FileText, Share2, ChevronLeft, ChevronRight, Pause, Play, ListEnd, Bookmark, LoaderCircle } from 'lucide-react'
 import type { Route } from 'next'
 import { useRouter, useSearchParams } from 'next/navigation'
-import { useSyncedStorage } from '../../../hooks/use-synced-storage'
+import { useLocalStorage } from '../../../hooks/use-local-storage'
 import { isRtlLanguage } from '../../../lib/is-rtl-language'
 import { encodeSharePayload, decodeSharePayload } from '../../../lib/share'
 import Sidebar from './Sidebar'
@@ -32,9 +32,9 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const sp = useSearchParams()!
 
     const surah = Number(params.surah)
-    const [font, setFont] = useSyncedStorage<'sm' | 'md' | 'lg'>('oqr:font', 'md')
-    const [theme, setTheme] = useSyncedStorage<'light' | 'dark'>('oqr:theme', 'dark')
-    const [enabledTranslations, setEnabledTranslations] = useSyncedStorage<string[]>('oqr:translations', (sp.get('t')?.split(',').filter(Boolean)) || ['en.arberry'])
+    const [font, setFont] = useLocalStorage<'sm' | 'md' | 'lg'>('oqr:font', 'md')
+    const [theme, setTheme] = useLocalStorage<'light' | 'dark'>('oqr:theme', 'dark')
+    const [enabledTranslations, setEnabledTranslations] = useLocalStorage<string[]>('oqr:translations', (sp.get('t')?.split(',').filter(Boolean)) || ['en.arberry'])
 
     const [translations, setTranslations] = useState<TranslationMeta[]>([])
     const [verses, setVerses] = useState<Verse[] | null>(null)
@@ -47,17 +47,16 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const [activeAyah, setActiveAyah] = useState<number | null>(null)
     const [isSidebarOpen, setSidebarOpen] = useState(false)
     // Local bookmarks and notes
-    const [bookmarks, setBookmarks] = useSyncedStorage<BookmarksSet>('oqr:bookmarks', {})
-    const [notes, setNotes] = useSyncedStorage<NotesMap>('oqr:notes', {})
+    const [bookmarks, setBookmarks] = useLocalStorage<BookmarksSet>('oqr:bookmarks', {})
+    const [notes, setNotes] = useLocalStorage<NotesMap>('oqr:notes', {})
     const [openNoteAyah, setOpenNoteAyah] = useState<number | null>(null)
     const [incomingShare, setIncomingShare] = useState<null | { bookmarks: VerseKey[]; notes: Array<[VerseKey, string]> }>(null)
     const [hydrated, setHydrated] = useState(false)
 
     // Audio state
-    const [reciter, setReciter] = useSyncedStorage<string>('oqr:reciter', 'Alafasy_128kbps')
-    const [autoplay, setAutoplay] = useSyncedStorage<boolean>('oqr:autoplay', true)
-    const [showNotes, setShowNotes] = useSyncedStorage<boolean>('oqr:showNotes', true)
-    const [lastPos, setLastPos] = useSyncedStorage<{ surah: number; ayah: number | null }>('oqr:lastPosition', { surah, ayah: null })
+    const [reciter, setReciter] = useLocalStorage<string>('oqr:reciter', 'Alafasy_128kbps')
+    const [autoplay, setAutoplay] = useLocalStorage<boolean>('oqr:autoplay', true)
+    const [showNotes, setShowNotes] = useLocalStorage<boolean>('oqr:showNotes', true)
     const [aiSettings, setAISettings] = useAISettings()
     const assistant = useMemo(
         () => createAssistant({ selected: aiSettings.selected, keys: aiSettings.keys }),
@@ -300,18 +299,26 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         return () => { alive = false }
     }, [surah, tParam])
 
-    // initialize active ayah from URL (v=) or last position
+    // initialize active ayah from URL (v=) or stored last ayah for this surah
     useEffect(() => {
         let initial: number | null = null
         const vParam = Number(sp.get('v'))
         if (!Number.isNaN(vParam) && vParam > 0) initial = vParam
-        if (initial == null && lastPos.surah === surah) {
-            const la = lastPos.ayah
-            if (typeof la === 'number' && la > 0) initial = la
+        if (initial == null) {
+            try {
+                const raw = localStorage.getItem(`oqr:lastAyah:${surah}`)
+                const parsed = raw ? JSON.parse(raw) : null
+                if (typeof parsed === 'number' && parsed > 0) initial = parsed
+            } catch { }
         }
         if (initial == null) initial = 1
         setActiveAyah(initial)
-    }, [surah, sp, lastPos])
+    }, [surah, sp])
+
+    // persist last read surah
+    useEffect(() => {
+        try { localStorage.setItem('oqr:lastSurah', JSON.stringify(surah)) } catch { }
+    }, [surah])
 
     // reflect URL (include selected translations and active ayah if set)
     useEffect(() => {
@@ -353,7 +360,8 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     useEffect(() => {
         if (!activeAyah) return
         try {
-            setLastPos({ surah, ayah: activeAyah })
+            localStorage.setItem(`oqr:lastAyah:${surah}`, JSON.stringify(activeAyah))
+            localStorage.setItem('oqr:lastPosition', JSON.stringify({ surah, ayah: activeAyah }))
         } catch { }
     }, [surah, activeAyah])
 
@@ -447,9 +455,14 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
 
     function navigateToSurah(targetSurah: number, fallbackAyah: number) {
         if (targetSurah < 1 || targetSurah > 114) return
+        try { localStorage.setItem('oqr:lastSurah', JSON.stringify(targetSurah)) } catch { }
         const t = enabledTranslations.join(',')
         let v: number | null = null
-        if (lastPos.surah === targetSurah && typeof lastPos.ayah === 'number' && lastPos.ayah > 0) v = lastPos.ayah
+        try {
+            const raw = localStorage.getItem(`oqr:lastAyah:${targetSurah}`)
+            const parsed = raw ? JSON.parse(raw) : null
+            if (typeof parsed === 'number' && parsed > 0) v = parsed
+        } catch { }
         const params = new URLSearchParams()
         if (t) params.set('t', t)
         params.set('v', String(v || fallbackAyah))
@@ -670,9 +683,14 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                                     aria-selected={s.number === surah}
                                                     onClick={() => {
                                                         const nextSurah = s.number
+                                                        try { localStorage.setItem('oqr:lastSurah', JSON.stringify(nextSurah)) } catch { }
                                                         const t = enabledTranslations.join(',')
                                                         let v: number | null = null
-                                                        if (lastPos.surah === nextSurah && typeof lastPos.ayah === 'number' && lastPos.ayah > 0) v = lastPos.ayah
+                                                        try {
+                                                            const raw = localStorage.getItem(`oqr:lastAyah:${nextSurah}`)
+                                                            const parsed = raw ? JSON.parse(raw) : null
+                                                            if (typeof parsed === 'number' && parsed > 0) v = parsed
+                                                        } catch { }
                                                         const params = new URLSearchParams()
                                                         if (t) params.set('t', t)
                                                         if (v) params.set('v', String(v))
@@ -959,7 +977,6 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                     setNotes={setNotes}
                     aiSettings={aiSettings}
                     setAISettings={setAISettings}
-                    clearLastPos={() => setLastPos({ surah, ayah: null })}
                     setActiveAyah={setActiveAyah}
                     setOpenNoteAyah={setOpenNoteAyah}
                     hydrated={hydrated}
