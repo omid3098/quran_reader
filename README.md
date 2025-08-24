@@ -20,6 +20,18 @@ pnpm --filter web dev
 # => copies XML assets into apps/web/public/quran and starts Next.js at http://localhost:3000
 ```
 
+### Test Google sign-in on a phone
+
+1. Ensure your laptop and phone are on the same network.
+2. In the [Firebase Console](https://console.firebase.google.com) add your laptop's local IP
+   (e.g. `192.168.1.10`) to **Authentication → Settings → Authorized domains**.
+3. Run the dev server so it listens on the network:
+   ```bash
+   pnpm --filter web dev -- -H 0.0.0.0
+   ```
+4. Find your laptop's IP address and open `http://<laptop_ip>:3000` on the phone.
+5. Tap **Sign in with Google**. After choosing an account you should return to the app signed in.
+
 ## Build (static export)
 ```bash
 pnpm --filter web build

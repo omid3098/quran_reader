@@ -34,14 +34,24 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     return onAuthStateChanged(auth, setUser)
   }, [])
   useEffect(() => {
-    getRedirectResult(auth).catch(() => {})
+    getRedirectResult(auth)
+      .then((result) => {
+        if (result?.user) setUser(result.user)
+      })
+      .catch(() => {})
   }, [])
   const signInGoogle = async () => {
-    const isMobile = /Mobi|Android|iPhone|iPad|iPod/i.test(navigator.userAgent)
-    if (isMobile) {
-      await signInWithRedirect(auth, provider)
-    } else {
+    try {
       await signInWithPopup(auth, provider)
+    } catch (e: any) {
+      if (
+        e.code === 'auth/operation-not-supported-in-this-environment' ||
+        e.code === 'auth/popup-blocked'
+      ) {
+        await signInWithRedirect(auth, provider)
+      } else {
+        throw e
+      }
     }
   }
   const signInEmail = (email: string, password: string) =>
