@@ -762,151 +762,152 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                             {verses.map((v) => {
                                 const words = v.text_ar_simple.split(' ')
                                 return (
-                                <article
-                                    key={v.ayah}
-                                    id={`ayah-${v.ayah}`}
-                                    className={`ayah${activeAyah === v.ayah ? ' focused' : ''}`}
-                                    tabIndex={0}
-                                    aria-current={activeAyah === v.ayah ? 'true' : undefined}
-                                    onClick={() => setActiveAyah(v.ayah)}
-                                    onKeyDown={(e) => {
-                                        if (e.key === 'Enter' || e.key === ' ') {
-                                            e.preventDefault()
-                                            setActiveAyah(v.ayah)
-                                        }
-                                    }}
-                                >
-                                    <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6, justifyContent: 'space-between' }}>
-                                        <span className="muted">{v.ayah}</span>
-                                        {activeAyah === v.ayah ? (
-                                            <div style={{ display: 'inline-flex', gap: 6 }}>
-                                                <button
-                                                    type="button"
-                                                    className={`icon-btn${isBookmarked(v.ayah) ? ' active' : ''}`}
-                                                    title={isBookmarked(v.ayah) ? 'Remove bookmark' : 'Add bookmark'}
-                                                    aria-pressed={isBookmarked(v.ayah)}
-                                                    onClick={(e) => { e.stopPropagation(); toggleBookmark(v.ayah) }}
-                                                >
-                                                    {/* Bookmark icon to match sidebar */}
-                                                    <Bookmark className="icon" strokeWidth={2} aria-hidden {...(isBookmarked(v.ayah) ? { fill: 'currentColor' } : {})} />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className={`icon-btn${openNoteAyah === v.ayah ? ' active' : ''}`}
-                                                    title="Add/view note"
-                                                    aria-pressed={openNoteAyah === v.ayah}
-                                                    onClick={(e) => { e.stopPropagation(); setOpenNoteAyah((cur) => cur === v.ayah ? null : v.ayah) }}
-                                                >
-                                                    {/* Note icon */}
-                                                    <FileText className="icon" strokeWidth={2} aria-hidden />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="icon-btn"
-                                                    title="Share this verse"
-                                                    onClick={(e) => {
-                                                        e.stopPropagation()
-                                                        const link = shareVerseAsLink(v.ayah)
-                                                        if (!link) return
-                                                        try { void navigator.clipboard.writeText(link) } catch { }
-                                                        alert('Share link copied to clipboard')
-                                                    }}
-                                                >
-                                                    {/* Share icon */}
-                                                    <Share2 className="icon" strokeWidth={2} aria-hidden />
-                                                </button>
+                                    <article
+                                        key={v.ayah}
+                                        id={`ayah-${v.ayah}`}
+                                        className={`ayah${activeAyah === v.ayah ? ' focused' : ''}`}
+                                        tabIndex={0}
+                                        aria-current={activeAyah === v.ayah ? 'true' : undefined}
+                                        onClick={() => setActiveAyah(v.ayah)}
+                                        onKeyDown={(e) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault()
+                                                setActiveAyah(v.ayah)
+                                            }
+                                        }}
+                                    >
+                                        <div style={{ display: 'flex', gap: 8, alignItems: 'center', marginBottom: 6, justifyContent: 'space-between' }}>
+                                            <span className="muted">{v.ayah}</span>
+                                            {activeAyah === v.ayah ? (
+                                                <div style={{ display: 'inline-flex', gap: 6 }}>
+                                                    <button
+                                                        type="button"
+                                                        className={`icon-btn${isBookmarked(v.ayah) ? ' active' : ''}`}
+                                                        title={isBookmarked(v.ayah) ? 'Remove bookmark' : 'Add bookmark'}
+                                                        aria-pressed={isBookmarked(v.ayah)}
+                                                        onClick={(e) => { e.stopPropagation(); toggleBookmark(v.ayah) }}
+                                                    >
+                                                        {/* Bookmark icon to match sidebar */}
+                                                        <Bookmark className="icon" strokeWidth={2} aria-hidden {...(isBookmarked(v.ayah) ? { fill: 'currentColor' } : {})} />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className={`icon-btn${openNoteAyah === v.ayah ? ' active' : ''}`}
+                                                        title="Add/view note"
+                                                        aria-pressed={openNoteAyah === v.ayah}
+                                                        onClick={(e) => { e.stopPropagation(); setOpenNoteAyah((cur) => cur === v.ayah ? null : v.ayah) }}
+                                                    >
+                                                        {/* Note icon */}
+                                                        <FileText className="icon" strokeWidth={2} aria-hidden />
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="icon-btn"
+                                                        title="Share this verse"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation()
+                                                            const link = shareVerseAsLink(v.ayah)
+                                                            if (!link) return
+                                                            try { void navigator.clipboard.writeText(link) } catch { }
+                                                            alert('Share link copied to clipboard')
+                                                        }}
+                                                    >
+                                                        {/* Share icon */}
+                                                        <Share2 className="icon" strokeWidth={2} aria-hidden />
+                                                    </button>
+                                                </div>
+                                            ) : null}
+                                        </div>
+                                        {v.ayah === 1 && v.bismillah && !v.text_ar_simple.startsWith(v.bismillah) ? (
+                                            <div className="arabic" dir="rtl" lang="ar" style={{ opacity: 0.9 }}>
+                                                {v.bismillah}
                                             </div>
                                         ) : null}
-                                    </div>
-                                    {v.ayah === 1 && v.bismillah && !v.text_ar_simple.startsWith(v.bismillah) ? (
-                                        <div className="arabic" dir="rtl" lang="ar" style={{ opacity: 0.9 }}>
-                                            {v.bismillah}
-                                        </div>
-                                    ) : null}
-                                    <div className="arabic" dir="rtl" lang="ar">
-                                        <span className="ayah-num">{v.ayah}</span>
-                                        {words.map((w, i) => (
-                                            <span
-                                                key={i}
-                                                onContextMenu={(e) => handleWordContext(e, w, v.text_ar_simple)}
-                                                onMouseLeave={handleWordLeave}
-                                                style={{ cursor: aiSettings.enabled ? 'context-menu' : undefined }}
-                                            >
-                                                {w}
-                                                {i < words.length - 1 ? ' ' : ''}
-                                            </span>
-                                        ))}
-                                    </div>
-                                    {v.translations?.length ? (
-                                        <div style={{ display: 'grid', gap: 6 }}>
-                                            {selectedTranslations.map((st) => {
-                                                const found = v.translations?.find((tr) => tr.translationId === st.id)
-                                                if (!found) return null
-                                                const rtl = isRtlLanguage(st.language)
-                                                return (
-                                                    <div
-                                                        key={st.id}
-                                                        className="translation"
-                                                        dir={rtl ? 'rtl' : 'ltr'}
-                                                        lang={st.language}
-                                                        style={{ textAlign: rtl ? 'right' : 'left' }}
-                                                    >
-                                                        <span style={{ color: 'var(--accent)' }}>{st.name}:</span>{' '}
-                                                        <span>{found.text}</span>
-                                                    </div>
-                                                )
-                                            })}
-                                        </div>
-                                    ) : null}
-                                    {openNoteAyah === v.ayah ? (
-                                        <div className="card" style={{ marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
-                                            <div className="muted" style={{ marginBottom: 6 }}>Note for {surah}:{v.ayah}</div>
-                                            <textarea
-                                                className="textarea"
-                                                defaultValue={getNote(v.ayah)}
-                                                placeholder="Write your note in plain text or Markdown..."
-                                                rows={4}
-                                                style={{ width: '100%' }}
-                                                onKeyDown={(e) => e.stopPropagation()}
-                                                onClick={(e) => e.stopPropagation()}
-                                                id={`note-${surah}-${v.ayah}`}
-                                            />
-                                            <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'flex-end' }}>
-                                                <button
-                                                    type="button"
-                                                    className="button"
-                                                    onClick={() => {
-                                                        const el = document.getElementById(`note-${surah}-${v.ayah}`) as HTMLTextAreaElement | null
-                                                        const val = el?.value || ''
-                                                        saveNote(v.ayah, val)
-                                                        setOpenNoteAyah(null)
-                                                    }}
+                                        <div className="arabic" dir="rtl" lang="ar">
+                                            <span className="ayah-num">{v.ayah}</span>
+                                            {words.map((w, i) => (
+                                                <span
+                                                    key={i}
+                                                    onContextMenu={(e) => handleWordContext(e, w, v.text_ar_simple)}
+                                                    onMouseLeave={handleWordLeave}
+                                                    style={{ cursor: aiSettings.enabled ? 'context-menu' : undefined }}
                                                 >
-                                                    Save
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    className="button"
-                                                    onClick={() => {
-                                                        saveNote(v.ayah, '')
-                                                        const el = document.getElementById(`note-${surah}-${v.ayah}`) as HTMLTextAreaElement | null
-                                                        if (el) el.value = ''
-                                                        setOpenNoteAyah(null)
-                                                    }}
-                                                >
-                                                    Clear
-                                                </button>
-                                                <button type="button" className="button" onClick={() => setOpenNoteAyah(null)}>Close</button>
+                                                    {w}
+                                                    {i < words.length - 1 ? ' ' : ''}
+                                                </span>
+                                            ))}
+                                        </div>
+                                        {v.translations?.length ? (
+                                            <div style={{ display: 'grid', gap: 6 }}>
+                                                {selectedTranslations.map((st) => {
+                                                    const found = v.translations?.find((tr) => tr.translationId === st.id)
+                                                    if (!found) return null
+                                                    const rtl = isRtlLanguage(st.language)
+                                                    return (
+                                                        <div
+                                                            key={st.id}
+                                                            className="translation"
+                                                            dir={rtl ? 'rtl' : 'ltr'}
+                                                            lang={st.language}
+                                                            style={{ textAlign: rtl ? 'right' : 'left' }}
+                                                        >
+                                                            <span style={{ color: 'var(--accent)' }}>{st.name}:</span>{' '}
+                                                            <span>{found.text}</span>
+                                                        </div>
+                                                    )
+                                                })}
                                             </div>
-                                        </div>
-                                    ) : (showNotes && !!getNote(v.ayah) ? (
-                                        <div className="card" style={{ marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
-                                            <div className="muted" style={{ marginBottom: 6 }}>Note for {surah}:{v.ayah}</div>
-                                            <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{getNote(v.ayah)}</div>
-                                        </div>
-                                    ) : null)}
-                                </article>
-                                )})}
+                                        ) : null}
+                                        {openNoteAyah === v.ayah ? (
+                                            <div className="card" style={{ marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
+                                                <div className="muted" style={{ marginBottom: 6 }}>Note for {surah}:{v.ayah}</div>
+                                                <textarea
+                                                    className="textarea"
+                                                    defaultValue={getNote(v.ayah)}
+                                                    placeholder="Write your note in plain text or Markdown..."
+                                                    rows={4}
+                                                    style={{ width: '100%' }}
+                                                    onKeyDown={(e) => e.stopPropagation()}
+                                                    onClick={(e) => e.stopPropagation()}
+                                                    id={`note-${surah}-${v.ayah}`}
+                                                />
+                                                <div style={{ display: 'flex', gap: 8, marginTop: 8, justifyContent: 'flex-end' }}>
+                                                    <button
+                                                        type="button"
+                                                        className="button"
+                                                        onClick={() => {
+                                                            const el = document.getElementById(`note-${surah}-${v.ayah}`) as HTMLTextAreaElement | null
+                                                            const val = el?.value || ''
+                                                            saveNote(v.ayah, val)
+                                                            setOpenNoteAyah(null)
+                                                        }}
+                                                    >
+                                                        Save
+                                                    </button>
+                                                    <button
+                                                        type="button"
+                                                        className="button"
+                                                        onClick={() => {
+                                                            saveNote(v.ayah, '')
+                                                            const el = document.getElementById(`note-${surah}-${v.ayah}`) as HTMLTextAreaElement | null
+                                                            if (el) el.value = ''
+                                                            setOpenNoteAyah(null)
+                                                        }}
+                                                    >
+                                                        Clear
+                                                    </button>
+                                                    <button type="button" className="button" onClick={() => setOpenNoteAyah(null)}>Close</button>
+                                                </div>
+                                            </div>
+                                        ) : (showNotes && !!getNote(v.ayah) ? (
+                                            <div className="card" style={{ marginTop: 8 }} onClick={(e) => e.stopPropagation()}>
+                                                <div className="muted" style={{ marginBottom: 6 }}>Note for {surah}:{v.ayah}</div>
+                                                <div style={{ whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>{getNote(v.ayah)}</div>
+                                            </div>
+                                        ) : null)}
+                                    </article>
+                                )
+                            })}
                         </div>
                     )}
                 </section>
@@ -983,7 +984,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                 />
 
                 <footer className="footer" style={{ textAlign: 'left' }}>
-                    Open Qur’an Reader | Made with love and surrender · Audio: <a href="https://everyayah.com" target="_blank" rel="noreferrer">EveryAyah</a> · <a href="https://quran.com" target="_blank" rel="noreferrer">Quran.com</a>
+                    Open Qur’an Reader · Made with love and surrender · Audio: <a href="https://everyayah.com" target="_blank" rel="noreferrer">EveryAyah</a> · <a href="https://quran.com" target="_blank" rel="noreferrer">Quran.com</a>
                 </footer>
             </main>
         </>
