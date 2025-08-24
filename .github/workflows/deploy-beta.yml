@@ -22,7 +22,6 @@ jobs:
         env:
           NEXT_PUBLIC_BASE_PATH: /quran_reader/beta
           BASE_PATH: /quran_reader/beta
-      - run: touch apps/web/out/.nojekyll
       - name: Deploy to gh-pages/beta
         uses: peaceiris/actions-gh-pages@v3
         with:
