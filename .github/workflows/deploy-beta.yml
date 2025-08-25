@@ -20,8 +20,8 @@ jobs:
       - run: pnpm --filter web run prebuild
       - run: pnpm --filter web build
         env:
-          NEXT_PUBLIC_BASE_PATH: /quran_reader/beta
-          BASE_PATH: /quran_reader/beta
+          NEXT_PUBLIC_BASE_PATH: /beta
+          BASE_PATH: /beta
       - name: Add .nojekyll file for beta
         run: touch apps/web/out/.nojekyll
 
