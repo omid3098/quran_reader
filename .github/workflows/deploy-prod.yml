@@ -28,6 +28,6 @@ jobs:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: apps/web/out
-          destination_dir: quran_reader
+          destination_dir: .
           keep_files: true
           commit_message: "Deploy prod: ${{ github.sha }}"
