@@ -17,6 +17,8 @@
   },
   "scripts": {
     "dev": "node ../../scripts/copy-xml.js && next dev",
+    "dev:beta": "bash -c 'export NEXT_PUBLIC_BASE_PATH=/quran_reader/beta BASE_PATH=/quran_reader/beta; node ../../scripts/copy-xml.js && next dev'",
+    "dev:prod": "bash -c 'export NEXT_PUBLIC_BASE_PATH=/quran_reader BASE_PATH=/quran_reader; node ../../scripts/copy-xml.js && next dev'",
     "prebuild": "node ../../scripts/copy-xml.js",
     "build": "next build",
     "start": "next start",

@@ -151,22 +151,22 @@ export default function Sidebar({
 
   useEffect(() => {
     if (!aiSettings.enabled || !isAssistantOpen) return
-    ;(async () => {
-      try {
-        const list = (await assistant.listModels()) as any[]
-        setModels(list)
-        setModelsError(null)
-        const current = aiSettings.models[aiSettings.selected]
-        if (list.length && (!current || !list.some((m) => m.id === current))) {
-          setAISettings((prev) => ({
-            ...prev,
-            models: { ...prev.models, [prev.selected]: list[0].id },
-          }))
+      ; (async () => {
+        try {
+          const list = (await assistant.listModels()) as any[]
+          setModels(list)
+          setModelsError(null)
+          const current = aiSettings.models[aiSettings.selected]
+          if (list.length && (!current || !list.some((m) => m.id === current))) {
+            setAISettings((prev) => ({
+              ...prev,
+              models: { ...prev.models, [prev.selected]: list[0].id },
+            }))
+          }
+        } catch {
+          setModelsError('Failed to fetch models. Check CORS or endpoint configuration.')
         }
-      } catch {
-        setModelsError('Failed to fetch models. Check CORS or endpoint configuration.')
-      }
-    })()
+      })()
   }, [aiSettings.enabled, isAssistantOpen, assistant, aiSettings.selected, aiSettings.models, setAISettings])
 
   function clearAllNavigations() {
@@ -174,16 +174,16 @@ export default function Sidebar({
       localStorage.removeItem('oqr:lastPosition')
       localStorage.removeItem('oqr:lastSurah')
       for (let i = 1; i <= 114; i++) localStorage.removeItem(`oqr:lastAyah:${i}`)
-    } catch {}
+    } catch { }
   }
 
   function clearAllBookmarks() {
-    try { localStorage.removeItem('oqr:bookmarks') } catch {}
+    try { localStorage.removeItem('oqr:bookmarks') } catch { }
     setBookmarks({})
   }
 
   function clearAllNotes() {
-    try { localStorage.removeItem('oqr:notes') } catch {}
+    try { localStorage.removeItem('oqr:notes') } catch { }
     setNotes({})
   }
 
@@ -238,7 +238,7 @@ export default function Sidebar({
 
   async function copyExportToClipboard() {
     const bundle = buildExportBundle()
-    try { await navigator.clipboard.writeText(JSON.stringify(bundle)) } catch {}
+    try { await navigator.clipboard.writeText(JSON.stringify(bundle)) } catch { }
   }
 
   async function handleImportFile(file: File) {
@@ -246,7 +246,7 @@ export default function Sidebar({
       const text = await file.text()
       const data = JSON.parse(text)
       mergeImported(data)
-    } catch {}
+    } catch { }
   }
 
   function mergeImported(data: any) {
@@ -254,8 +254,8 @@ export default function Sidebar({
     const inBm: VerseKey[] = Array.isArray(data.bookmarks) ? data.bookmarks.filter((k: any) => typeof k === 'string') : []
     const inNotes: Array<[VerseKey, string, string]> = Array.isArray(data.notes)
       ? data.notes
-          .filter((it: any) => Array.isArray(it) && typeof it[0] === 'string' && typeof it[1] === 'string')
-          .map((it: any) => [it[0] as VerseKey, it[1] as string, String(it[2] || '')])
+        .filter((it: any) => Array.isArray(it) && typeof it[0] === 'string' && typeof it[1] === 'string')
+        .map((it: any) => [it[0] as VerseKey, it[1] as string, String(it[2] || '')])
       : []
     setBookmarks((prev) => {
       const next = { ...prev }
@@ -281,11 +281,13 @@ export default function Sidebar({
     const enc = encodeSharePayload(compact)
     if (!enc) return { url: null, reason: 'Failed to encode' }
     const base = typeof window !== 'undefined' ? window.location.origin : ''
+    const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || ''
     const href = `${base}/s/${surah}?share=${enc}`
-    if (href.length > 1800) {
+    const finalHref = `${base}${BASE_PATH}/s/${surah}?share=${enc}`
+    if (finalHref.length > 1800) {
       return { url: null, reason: 'Too large for a link; use file export' }
     }
-    return { url: href }
+    return { url: finalHref }
   }
 
   function qrImageUrl(link: string, size = 220): string {
@@ -580,7 +582,7 @@ export default function Sidebar({
                 <button type="button" className="icon-btn" title="Copy Share Link" aria-label="Copy Share Link" onClick={() => {
                   const res = shareAllAsLink()
                   if (!res.url) { alert(res.reason || 'Could not build link'); return }
-                  try { void navigator.clipboard.writeText(res.url) } catch {}
+                  try { void navigator.clipboard.writeText(res.url) } catch { }
                 }}>
                   <Share2 className="icon" strokeWidth={2} aria-hidden />
                 </button>
@@ -629,7 +631,7 @@ export default function Sidebar({
                     const txt = await navigator.clipboard.readText()
                     const obj = JSON.parse(txt)
                     mergeImported(obj)
-                  } catch {}
+                  } catch { }
                 }}>
                   <Clipboard className="icon" strokeWidth={2} aria-hidden />
                 </button>
@@ -687,7 +689,7 @@ export default function Sidebar({
                 </button>
               </div>
             ) : null}
-        </div>
+          </div>
         </div>
 
         <div className="section">

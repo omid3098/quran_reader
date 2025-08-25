@@ -20,14 +20,14 @@ jobs:
       - run: pnpm --filter web run prebuild
       - run: pnpm --filter web build
         env:
-          NEXT_PUBLIC_BASE_PATH: /beta
-          BASE_PATH: /beta
+          NEXT_PUBLIC_BASE_PATH: /quran_reader/beta
+          BASE_PATH: /quran_reader/beta
       - name: Deploy to gh-pages/beta
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: apps/web/out
-          destination_dir: quran_reader/beta
+          destination_dir: beta
           keep_files: true
           commit_message: "Deploy beta: ${{ github.sha }}"
