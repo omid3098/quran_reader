@@ -20,8 +20,8 @@ jobs:
       - run: pnpm --filter web run prebuild
       - run: pnpm --filter web build
         env:
-          NEXT_PUBLIC_BASE_PATH: ""
-          BASE_PATH: ""
+          NEXT_PUBLIC_BASE_PATH: /quran_reader
+          BASE_PATH: /quran_reader
       - name: Deploy to gh-pages root
         uses: peaceiris/actions-gh-pages@v3
         with:
