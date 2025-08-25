@@ -22,6 +22,14 @@ jobs:
         env:
           NEXT_PUBLIC_BASE_PATH: /quran_reader/beta
           BASE_PATH: /quran_reader/beta
+      - name: Debug out directory
+        run: |
+          echo "Listing apps/web/out:" && ls -lah apps/web/out || true
+          echo "Listing top-level entries:" && (ls -1 apps/web/out | sed -n '1,100p' || true)
+          if [ ! -f apps/web/out/index.html ]; then
+            echo "ERROR: apps/web/out/index.html is missing" >&2
+            exit 1
+          fi
       - name: Cleanup legacy quran_reader/beta path
         uses: actions/checkout@v4
         with:
