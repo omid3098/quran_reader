@@ -1,1 +1,0 @@
-self.__SSG_MANIFEST=new Set(["\u002Fs\u002F[surah]"]);self.__SSG_MANIFEST_CB&&self.__SSG_MANIFEST_CB()
