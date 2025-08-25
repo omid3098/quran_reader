@@ -22,6 +22,22 @@ jobs:
         env:
           NEXT_PUBLIC_BASE_PATH: /quran_reader/beta
           BASE_PATH: /quran_reader/beta
+      - name: Cleanup legacy quran_reader/beta path
+        uses: actions/checkout@v4
+        with:
+          ref: gh-pages
+          path: gh-pages-work
+      - name: Remove legacy folder and push
+        run: |
+          cd gh-pages-work
+          if [ -d quran_reader ]; then
+            rm -rf quran_reader
+            git add -A
+            git -c user.name="github-actions[bot]" -c user.email="github-actions[bot]@users.noreply.github.com" commit -m "Cleanup legacy quran_reader folder"
+            git push origin gh-pages
+          else
+            echo "No legacy folder to remove"
+          fi
       - name: Deploy to gh-pages/beta
         uses: peaceiris/actions-gh-pages@v3
         with:
