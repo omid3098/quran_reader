@@ -45,5 +45,5 @@ jobs:
           publish_branch: gh-pages
           publish_dir: apps/web/out
           destination_dir: beta
-          keep_files: true
+          keep_files: false
           commit_message: "Deploy beta: ${{ github.sha }}"
