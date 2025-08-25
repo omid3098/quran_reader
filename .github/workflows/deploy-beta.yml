@@ -22,20 +22,13 @@ jobs:
         env:
           NEXT_PUBLIC_BASE_PATH: /quran_reader/beta
           BASE_PATH: /quran_reader/beta
-      - name: Debug out directory
-        run: |
-          echo "Listing apps/web/out:" && ls -lah apps/web/out || true
-          echo "Listing top-level entries:" && (ls -1 apps/web/out | sed -n '1,100p' || true)
-          if [ ! -f apps/web/out/index.html ]; then
-            echo "ERROR: apps/web/out/index.html is missing" >&2
-            exit 1
-          fi
-      - name: Deploy to gh-pages/beta
+
+      - name: Deploy to gh-pages beta folder
         uses: peaceiris/actions-gh-pages@v3
         with:
           github_token: ${{ secrets.GITHUB_TOKEN }}
           publish_branch: gh-pages
           publish_dir: apps/web/out
-          destination_dir: quran_reader/beta
-          keep_files: true
+          destination_dir: beta
+          keep_files: false
           commit_message: "Deploy beta: ${{ github.sha }}"
