@@ -98,3 +98,4 @@ Then restart Ollama.
 
 These env-vars are the officially supported way to allow cross-origin browser access to a local Ollama API.
 
+# Beta deployment trigger - Mon Aug 25 11:02:24 CEST 2025
