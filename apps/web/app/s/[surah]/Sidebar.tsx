@@ -38,6 +38,9 @@ import { ModelPicker } from '../../../src/features/assistant/ModelPicker'
 import { createAssistant } from '../../../src/features/assistant/useAssistant'
 import type { AISettings } from '../../../src/state/settings'
 import type { ChatMessage } from '@openquran/ai/types'
+import { useLocale } from '../../../src/state/locale'
+import { t } from '../../../src/i18n'
+import type { Locale, UIKey } from '../../../src/i18n'
 
 interface SidebarProps {
   isOpen: boolean
@@ -97,8 +100,9 @@ export default function Sidebar({
   const [isClearOpen, setIsClearOpen] = useState(false)
   const [isAssistantOpen, setIsAssistantOpen] = useState(false)
   const [models, setModels] = useState<Array<{ id: string; name?: string; free?: boolean }>>([])
-  const [modelsError, setModelsError] = useState<string | null>(null)
+  const [modelsError, setModelsError] = useState<UIKey | null>(null)
   const [testStatus, setTestStatus] = useState<'idle' | 'ok' | 'error' | 'loading'>('idle')
+  const [locale, setLocale] = useLocale()
   const [clearNav, setClearNav] = useState(false)
   const [clearBm, setClearBm] = useState(false)
   const [clearNt, setClearNt] = useState(false)
@@ -145,9 +149,12 @@ export default function Sidebar({
     { id: 'Husary_128kbps', name: 'Al-Husary (Tartil' },
     { id: 'Minshawy_Murattal_128kbps', name: 'Minshawy' },
   ]
-  const reciterDisplayName = reciterOptions.find((r) => r.id === reciter)?.name || 'Choose'
+  const reciterDisplayName =
+    reciterOptions.find((r) => r.id === reciter)?.name || t(locale, 'choose')
   const reciterDisplayShort =
-    reciterDisplayName === 'Choose' ? reciterDisplayName : `${reciterDisplayName.slice(0, 7)}...`
+    reciterDisplayName === t(locale, 'choose')
+      ? reciterDisplayName
+      : `${reciterDisplayName.slice(0, 7)}...`
 
   useEffect(() => {
     if (!aiSettings.enabled || !isAssistantOpen) return
@@ -164,7 +171,7 @@ export default function Sidebar({
           }))
         }
       } catch {
-        setModelsError('Failed to fetch models. Check CORS or endpoint configuration.')
+        setModelsError('modelsError')
       }
     })()
   }, [aiSettings.enabled, isAssistantOpen, assistant, aiSettings.selected, aiSettings.models, setAISettings])
@@ -275,15 +282,15 @@ export default function Sidebar({
     })
   }
 
-  function shareAllAsLink(): { url: string | null; reason?: string } {
+  function shareAllAsLink(): { url: string | null; reason?: UIKey } {
     const bundle = buildExportBundle()
     const compact = { v: 1, bookmarks: bundle.bookmarks, notes: bundle.notes.map(([k, t]) => [k, t]) }
     const enc = encodeSharePayload(compact)
-    if (!enc) return { url: null, reason: 'Failed to encode' }
+    if (!enc) return { url: null, reason: 'failedToEncode' }
     const base = typeof window !== 'undefined' ? window.location.origin : ''
     const href = `${base}/s/${surah}?share=${enc}`
     if (href.length > 1800) {
-      return { url: null, reason: 'Too large for a link; use file export' }
+      return { url: null, reason: 'tooLargeForLink' }
     }
     return { url: href }
   }
@@ -298,18 +305,18 @@ export default function Sidebar({
       <aside
         className={`sidebar${isOpen ? ' open' : ''}`}
         aria-hidden={!isOpen}
-        aria-label="Settings sidebar"
+        aria-label={t(locale, 'settingsSidebar')}
         style={{ width }}
       >
         <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div className="muted">Settings</div>
-          <button type="button" className="icon-btn" aria-label="Close sidebar" onClick={onClose}>
+          <div className="muted">{t(locale, 'settings')}</div>
+          <button type="button" className="icon-btn" aria-label={t(locale, 'closeSidebar')} onClick={onClose}>
             <X className="icon" strokeWidth={2} aria-hidden />
           </button>
         </div>
 
         <div className="section">
-          <div role="region" aria-label="Font size">
+          <div role="region" aria-label={t(locale, 'fontSize')}>
             <button
               type="button"
               className="button"
@@ -320,19 +327,19 @@ export default function Sidebar({
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <File className="icon" strokeWidth={2} aria-hidden />
-                <span>Font size</span>
+                <span>{t(locale, 'fontSize')}</span>
               </span>
               <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isFontOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
             </button>
             {isFontOpen ? (
               <div id="accordion-font" style={{ marginTop: 8, display: 'flex', gap: 8 }}>
-                <button type="button" className={`icon-btn${font === 'sm' ? ' active' : ''}`} aria-pressed={font === 'sm'} aria-label="Small font" onClick={() => setFont('sm')} title="Small">
+                <button type="button" className={`icon-btn${font === 'sm' ? ' active' : ''}`} aria-pressed={font === 'sm'} aria-label={t(locale, 'fontSmall')} onClick={() => setFont('sm')} title={t(locale, 'fontSmall')}>
                   <span style={{ fontSize: 12, fontWeight: 700 }}>A</span>
                 </button>
-                <button type="button" className={`icon-btn${font === 'md' ? ' active' : ''}`} aria-pressed={font === 'md'} aria-label="Medium font" onClick={() => setFont('md')} title="Medium">
+                <button type="button" className={`icon-btn${font === 'md' ? ' active' : ''}`} aria-pressed={font === 'md'} aria-label={t(locale, 'fontMedium')} onClick={() => setFont('md')} title={t(locale, 'fontMedium')}>
                   <span style={{ fontSize: 14, fontWeight: 700 }}>A</span>
                 </button>
-                <button type="button" className={`icon-btn${font === 'lg' ? ' active' : ''}`} aria-pressed={font === 'lg'} aria-label="Large font" onClick={() => setFont('lg')} title="Large">
+                <button type="button" className={`icon-btn${font === 'lg' ? ' active' : ''}`} aria-pressed={font === 'lg'} aria-label={t(locale, 'fontLarge')} onClick={() => setFont('lg')} title={t(locale, 'fontLarge')}>
                   <span style={{ fontSize: 16, fontWeight: 700 }}>A</span>
                 </button>
               </div>
@@ -341,7 +348,7 @@ export default function Sidebar({
         </div>
 
         <div className="section">
-          <div role="region" aria-label="Translations">
+          <div role="region" aria-label={t(locale, 'translations')}>
             <button
               type="button"
               className="button"
@@ -352,7 +359,7 @@ export default function Sidebar({
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <Languages className="icon" strokeWidth={2} aria-hidden />
-                <span>Translations</span>
+                <span>{t(locale, 'translations')}</span>
               </span>
               <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isTranslationsOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
             </button>
@@ -379,7 +386,7 @@ export default function Sidebar({
                   )
                 })}
                 {translations.length === 0 ? (
-                  <div className="muted">No translations available</div>
+                  <div className="muted">{t(locale, 'noTranslations')}</div>
                 ) : null}
               </div>
             ) : null}
@@ -387,7 +394,7 @@ export default function Sidebar({
         </div>
 
         <div className="section">
-          <div role="region" aria-label="Reciter">
+          <div role="region" aria-label={t(locale, 'reciter')}>
             <button
               type="button"
               className="button"
@@ -398,7 +405,7 @@ export default function Sidebar({
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <Play className="icon" strokeWidth={2} aria-hidden />
-                <span>Reciter</span>
+                <span>{t(locale, 'reciter')}</span>
               </span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <span
@@ -443,7 +450,7 @@ export default function Sidebar({
 
         <div className="section">
           {/* Notes */}
-          <div role="region" aria-label="Notes">
+          <div role="region" aria-label={t(locale, 'notes')}>
             <button
               type="button"
               className="button"
@@ -454,7 +461,7 @@ export default function Sidebar({
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <FileText className="icon" strokeWidth={2} aria-hidden />
-                <span>Notes</span>
+                <span>{t(locale, 'notes')}</span>
               </span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <span className="muted" suppressHydrationWarning>({hydrated ? Object.keys(notes).length : 0})</span>
@@ -464,7 +471,7 @@ export default function Sidebar({
             {isNotesOpen ? (
               <div id="accordion-notes" style={{ marginTop: 8, display: 'grid', gap: 6, gridTemplateColumns: 'repeat(auto-fill, minmax(6ch, 1fr))', maxHeight: 220, overflow: 'auto' }}>
                 {(!hydrated || Object.keys(notes).length === 0) ? (
-                  <div className="muted">No notes yet</div>
+                  <div className="muted">{t(locale, 'noNotes')}</div>
                 ) : (
                   Object.keys(notes)
                     .sort((a, b) => a.localeCompare(b))
@@ -499,7 +506,7 @@ export default function Sidebar({
 
         <div className="section">
           {/* Bookmarks */}
-          <div role="region" aria-label="Bookmarks">
+          <div role="region" aria-label={t(locale, 'bookmarks')}>
             <button
               type="button"
               className="button"
@@ -510,7 +517,7 @@ export default function Sidebar({
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <Bookmark className="icon" strokeWidth={2} aria-hidden />
-                <span>Bookmarks</span>
+                <span>{t(locale, 'bookmarks')}</span>
               </span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <span className="muted" suppressHydrationWarning>({hydrated ? Object.keys(bookmarks).length : 0})</span>
@@ -520,7 +527,7 @@ export default function Sidebar({
             {isBookmarksOpen ? (
               <div id="accordion-bookmarks" style={{ marginTop: 8, display: 'grid', gap: 6, gridTemplateColumns: 'repeat(auto-fill, minmax(6ch, 1fr))', maxHeight: 220, overflow: 'auto' }}>
                 {(!hydrated || Object.keys(bookmarks).length === 0) ? (
-                  <div className="muted">No bookmarks yet</div>
+                  <div className="muted">{t(locale, 'noBookmarks')}</div>
                 ) : (
                   Object.keys(bookmarks)
                     .sort((a, b) => a.localeCompare(b))
@@ -554,39 +561,39 @@ export default function Sidebar({
         </div>
 
         <div className="section">
-          <div role="region" aria-label="Clear data">
+          <div role="region" aria-label={t(locale, 'export')}>
             <button
               type="button"
               className="button"
               aria-expanded={isExportOpen}
-              aria-controls="accordion-clear"
+              aria-controls="accordion-export"
               onClick={() => setIsExportOpen((o) => !o)}
               style={{ width: '100%', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <FolderOutput className="icon" strokeWidth={2} aria-hidden />
-                <span>Export</span>
+                <span>{t(locale, 'export')}</span>
               </span>
               <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isExportOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
             </button>
             {isExportOpen ? (
               <div id="accordion-export" style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
-                <button type="button" className="icon-btn" title="Download JSON" aria-label="Download JSON" onClick={downloadExport}>
+                <button type="button" className="icon-btn" title={t(locale, 'downloadJson')} aria-label={t(locale, 'downloadJson')} onClick={downloadExport}>
                   <Download className="icon" strokeWidth={2} aria-hidden />
                 </button>
-                <button type="button" className="icon-btn" title="Copy JSON" aria-label="Copy JSON" onClick={copyExportToClipboard}>
+                <button type="button" className="icon-btn" title={t(locale, 'copyJson')} aria-label={t(locale, 'copyJson')} onClick={copyExportToClipboard}>
                   <Copy className="icon" strokeWidth={2} aria-hidden />
                 </button>
-                <button type="button" className="icon-btn" title="Copy Share Link" aria-label="Copy Share Link" onClick={() => {
+                <button type="button" className="icon-btn" title={t(locale, 'copyShareLink')} aria-label={t(locale, 'copyShareLink')} onClick={() => {
                   const res = shareAllAsLink()
-                  if (!res.url) { alert(res.reason || 'Could not build link'); return }
+                  if (!res.url) { alert(t(locale, res.reason || 'couldNotBuildLink')); return }
                   try { void navigator.clipboard.writeText(res.url) } catch {}
                 }}>
                   <Share2 className="icon" strokeWidth={2} aria-hidden />
                 </button>
-                <button type="button" className="icon-btn" title="Show QR" aria-label="Show QR" onClick={() => {
+                <button type="button" className="icon-btn" title={t(locale, 'showQr')} aria-label={t(locale, 'showQr')} onClick={() => {
                   const res = shareAllAsLink()
-                  if (!res.url) { alert(res.reason || 'Could not build link'); return }
+                  if (!res.url) { alert(t(locale, res.reason || 'couldNotBuildLink')); return }
                   const img = qrImageUrl(res.url)
                   const w = window.open('', 'oqr-qr', 'width=260,height=300')
                   if (w) w.document.body.innerHTML = `<div style=\"display:flex;align-items:center;justify-content:center;height:100%;padding:12px;background:#fff\"><img alt=\"QR\" src=\"${img}\"/></div>`
@@ -600,7 +607,7 @@ export default function Sidebar({
 
         <div className="section">
           {/* Import */}
-          <div role="region" aria-label="Import">
+          <div role="region" aria-label={t(locale, 'import')}>
             <button
               type="button"
               className="button"
@@ -611,20 +618,20 @@ export default function Sidebar({
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <FolderInput className="icon" strokeWidth={2} aria-hidden />
-                <span>Import</span>
+                <span>{t(locale, 'import')}</span>
               </span>
               <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isImportOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
             </button>
             {isImportOpen ? (
               <div id="accordion-import" style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
                 <input id="oqr-import-json" type="file" accept="application/json" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleImportFile(f) }} style={{ display: 'none' }} />
-                <button type="button" className="icon-btn" title="Import from file" aria-label="Import from file" onClick={() => {
+                <button type="button" className="icon-btn" title={t(locale, 'importFromFile')} aria-label={t(locale, 'importFromFile')} onClick={() => {
                   const el = document.getElementById('oqr-import-json') as HTMLInputElement | null
                   el?.click()
                 }}>
                   <Upload className="icon" strokeWidth={2} aria-hidden />
                 </button>
-                <button type="button" className="icon-btn" title="Paste JSON" aria-label="Paste JSON" onClick={async () => {
+                <button type="button" className="icon-btn" title={t(locale, 'pasteJson')} aria-label={t(locale, 'pasteJson')} onClick={async () => {
                   try {
                     const txt = await navigator.clipboard.readText()
                     const obj = JSON.parse(txt)
@@ -640,7 +647,7 @@ export default function Sidebar({
 
         <div className="section">
           {/* Clear */}
-          <div role="region" aria-label="Clear">
+          <div role="region" aria-label={t(locale, 'clear')}>
             <button
               type="button"
               className="button"
@@ -651,7 +658,7 @@ export default function Sidebar({
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <Trash2 className="icon" strokeWidth={2} aria-hidden />
-                <span>Clear</span>
+                <span>{t(locale, 'clear')}</span>
               </span>
               <ChevronDown
                 className="icon"
@@ -663,27 +670,27 @@ export default function Sidebar({
             {isClearOpen ? (
               <div id="accordion-clear" style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <input type="checkbox" checked={clearNav} onChange={(e) => setClearNav(e.target.checked)} aria-label="Clear navigations" />
+                  <input type="checkbox" checked={clearNav} onChange={(e) => setClearNav(e.target.checked)} aria-label={t(locale, 'clearNavigations')} />
                   <MapPin className="icon" strokeWidth={2} aria-hidden />
-                  <span>Navigations</span>
+                  <span>{t(locale, 'navigations')}</span>
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <input type="checkbox" checked={clearBm} onChange={(e) => setClearBm(e.target.checked)} aria-label="Clear bookmarks" />
+                  <input type="checkbox" checked={clearBm} onChange={(e) => setClearBm(e.target.checked)} aria-label={t(locale, 'clearBookmarks')} />
                   <Bookmark className="icon" strokeWidth={2} aria-hidden />
-                  <span>Bookmarks</span>
+                  <span>{t(locale, 'bookmarks')}</span>
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <input type="checkbox" checked={clearNt} onChange={(e) => setClearNt(e.target.checked)} aria-label="Clear notes" />
+                  <input type="checkbox" checked={clearNt} onChange={(e) => setClearNt(e.target.checked)} aria-label={t(locale, 'clearNotes')} />
                   <FileText className="icon" strokeWidth={2} aria-hidden />
-                  <span>Notes</span>
+                  <span>{t(locale, 'notes')}</span>
                 </label>
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
-                  <input type="checkbox" checked={clearSt} onChange={(e) => setClearSt(e.target.checked)} aria-label="Clear settings" />
+                  <input type="checkbox" checked={clearSt} onChange={(e) => setClearSt(e.target.checked)} aria-label={t(locale, 'clearSettings')} />
                   <Settings className="icon" strokeWidth={2} aria-hidden />
-                  <span>Settings</span>
+                  <span>{t(locale, 'settings')}</span>
                 </label>
                 <button type="button" className="button" disabled={!clearNav && !clearBm && !clearNt && !clearSt} onClick={handleClearSelected}>
-                  Clear
+                  {t(locale, 'clear')}
                 </button>
               </div>
             ) : null}
@@ -691,7 +698,7 @@ export default function Sidebar({
         </div>
 
         <div className="section">
-          <div role="region" aria-label="AI Assistant">
+          <div role="region" aria-label={t(locale, 'aiAssistant')}>
             <button
               type="button"
               className="button"
@@ -702,7 +709,7 @@ export default function Sidebar({
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <Cpu className="icon" strokeWidth={2} aria-hidden />
-                <span>Assistant</span>
+                <span>{t(locale, 'assistant')}</span>
               </span>
               <ChevronDown
                 className="icon"
@@ -722,7 +729,7 @@ export default function Sidebar({
                         setAISettings((prev) => ({ ...prev, enabled: e.target.checked }))
                       }
                     />
-                    <span>Enable Assistant</span>
+                    <span>{t(locale, 'enableAssistant')}</span>
                   </label>
                   {aiSettings.enabled ? (
                     <div style={{ display: 'grid', gap: 8 }}>
@@ -756,11 +763,11 @@ export default function Sidebar({
                           }}
                         >
                           <HelpCircle className="icon" aria-hidden />
-                          <span>Get key / install</span>
+                          <span>{t(locale, 'getKeyInstall')}</span>
                         </a>
                         {ollamaBlocked && aiSettings.selected === 'ollama' ? (
                           <span className="muted" style={{ color: 'red' }}>
-                            Ollama over HTTP is blocked on HTTPS pages.
+                            {t(locale, 'ollamaBlocked')}
                           </span>
                         ) : null}
                         <KeyManager
@@ -783,7 +790,7 @@ export default function Sidebar({
                         />
                         {modelsError ? (
                           <span className="muted" style={{ color: 'red' }}>
-                            {modelsError}
+                            {t(locale, modelsError)}
                           </span>
                         ) : null}
                         <div
@@ -794,23 +801,22 @@ export default function Sidebar({
                             className="button"
                             onClick={handleTest}
                           >
-                            Test
+                            {t(locale, 'test')}
                           </button>
                           {testStatus === 'loading' ? (
-                            <span className="muted">Testing…</span>
+                            <span className="muted">{t(locale, 'testing')}</span>
                           ) : testStatus === 'ok' ? (
                             <span className="muted" style={{ color: 'green' }}>
-                              OK
+                              {t(locale, 'ok')}
                             </span>
                           ) : testStatus === 'error' ? (
                             <span className="muted" style={{ color: 'red' }}>
-                              Failed
+                              {t(locale, 'failed')}
                             </span>
                           ) : null}
                         </div>
                         <p className="muted" style={{ fontSize: 12 }}>
-                          Keys are stored in your browser. Do not use on shared
-                          devices.
+                          {t(locale, 'keysWarning')}
                         </p>
                       </div>
                     </div>
@@ -821,22 +827,32 @@ export default function Sidebar({
           </div>
         </div>
 
-        <div style={{ position: 'sticky', bottom: 0, paddingTop: 12, marginTop: 12, borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ position: 'sticky', bottom: 0, paddingTop: 12, marginTop: 12, borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
           <a
             className="icon-btn"
             href="https://github.com/omid3098/quran_reader"
             target="_blank"
             rel="noopener noreferrer"
-            aria-label="Open GitHub repository"
-            title="GitHub repository"
+            aria-label={t(locale, 'openGithub')}
+            title={t(locale, 'githubRepo')}
           >
             <Github className="icon" strokeWidth={2} aria-hidden />
           </a>
+          <select
+            value={locale}
+            onChange={(e) => setLocale(e.target.value as Locale)}
+            aria-label={t(locale, 'uiLanguage')}
+            title={t(locale, 'uiLanguage')}
+            style={{ background: 'transparent', color: 'inherit', border: '1px solid var(--border)', borderRadius: 4, padding: '2px 4px' }}
+          >
+            <option value="en">EN</option>
+            <option value="fa">FA</option>
+          </select>
           <button
             type="button"
             className="icon-btn"
-            aria-label="Toggle theme"
-            title={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
+            aria-label={t(locale, 'toggleTheme')}
+            title={theme === 'dark' ? t(locale, 'switchToLight') : t(locale, 'switchToDark')}
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           >
             {theme === 'dark' ? (
