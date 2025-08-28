@@ -126,7 +126,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
             } catch { if (alive) setSurahs([]) }
 
             try {
-                const resTr = await fetch('/api/translations')
+                const resTr = await fetch(`${STATIC_BASE}/translations.json`)
                 const list = (await resTr.json()) as TranslationMeta[]
                 if (alive) setTranslations(list)
             } catch { if (alive) setTranslations([]) }
