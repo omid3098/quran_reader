@@ -500,7 +500,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
             // @ts-ignore
             navigator.mediaSession.metadata = new window.MediaMetadata({
                 title: `Surah ${surah} — Ayah ${ayah}`,
-                artist: reciter.replace(/_/g, ' '),
+                artist: reciter.split('/').pop()?.replace(/_/g, ' ') || reciter,
                 album: 'OpenQuranReader (EveryAyah)'
             })
         }

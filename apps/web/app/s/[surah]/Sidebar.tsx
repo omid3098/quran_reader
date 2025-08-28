@@ -140,21 +140,40 @@ export default function Sidebar({
     huggingface: 'https://huggingface.co/settings/tokens',
     ollama: 'https://ollama.com/download',
   }
-
-  const reciterOptions = [
-    { id: 'Abu_Bakr_Ash-Shaatree_128kbps', name: 'Abu Bakr Ash-Shaatree' },
-    { id: 'Alafasy_128kbps', name: 'Mishary Rashid Alafasy' },
-    { id: 'Ghamadi_64kbps', name: 'Saad Al-Ghamdi' },
-    { id: 'Abdul_Basit_Murattal_128kbps', name: 'Abdul Basit (Murattal' },
-    { id: 'Husary_128kbps', name: 'Al-Husary (Tartil' },
-    { id: 'Minshawy_Murattal_128kbps', name: 'Minshawy' },
-  ]
+  const [reciterOptions, setReciterOptions] = useState<Array<{ id: string; name: string }>>([])
+  const [reciterQuery, setReciterQuery] = useState('')
   const reciterDisplayName =
     reciterOptions.find((r) => r.id === reciter)?.name || t(locale, 'choose')
   const reciterDisplayShort =
     reciterDisplayName === t(locale, 'choose')
       ? reciterDisplayName
       : `${reciterDisplayName.slice(0, 7)}...`
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const res = await fetch('https://everyayah.com/data/recitations.js')
+        const data = await res.json()
+        const list: Array<{ id: string; name: string }> = []
+        for (const key in data) {
+          const val = (data as any)[key]
+          if (val && typeof val === 'object' && 'subfolder' in val) {
+            list.push({ id: val.subfolder, name: val.name })
+          }
+        }
+        setReciterOptions(list)
+      } catch {
+        setReciterOptions([
+          { id: 'Abu_Bakr_Ash-Shaatree_128kbps', name: 'Abu Bakr Ash-Shaatree' },
+          { id: 'Alafasy_128kbps', name: 'Mishary Rashid Alafasy' },
+          { id: 'Ghamadi_64kbps', name: 'Saad Al-Ghamdi' },
+          { id: 'Abdul_Basit_Murattal_128kbps', name: 'Abdul Basit (Murattal' },
+          { id: 'Husary_128kbps', name: 'Al-Husary (Tartil' },
+          { id: 'Minshawy_Murattal_128kbps', name: 'Minshawy' },
+        ])
+      }
+    })()
+  }, [])
 
   useEffect(() => {
     if (!aiSettings.enabled || !isAssistantOpen) return
@@ -430,8 +449,23 @@ export default function Sidebar({
               </span>
             </button>
             {isReciterOpen ? (
-              <div id="accordion-reciter" style={{ marginTop: 8, display: 'grid', gap: 6, maxHeight: 260, overflow: 'auto' }}>
-                {reciterOptions.map((r) => (
+              <div
+                id="accordion-reciter"
+                style={{ marginTop: 8, display: 'grid', gap: 6, maxHeight: 260, overflow: 'auto' }}
+              >
+                <input
+                  className="input"
+                  type="text"
+                  placeholder={t(locale, 'searchReciters')}
+                  value={reciterQuery}
+                  onChange={(e) => setReciterQuery(e.target.value)}
+                />
+                {(reciterQuery
+                  ? reciterOptions.filter((r) =>
+                      `${r.name} ${r.id}`.toLowerCase().includes(reciterQuery.toLowerCase())
+                    )
+                  : reciterOptions
+                ).map((r) => (
                   <button
                     key={r.id}
                     className="button"
