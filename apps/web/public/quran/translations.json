@@ -1,0 +1,577 @@
+[
+  {
+    "id": "sq.nahi",
+    "name": "Efendi Nahi",
+    "language": "Albanian"
+  },
+  {
+    "id": "sq.mehdiu",
+    "name": "Feti Mehdiu",
+    "language": "Albanian"
+  },
+  {
+    "id": "sq.ahmeti",
+    "name": "Sherif Ahmeti",
+    "language": "Albanian"
+  },
+  {
+    "id": "ber.mensur",
+    "name": "At Mensur",
+    "language": "Amazigh"
+  },
+  {
+    "id": "ar.jalalayn",
+    "name": "تفسير الجلالين",
+    "language": "Arabic"
+  },
+  {
+    "id": "ar.muyassar",
+    "name": "تفسير المیسر",
+    "language": "Arabic"
+  },
+  {
+    "id": "am.sadiq",
+    "name": "ሳዲቅ &amp; ሳኒ ሐቢብ",
+    "language": "Amharic"
+  },
+  {
+    "id": "az.mammadaliyev",
+    "name": "Məmmədəliyev &amp; Bünyadov",
+    "language": "Azerbaijani"
+  },
+  {
+    "id": "az.musayev",
+    "name": "Musayev",
+    "language": "Azerbaijani"
+  },
+  {
+    "id": "bn.hoque",
+    "name": "জহুরুল হক",
+    "language": "Bengali"
+  },
+  {
+    "id": "bn.bengali",
+    "name": "মুহিউদ্দীন খান",
+    "language": "Bengali"
+  },
+  {
+    "id": "bs.korkut",
+    "name": "Korkut",
+    "language": "Bosnian"
+  },
+  {
+    "id": "bs.mlivo",
+    "name": "Mlivo",
+    "language": "Bosnian"
+  },
+  {
+    "id": "bg.theophanov",
+    "name": "Теофанов",
+    "language": "Bulgarian"
+  },
+  {
+    "id": "zh.jian",
+    "name": "Ma Jian",
+    "language": "Chinese"
+  },
+  {
+    "id": "zh.majian",
+    "name": "Ma Jian (Traditional)",
+    "language": "Chinese"
+  },
+  {
+    "id": "cs.hrbek",
+    "name": "Hrbek",
+    "language": "Czech"
+  },
+  {
+    "id": "cs.nykl",
+    "name": "Nykl",
+    "language": "Czech"
+  },
+  {
+    "id": "dv.divehi",
+    "name": "ދިވެހި",
+    "language": "Divehi"
+  },
+  {
+    "id": "nl.keyzer",
+    "name": "Keyzer",
+    "language": "Dutch"
+  },
+  {
+    "id": "nl.leemhuis",
+    "name": "Leemhuis",
+    "language": "Dutch"
+  },
+  {
+    "id": "nl.siregar",
+    "name": "Siregar",
+    "language": "Dutch"
+  },
+  {
+    "id": "en.ahmedali",
+    "name": "Ahmed Ali",
+    "language": "English"
+  },
+  {
+    "id": "en.ahmedraza",
+    "name": "Ahmed Raza Khan",
+    "language": "English"
+  },
+  {
+    "id": "en.arberry",
+    "name": "Arberry",
+    "language": "English"
+  },
+  {
+    "id": "en.daryabadi",
+    "name": "Daryabadi",
+    "language": "English"
+  },
+  {
+    "id": "en.hilali",
+    "name": "Hilali &amp; Khan",
+    "language": "English"
+  },
+  {
+    "id": "en.itani",
+    "name": "Itani",
+    "language": "English"
+  },
+  {
+    "id": "en.maududi",
+    "name": "Maududi",
+    "language": "English"
+  },
+  {
+    "id": "en.mubarakpuri",
+    "name": "Mubarakpuri",
+    "language": "English"
+  },
+  {
+    "id": "en.pickthall",
+    "name": "Pickthall",
+    "language": "English"
+  },
+  {
+    "id": "en.qarai",
+    "name": "Qarai",
+    "language": "English"
+  },
+  {
+    "id": "en.qaribullah",
+    "name": "Qaribullah &amp; Darwish",
+    "language": "English"
+  },
+  {
+    "id": "en.sahih",
+    "name": "Saheeh International",
+    "language": "English"
+  },
+  {
+    "id": "en.sarwar",
+    "name": "Sarwar",
+    "language": "English"
+  },
+  {
+    "id": "en.shakir",
+    "name": "Shakir",
+    "language": "English"
+  },
+  {
+    "id": "en.transliteration",
+    "name": "Transliteration",
+    "language": "English"
+  },
+  {
+    "id": "en.wahiduddin",
+    "name": "Wahiduddin Khan",
+    "language": "English"
+  },
+  {
+    "id": "en.yusufali",
+    "name": "Yusuf Ali",
+    "language": "English"
+  },
+  {
+    "id": "fr.hamidullah",
+    "name": "Hamidullah",
+    "language": "French"
+  },
+  {
+    "id": "de.aburida",
+    "name": "Abu Rida",
+    "language": "German"
+  },
+  {
+    "id": "de.bubenheim",
+    "name": "Bubenheim &amp; Elyas",
+    "language": "German"
+  },
+  {
+    "id": "de.khoury",
+    "name": "Khoury",
+    "language": "German"
+  },
+  {
+    "id": "de.zaidan",
+    "name": "Zaidan",
+    "language": "German"
+  },
+  {
+    "id": "ha.gumi",
+    "name": "Gumi",
+    "language": "Hausa"
+  },
+  {
+    "id": "hi.farooq",
+    "name": "फ़ारूक़ ख़ान &amp; अहमद",
+    "language": "Hindi"
+  },
+  {
+    "id": "hi.hindi",
+    "name": "फ़ारूक़ ख़ान &amp; नदवी",
+    "language": "Hindi"
+  },
+  {
+    "id": "id.indonesian",
+    "name": "Bahasa Indonesia",
+    "language": "Indonesian"
+  },
+  {
+    "id": "id.muntakhab",
+    "name": "Quraish Shihab",
+    "language": "Indonesian"
+  },
+  {
+    "id": "id.jalalayn",
+    "name": "Tafsir Jalalayn",
+    "language": "Indonesian"
+  },
+  {
+    "id": "it.piccardo",
+    "name": "Piccardo",
+    "language": "Italian"
+  },
+  {
+    "id": "ja.japanese",
+    "name": "Japanese",
+    "language": "Japanese"
+  },
+  {
+    "id": "ko.korean",
+    "name": "Korean",
+    "language": "Korean"
+  },
+  {
+    "id": "ku.asan",
+    "name": "ته‌فسیری ئاسان",
+    "language": "Kurdish"
+  },
+  {
+    "id": "ms.basmeih",
+    "name": "Basmeih",
+    "language": "Malay"
+  },
+  {
+    "id": "ml.abdulhameed",
+    "name": "അബ്ദുല്‍ ഹമീദ് &amp; പറപ്പൂര്‍",
+    "language": "Malayalam"
+  },
+  {
+    "id": "ml.karakunnu",
+    "name": "കാരകുന്ന് &amp; എളയാവൂര്",
+    "language": "Malayalam"
+  },
+  {
+    "id": "no.berg",
+    "name": "Einar Berg",
+    "language": "Norwegian"
+  },
+  {
+    "id": "ps.abdulwali",
+    "name": "عبدالولي",
+    "language": "Pashto"
+  },
+  {
+    "id": "fa.ansarian",
+    "name": "انصاریان",
+    "language": "Persian"
+  },
+  {
+    "id": "fa.ayati",
+    "name": "آیتی",
+    "language": "Persian"
+  },
+  {
+    "id": "fa.bahrampour",
+    "name": "بهرام‌پور",
+    "language": "Persian"
+  },
+  {
+    "id": "fa.gharaati",
+    "name": "قرائتی",
+    "language": "Persian"
+  },
+  {
+    "id": "fa.ghomshei",
+    "name": "الهی قمشه‌ای",
+    "language": "Persian"
+  },
+  {
+    "id": "fa.khorramdel",
+    "name": "خرمدل",
+    "language": "Persian"
+  },
+  {
+    "id": "fa.khorramshahi",
+    "name": "خرمشاهی",
+    "language": "Persian"
+  },
+  {
+    "id": "fa.sadeqi",
+    "name": "صادقی تهرانی",
+    "language": "Persian"
+  },
+  {
+    "id": "fa.safavi",
+    "name": "صفوی",
+    "language": "Persian"
+  },
+  {
+    "id": "fa.fooladvand",
+    "name": "فولادوند",
+    "language": "Persian"
+  },
+  {
+    "id": "fa.mojtabavi",
+    "name": "مجتبوی",
+    "language": "Persian"
+  },
+  {
+    "id": "fa.moezzi",
+    "name": "معزی",
+    "language": "Persian"
+  },
+  {
+    "id": "fa.makarem",
+    "name": "مکارم شیرازی",
+    "language": "Persian"
+  },
+  {
+    "id": "pl.bielawskiego",
+    "name": "Bielawskiego",
+    "language": "Polish"
+  },
+  {
+    "id": "pt.elhayek",
+    "name": "El-Hayek",
+    "language": "Portuguese"
+  },
+  {
+    "id": "ro.grigore",
+    "name": "Grigore",
+    "language": "Romanian"
+  },
+  {
+    "id": "ru.abuadel",
+    "name": "Абу Адель",
+    "language": "Russian"
+  },
+  {
+    "id": "ru.muntahab",
+    "name": "Аль-Мунтахаб",
+    "language": "Russian"
+  },
+  {
+    "id": "ru.kalam",
+    "name": "Калям Шариф",
+    "language": "Russian"
+  },
+  {
+    "id": "ru.krachkovsky",
+    "name": "Крачковский",
+    "language": "Russian"
+  },
+  {
+    "id": "ru.kuliev",
+    "name": "Кулиев",
+    "language": "Russian"
+  },
+  {
+    "id": "ru.kuliev-alsaadi",
+    "name": "Кулиев + ас-Саади",
+    "language": "Russian"
+  },
+  {
+    "id": "ru.osmanov",
+    "name": "Османов",
+    "language": "Russian"
+  },
+  {
+    "id": "ru.porokhova",
+    "name": "Порохова",
+    "language": "Russian"
+  },
+  {
+    "id": "ru.sablukov",
+    "name": "Саблуков",
+    "language": "Russian"
+  },
+  {
+    "id": "sd.amroti",
+    "name": "امروٽي",
+    "language": "Sindhi"
+  },
+  {
+    "id": "so.abduh",
+    "name": "Abduh",
+    "language": "Somali"
+  },
+  {
+    "id": "es.bornez",
+    "name": "Bornez",
+    "language": "Spanish"
+  },
+  {
+    "id": "es.cortes",
+    "name": "Cortes",
+    "language": "Spanish"
+  },
+  {
+    "id": "es.garcia",
+    "name": "Garcia",
+    "language": "Spanish"
+  },
+  {
+    "id": "sw.barwani",
+    "name": "Al-Barwani",
+    "language": "Swahili"
+  },
+  {
+    "id": "sv.bernstrom",
+    "name": "Bernström",
+    "language": "Swedish"
+  },
+  {
+    "id": "tg.ayati",
+    "name": "Оятӣ",
+    "language": "Tajik"
+  },
+  {
+    "id": "ta.tamil",
+    "name": "ஜான் டிரஸ்ட்",
+    "language": "Tamil"
+  },
+  {
+    "id": "tt.nugman",
+    "name": "Yakub Ibn Nugman",
+    "language": "Tatar"
+  },
+  {
+    "id": "th.thai",
+    "name": "ภาษาไทย",
+    "language": "Thai"
+  },
+  {
+    "id": "tr.golpinarli",
+    "name": "Abdulbakî Gölpınarlı",
+    "language": "Turkish"
+  },
+  {
+    "id": "tr.bulac",
+    "name": "Alİ Bulaç",
+    "language": "Turkish"
+  },
+  {
+    "id": "tr.transliteration",
+    "name": "Çeviriyazı",
+    "language": "Turkish"
+  },
+  {
+    "id": "tr.diyanet",
+    "name": "Diyanet İşleri",
+    "language": "Turkish"
+  },
+  {
+    "id": "tr.vakfi",
+    "name": "Diyanet Vakfı",
+    "language": "Turkish"
+  },
+  {
+    "id": "tr.yuksel",
+    "name": "Edip Yüksel",
+    "language": "Turkish"
+  },
+  {
+    "id": "tr.yazir",
+    "name": "Elmalılı Hamdi Yazır",
+    "language": "Turkish"
+  },
+  {
+    "id": "tr.ozturk",
+    "name": "Öztürk",
+    "language": "Turkish"
+  },
+  {
+    "id": "tr.yildirim",
+    "name": "Suat Yıldırım",
+    "language": "Turkish"
+  },
+  {
+    "id": "tr.ates",
+    "name": "Süleyman Ateş",
+    "language": "Turkish"
+  },
+  {
+    "id": "ur.maududi",
+    "name": "ابوالاعلی مودودی",
+    "language": "Urdu"
+  },
+  {
+    "id": "ur.kanzuliman",
+    "name": "احمد رضا خان",
+    "language": "Urdu"
+  },
+  {
+    "id": "ur.ahmedali",
+    "name": "احمد علی",
+    "language": "Urdu"
+  },
+  {
+    "id": "ur.jalandhry",
+    "name": "جالندہری",
+    "language": "Urdu"
+  },
+  {
+    "id": "ur.qadri",
+    "name": "طاہر القادری",
+    "language": "Urdu"
+  },
+  {
+    "id": "ur.jawadi",
+    "name": "علامہ جوادی",
+    "language": "Urdu"
+  },
+  {
+    "id": "ur.junagarhi",
+    "name": "محمد جوناگڑھی",
+    "language": "Urdu"
+  },
+  {
+    "id": "ur.najafi",
+    "name": "محمد حسین نجفی",
+    "language": "Urdu"
+  },
+  {
+    "id": "ug.saleh",
+    "name": "محمد صالح",
+    "language": "Uyghur"
+  },
+  {
+    "id": "uz.sodik",
+    "name": "Мухаммад Содик",
+    "language": "Uzbek"
+  }
+]

@@ -18,6 +18,8 @@ const fa = {
   translations: 'ترجمه‌ها',
   noTranslations: 'ترجمه‌ای در دسترس نیست',
   reciter: 'قاری',
+  searchReciters: 'جستجوی قاری…',
+  searchTranslations: 'جستجوی ترجمه…',
   choose: 'انتخاب',
   notes: 'یادداشت‌ها',
   noNotes: 'هنوز یادداشتی نیست',

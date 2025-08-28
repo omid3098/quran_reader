@@ -92,6 +92,7 @@ export default function Sidebar({
   const router = useRouter()
   const [isFontOpen, setIsFontOpen] = useState(false)
   const [isTranslationsOpen, setTranslationsOpen] = useState(false)
+  const [translationQuery, setTranslationQuery] = useState('')
   const [isReciterOpen, setReciterOpen] = useState(false)
   const [isNotesOpen, setIsNotesOpen] = useState(false)
   const [isBookmarksOpen, setIsBookmarksOpen] = useState(false)
@@ -140,21 +141,33 @@ export default function Sidebar({
     huggingface: 'https://huggingface.co/settings/tokens',
     ollama: 'https://ollama.com/download',
   }
-
-  const reciterOptions = [
-    { id: 'Abu_Bakr_Ash-Shaatree_128kbps', name: 'Abu Bakr Ash-Shaatree' },
-    { id: 'Alafasy_128kbps', name: 'Mishary Rashid Alafasy' },
-    { id: 'Ghamadi_64kbps', name: 'Saad Al-Ghamdi' },
-    { id: 'Abdul_Basit_Murattal_128kbps', name: 'Abdul Basit (Murattal' },
-    { id: 'Husary_128kbps', name: 'Al-Husary (Tartil' },
-    { id: 'Minshawy_Murattal_128kbps', name: 'Minshawy' },
-  ]
+  const [reciterOptions, setReciterOptions] = useState<Array<{ id: string; name: string }>>([])
+  const [reciterQuery, setReciterQuery] = useState('')
   const reciterDisplayName =
     reciterOptions.find((r) => r.id === reciter)?.name || t(locale, 'choose')
   const reciterDisplayShort =
     reciterDisplayName === t(locale, 'choose')
       ? reciterDisplayName
       : `${reciterDisplayName.slice(0, 7)}...`
+
+  useEffect(() => {
+    ;(async () => {
+      try {
+        const res = await fetch('/api/reciters')
+        const list = (await res.json()) as Array<{ id: string; name: string }>
+        setReciterOptions(list)
+      } catch {
+        setReciterOptions([
+          { id: 'Abu_Bakr_Ash-Shaatree_128kbps', name: 'Abu Bakr Ash-Shaatree' },
+          { id: 'Alafasy_128kbps', name: 'Mishary Rashid Alafasy' },
+          { id: 'Ghamadi_64kbps', name: 'Saad Al-Ghamdi' },
+          { id: 'Abdul_Basit_Murattal_128kbps', name: 'Abdul Basit (Murattal' },
+          { id: 'Husary_128kbps', name: 'Al-Husary (Tartil' },
+          { id: 'Minshawy_Murattal_128kbps', name: 'Minshawy' },
+        ])
+      }
+    })()
+  }, [])
 
   useEffect(() => {
     if (!aiSettings.enabled || !isAssistantOpen) return
@@ -364,8 +377,21 @@ export default function Sidebar({
               <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isTranslationsOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
             </button>
             {isTranslationsOpen ? (
-              <div id="accordion-translations" style={{ marginTop: 8, display: 'grid', gap: 8, maxHeight: 260, overflow: 'auto' }}>
-                {translations.map((t) => {
+
+              <div id="accordion-translations" style={{ marginTop: 8, display: 'grid', gap: 6, maxHeight: 260, overflow: 'auto' }}>
+                <input
+                  className="input"
+                  type="text"
+                  placeholder={t(locale, 'searchTranslations')}
+                  value={translationQuery}
+                  onChange={(e) => setTranslationQuery(e.target.value)}
+                />
+                {(translationQuery
+                  ? translations.filter((tr) =>
+                      `${tr.language} ${tr.name} ${tr.id}`.toLowerCase().includes(translationQuery.toLowerCase())
+                    )
+                  : translations
+                ).map((t) => {
                   const checked = enabledTranslations.includes(t.id)
                   return (
                     <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -389,6 +415,7 @@ export default function Sidebar({
                   <div className="muted">{t(locale, 'noTranslations')}</div>
                 ) : null}
               </div>
+
             ) : null}
           </div>
         </div>
@@ -430,8 +457,23 @@ export default function Sidebar({
               </span>
             </button>
             {isReciterOpen ? (
-              <div id="accordion-reciter" style={{ marginTop: 8, display: 'grid', gap: 6, maxHeight: 260, overflow: 'auto' }}>
-                {reciterOptions.map((r) => (
+              <div
+                id="accordion-reciter"
+                style={{ marginTop: 8, display: 'grid', gap: 6, maxHeight: 260, overflow: 'auto' }}
+              >
+                <input
+                  className="input"
+                  type="text"
+                  placeholder={t(locale, 'searchReciters')}
+                  value={reciterQuery}
+                  onChange={(e) => setReciterQuery(e.target.value)}
+                />
+                {(reciterQuery
+                  ? reciterOptions.filter((r) =>
+                      `${r.name} ${r.id}`.toLowerCase().includes(reciterQuery.toLowerCase())
+                    )
+                  : reciterOptions
+                ).map((r) => (
                   <button
                     key={r.id}
                     className="button"

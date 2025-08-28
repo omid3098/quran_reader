@@ -125,15 +125,11 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                 if (alive) setSurahs(list)
             } catch { if (alive) setSurahs([]) }
 
-            // Known translation files shipped in assets; keep minimal metadata
-            const known: TranslationMeta[] = [
-                { id: 'en.arberry', name: 'Arberry', language: 'en' },
-                { id: 'fa.bahrampour', name: 'Bahrampour', language: 'fa' },
-                { id: 'fa.fooladvand', name: 'Fooladvand', language: 'fa' },
-                { id: 'fa.gharaati', name: 'Gharaati', language: 'fa' },
-                { id: 'fa.makarem', name: 'Makarem', language: 'fa' },
-            ]
-            if (alive) setTranslations(known)
+            try {
+                const resTr = await fetch('/api/translations')
+                const list = (await resTr.json()) as TranslationMeta[]
+                if (alive) setTranslations(list)
+            } catch { if (alive) setTranslations([]) }
         }
         void loadMeta()
         return () => { alive = false }
@@ -500,7 +496,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
             // @ts-ignore
             navigator.mediaSession.metadata = new window.MediaMetadata({
                 title: `Surah ${surah} — Ayah ${ayah}`,
-                artist: reciter.replace(/_/g, ' '),
+                artist: reciter.split('/').pop()?.replace(/_/g, ' ') || reciter,
                 album: 'OpenQuranReader (EveryAyah)'
             })
         }
