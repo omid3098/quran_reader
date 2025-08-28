@@ -418,7 +418,13 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
 
     const arabicSizeVar = font === 'sm' ? '20px' : font === 'lg' ? '28px' : '24px'
     const translationSizeVar = font === 'sm' ? '12px' : font === 'lg' ? '16px' : '14px'
-    const selectedTranslations = translations.filter((t) => enabledTranslations.includes(t.id))
+    const selectedTranslations = useMemo(
+        () =>
+            enabledTranslations
+                .map((id) => translations.find((t) => t.id === id))
+                .filter((t): t is TranslationMeta => !!t),
+        [translations, enabledTranslations],
+    )
 
     function pad3(n: number) {
         return String(n).padStart(3, '0')
@@ -851,13 +857,14 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                             {selectedTranslations.map((st) => {
                                                 const found = v.translations?.find((tr) => tr.translationId === st.id)
                                                 if (!found) return null
-                                                const rtl = isRtlLanguage(st.language)
+                                                const langCode = st.id.split('.')[0]
+                                                const rtl = isRtlLanguage(langCode)
                                                 return (
                                                     <div
                                                         key={st.id}
                                                         className="translation"
                                                         dir={rtl ? 'rtl' : 'ltr'}
-                                                        lang={st.language}
+                                                        lang={langCode}
                                                         style={{ textAlign: rtl ? 'right' : 'left' }}
                                                     >
                                                         <span style={{ color: 'var(--accent)' }}>{st.name}:</span>{' '}
