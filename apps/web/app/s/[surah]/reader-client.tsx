@@ -67,7 +67,19 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const [hydrated, setHydrated] = useState(false)
 
     // Audio state
-    const [reciter, setReciter] = useLocalStorage<string>('oqr:reciter', 'Alafasy_128kbps')
+    const [enabledRecitersState, setEnabledReciters] = useLocalStorage<any>('oqr:reciters', ['Alafasy_128kbps'])
+    const enabledReciters: string[] = useMemo(() => {
+        const v = enabledRecitersState
+        if (Array.isArray(v)) return v.filter(Boolean)
+        if (typeof v === 'string') return v.split(',').map((s) => s.trim()).filter(Boolean)
+        if (v && typeof v === 'object') {
+            try {
+                const keys = Object.keys(v).filter((k) => !!v[k])
+                if (keys.length) return keys
+            } catch {}
+        }
+        return ['Alafasy_128kbps']
+    }, [enabledRecitersState])
     const [autoplay, setAutoplay] = useLocalStorage<boolean>('oqr:autoplay', true)
     const [showNotes, setShowNotes] = useLocalStorage<boolean>('oqr:showNotes', true)
     const [aiSettings, setAISettings] = useAISettings()
@@ -80,6 +92,8 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const rootAbortRef = useRef<AbortController | null>(null)
     const [playingAyah, setPlayingAyah] = useState<number | null>(null)
     const audioRef = useRef<HTMLAudioElement | null>(null) as MutableRefObject<HTMLAudioElement | null>
+    const currentReciterIndexRef = useRef(0)
+    const currentAyahRef = useRef<number | null>(null)
 
     useEffect(() => {
         document.documentElement.dataset.theme = theme
@@ -458,14 +472,14 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         return offset + ayahNum
     }
 
-    function buildAudioUrl(surahNum: number, ayahNum: number) {
-        if (reciter === 'Alafasy_128kbps') {
+    function buildAudioUrl(reciterId: string, surahNum: number, ayahNum: number) {
+        if (reciterId === 'Alafasy_128kbps') {
             const global = getGlobalAyahIndex(surahNum, ayahNum)
             return `https://cdn.islamic.network/quran/audio/128/ar.alafasy/${global}.mp3`
         }
         const s = pad3(surahNum)
         const a = pad3(ayahNum)
-        return `https://everyayah.com/data/${reciter}/${s}${a}.mp3`
+        return `https://everyayah.com/data/${reciterId}/${s}${a}.mp3`
     }
 
     function navigateToSurah(targetSurah: number, fallbackAyah: number) {
@@ -486,15 +500,15 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         router.push(href, { scroll: false })
     }
 
-    function playAyah(ayah: number) {
-        if (!verses || !verses.length) return
+    function playReciter(reciterId: string, ayah: number) {
         const audio = audioRef.current || new Audio()
         audioRef.current = audio
         audio.pause()
-        audio.src = buildAudioUrl(surah, ayah)
+        audio.src = buildAudioUrl(reciterId, surah, ayah)
         try { audio.load() } catch { }
         audio.currentTime = 0
         audio.play().catch(() => { })
+        currentAyahRef.current = ayah
         setPlayingAyah(ayah)
 
         // @ts-ignore
@@ -502,15 +516,23 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
             // @ts-ignore
             navigator.mediaSession.metadata = new window.MediaMetadata({
                 title: `Surah ${surah} — Ayah ${ayah}`,
-                artist: reciter.split('/').pop()?.replace(/_/g, ' ') || reciter,
+                artist: reciterId.split('/').pop()?.replace(/_/g, ' ') || reciterId,
                 album: 'OpenQuranReader (EveryAyah)'
             })
         }
     }
 
+    function playAyah(ayah: number) {
+        if (!verses || !verses.length || !enabledReciters.length) return
+        currentReciterIndexRef.current = 0
+        playReciter(enabledReciters[0], ayah)
+    }
+
     function stopPlayback() {
         const audio = audioRef.current
         if (audio) audio.pause()
+        currentReciterIndexRef.current = 0
+        currentAyahRef.current = null
         setPlayingAyah(null)
     }
 
@@ -518,6 +540,15 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         const audio = audioRef.current || new Audio()
         if (!audioRef.current) audioRef.current = audio
         const onEnded = () => {
+            const ayah = currentAyahRef.current
+            const idx = currentReciterIndexRef.current
+            if (ayah != null && idx < enabledReciters.length - 1) {
+                const nextIndex = idx + 1
+                currentReciterIndexRef.current = nextIndex
+                const nextReciter = enabledReciters[nextIndex]
+                setTimeout(() => playReciter(nextReciter, ayah), 1000)
+                return
+            }
             if (!autoplay) { setPlayingAyah(null); return }
             setActiveAyah((prev) => {
                 const first = verses?.[0]?.ayah || 1
@@ -525,18 +556,18 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                 const current = prev || first
                 if (current >= last) { setPlayingAyah(null); return current }
                 const next = current + 1
-                setTimeout(() => playAyah(next), 0)
+                setTimeout(() => playAyah(next), 1000)
                 return next
             })
         }
-        const onError = () => { if (autoplay) onEnded(); else setPlayingAyah(null) }
+        const onError = () => { onEnded() }
         audio.addEventListener('ended', onEnded)
         audio.addEventListener('error', onError)
         return () => {
             audio.removeEventListener('ended', onEnded)
             audio.removeEventListener('error', onError)
         }
-    }, [autoplay, verses, reciter])
+    }, [autoplay, verses, enabledReciters])
 
     function toggleToolbarPlay() {
         if (!verses || !verses.length) return
@@ -985,8 +1016,8 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                     translations={translations}
                     enabledTranslations={enabledTranslations}
                     setEnabledTranslations={setEnabledTranslations as React.Dispatch<React.SetStateAction<string[]>>}
-                    reciter={reciter}
-                    setReciter={setReciter}
+                    enabledReciters={enabledReciters}
+                    setEnabledReciters={setEnabledReciters as React.Dispatch<React.SetStateAction<string[]>>}
                     bookmarks={bookmarks}
                     notes={notes}
                     setBookmarks={setBookmarks}

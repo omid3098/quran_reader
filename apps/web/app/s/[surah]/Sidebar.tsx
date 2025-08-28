@@ -9,7 +9,6 @@ import {
   ChevronDown,
   Languages,
   Play,
-  Check,
   Bookmark,
   FileText,
   Download,
@@ -53,8 +52,8 @@ interface SidebarProps {
   translations: TranslationMeta[]
   enabledTranslations: string[]
   setEnabledTranslations: React.Dispatch<React.SetStateAction<string[]>>
-  reciter: string
-  setReciter: React.Dispatch<React.SetStateAction<string>>
+  enabledReciters: string[]
+  setEnabledReciters: React.Dispatch<React.SetStateAction<string[]>>
   bookmarks: BookmarksSet
   notes: NotesMap
   setBookmarks: React.Dispatch<React.SetStateAction<BookmarksSet>>
@@ -77,8 +76,8 @@ export default function Sidebar({
   translations,
   enabledTranslations,
   setEnabledTranslations,
-  reciter,
-  setReciter,
+  enabledReciters,
+  setEnabledReciters,
   bookmarks,
   notes,
   setBookmarks,
@@ -143,17 +142,26 @@ export default function Sidebar({
   }
   const [reciterOptions, setReciterOptions] = useState<Array<{ id: string; name: string }>>([])
   const [reciterQuery, setReciterQuery] = useState('')
+  const reciterDisplayNames = enabledReciters
+    .map((id) => reciterOptions.find((r) => r.id === id)?.name)
+    .filter(Boolean) as string[]
   const reciterDisplayName =
-    reciterOptions.find((r) => r.id === reciter)?.name || t(locale, 'choose')
+    reciterDisplayNames.length ? reciterDisplayNames.join(', ') : t(locale, 'choose')
   const reciterDisplayShort =
     reciterDisplayName === t(locale, 'choose')
       ? reciterDisplayName
       : `${reciterDisplayName.slice(0, 7)}...`
 
+  const BASE_PATH =
+    process.env.NODE_ENV === 'production'
+      ? process.env.NEXT_PUBLIC_BASE_PATH || ''
+      : ''
+  const STATIC_BASE = BASE_PATH + '/quran'
+
   useEffect(() => {
     ;(async () => {
       try {
-        const res = await fetch('/api/reciters')
+        const res = await fetch(`${STATIC_BASE}/reciters.json`)
         const list = (await res.json()) as Array<{ id: string; name: string }>
         setReciterOptions(list)
       } catch {
@@ -161,8 +169,8 @@ export default function Sidebar({
           { id: 'Abu_Bakr_Ash-Shaatree_128kbps', name: 'Abu Bakr Ash-Shaatree' },
           { id: 'Alafasy_128kbps', name: 'Mishary Rashid Alafasy' },
           { id: 'Ghamadi_64kbps', name: 'Saad Al-Ghamdi' },
-          { id: 'Abdul_Basit_Murattal_128kbps', name: 'Abdul Basit (Murattal' },
-          { id: 'Husary_128kbps', name: 'Al-Husary (Tartil' },
+          { id: 'Abdul_Basit_Murattal_128kbps', name: 'Abdul Basit (Murattal)' },
+          { id: 'Husary_128kbps', name: 'Al-Husary (Tartil)' },
           { id: 'Minshawy_Murattal_128kbps', name: 'Minshawy' },
         ])
       }
@@ -209,7 +217,7 @@ export default function Sidebar({
 
   function clearSettingsToDefaults() {
     setEnabledTranslations(['en.arberry'])
-    setReciter('Alafasy_128kbps')
+    setEnabledReciters(['Alafasy_128kbps'])
   }
 
   async function handleTest() {
@@ -421,7 +429,7 @@ export default function Sidebar({
         </div>
 
         <div className="section">
-          <div role="region" aria-label={t(locale, 'reciter')}>
+          <div role="region" aria-label={t(locale, 'reciters')}>
             <button
               type="button"
               className="button"
@@ -432,7 +440,7 @@ export default function Sidebar({
             >
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <Play className="icon" strokeWidth={2} aria-hidden />
-                <span>{t(locale, 'reciter')}</span>
+                <span>{t(locale, 'reciters')}</span>
               </span>
               <span style={{ display: 'inline-flex', alignItems: 'center', gap: 8 }}>
                 <span
@@ -473,18 +481,26 @@ export default function Sidebar({
                       `${r.name} ${r.id}`.toLowerCase().includes(reciterQuery.toLowerCase())
                     )
                   : reciterOptions
-                ).map((r) => (
-                  <button
-                    key={r.id}
-                    className="button"
-                    style={{ textAlign: 'left', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}
-                    aria-pressed={r.id === reciter}
-                    onClick={() => setReciter(r.id)}
-                  >
-                    <span style={{ flex: 1 }}>{r.name}</span>
-                    {r.id === reciter ? <Check className="icon" strokeWidth={3} aria-hidden /> : null}
-                  </button>
-                ))}
+                ).map((r) => {
+                  const checked = enabledReciters.includes(r.id)
+                  return (
+                    <label key={r.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                      <input
+                        type="checkbox"
+                        checked={checked}
+                        onChange={(e) => {
+                          setEnabledReciters((prev) => {
+                            const set = new Set(prev)
+                            if (e.target.checked) set.add(r.id)
+                            else set.delete(r.id)
+                            return Array.from(set)
+                          })
+                        }}
+                      />
+                      <span>{r.name}</span>
+                    </label>
+                  )
+                })}
               </div>
             ) : null}
           </div>
