@@ -103,7 +103,7 @@ a {
 
 .card {
   background: var(--card);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  border: 1px solid rgba(255, 255, 255, 0.18);
   border-radius: 12px;
   padding: 12px;
 }
@@ -260,21 +260,37 @@ a {
   left: 50%;
   bottom: 16px;
   transform: translateX(-50%);
-  background: var(--card);
-  border: 1px solid rgba(255, 255, 255, 0.08);
+  /* Frosted glass effect */
+  background: rgba(17, 18, 20, 0.72);
+  -webkit-backdrop-filter: blur(12px);
+  backdrop-filter: blur(12px);
+  border: 2px solid var(--accent);
   border-radius: 9999px;
-  padding: 8px 12px;
+  /* ~10% larger padding */
+  padding: 9px 13px;
   z-index: 25;
   display: flex;
-  gap: 8px;
+  /* ~10% larger spacing */
+  gap: 9px;
   align-items: center;
   box-shadow: 0 8px 30px rgba(0, 0, 0, 0.25);
 }
 
 .floating-audio .sep {
   width: 1px;
-  height: 24px;
+  /* ~10% taller */
+  height: 26px;
   background: rgba(255, 255, 255, 0.08);
+}
+
+/* Make only the player buttons/icons ~10% larger on desktop */
+.floating-audio .icon-btn {
+  width: 40px;
+  height: 40px;
+}
+.floating-audio .icon {
+  width: 20px;
+  height: 20px;
 }
 
 @keyframes spin {
@@ -287,23 +303,29 @@ a {
   animation: spin 1s linear infinite;
 }
 
+/* Light theme tweak for frosted background */
+[data-theme="light"] .floating-audio {
+  background: rgba(243, 244, 246, 0.72);
+}
+
 /* Mobile tweaks: make floating audio panel and buttons larger and more visible */
 @media (max-width: 640px) {
   .floating-audio {
-    padding: 10px 16px;
-    gap: 10px;
+    /* ~10% larger than before */
+    padding: 11px 18px;
+    gap: 11px;
     border-color: var(--accent);
     border-width: 2px;
   }
   .floating-audio .icon-btn {
-    width: 44px;
-    height: 44px;
+    width: 48px;
+    height: 48px;
   }
   .floating-audio .icon {
-    width: 22px;
-    height: 22px;
+    width: 24px;
+    height: 24px;
   }
   .floating-audio .sep {
-    height: 28px;
+    height: 31px;
   }
 }
