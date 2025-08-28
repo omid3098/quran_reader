@@ -38,6 +38,9 @@ import { ModelPicker } from '../../../src/features/assistant/ModelPicker'
 import { createAssistant } from '../../../src/features/assistant/useAssistant'
 import type { AISettings } from '../../../src/state/settings'
 import type { ChatMessage } from '@openquran/ai/types'
+import { useLocale } from '../../../src/state/locale'
+import { t } from '../../../src/i18n'
+import type { Locale } from '../../../src/i18n'
 
 interface SidebarProps {
   isOpen: boolean
@@ -99,6 +102,7 @@ export default function Sidebar({
   const [models, setModels] = useState<Array<{ id: string; name?: string; free?: boolean }>>([])
   const [modelsError, setModelsError] = useState<string | null>(null)
   const [testStatus, setTestStatus] = useState<'idle' | 'ok' | 'error' | 'loading'>('idle')
+  const [locale, setLocale] = useLocale()
   const [clearNav, setClearNav] = useState(false)
   const [clearBm, setClearBm] = useState(false)
   const [clearNt, setClearNt] = useState(false)
@@ -756,7 +760,7 @@ export default function Sidebar({
                           }}
                         >
                           <HelpCircle className="icon" aria-hidden />
-                          <span>Get key / install</span>
+                          <span>{t(locale, 'getKeyInstall')}</span>
                         </a>
                         {ollamaBlocked && aiSettings.selected === 'ollama' ? (
                           <span className="muted" style={{ color: 'red' }}>
@@ -794,17 +798,17 @@ export default function Sidebar({
                             className="button"
                             onClick={handleTest}
                           >
-                            Test
+                            {t(locale, 'test')}
                           </button>
                           {testStatus === 'loading' ? (
-                            <span className="muted">Testing…</span>
+                            <span className="muted">{t(locale, 'testing')}</span>
                           ) : testStatus === 'ok' ? (
                             <span className="muted" style={{ color: 'green' }}>
-                              OK
+                              {t(locale, 'ok')}
                             </span>
                           ) : testStatus === 'error' ? (
                             <span className="muted" style={{ color: 'red' }}>
-                              Failed
+                              {t(locale, 'failed')}
                             </span>
                           ) : null}
                         </div>
@@ -821,7 +825,7 @@ export default function Sidebar({
           </div>
         </div>
 
-        <div style={{ position: 'sticky', bottom: 0, paddingTop: 12, marginTop: 12, borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+        <div style={{ position: 'sticky', bottom: 0, paddingTop: 12, marginTop: 12, borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
           <a
             className="icon-btn"
             href="https://github.com/omid3098/quran_reader"
@@ -832,11 +836,21 @@ export default function Sidebar({
           >
             <Github className="icon" strokeWidth={2} aria-hidden />
           </a>
+          <select
+            value={locale}
+            onChange={(e) => setLocale(e.target.value as Locale)}
+            aria-label={t(locale, 'uiLanguage')}
+            title={t(locale, 'uiLanguage')}
+            style={{ background: 'transparent', color: 'inherit', border: '1px solid var(--border)', borderRadius: 4, padding: '2px 4px' }}
+          >
+            <option value="en">EN</option>
+            <option value="fa">FA</option>
+          </select>
           <button
             type="button"
             className="icon-btn"
-            aria-label="Toggle theme"
-            title={theme === 'dark' ? 'Switch to light' : 'Switch to dark'}
+            aria-label={t(locale, 'toggleTheme')}
+            title={theme === 'dark' ? t(locale, 'switchToLight') : t(locale, 'switchToDark')}
             onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')}
           >
             {theme === 'dark' ? (
