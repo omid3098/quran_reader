@@ -18,6 +18,7 @@ const en = {
   translations: 'Translations',
   noTranslations: 'No translations available',
   reciter: 'Reciter',
+  reciters: 'Reciters',
   searchReciters: 'Search reciters…',
   searchTranslations: 'Search translations…',
   choose: 'Choose',
