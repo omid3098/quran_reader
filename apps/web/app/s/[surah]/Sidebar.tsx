@@ -152,10 +152,16 @@ export default function Sidebar({
       ? reciterDisplayName
       : `${reciterDisplayName.slice(0, 7)}...`
 
+  const BASE_PATH =
+    process.env.NODE_ENV === 'production'
+      ? process.env.NEXT_PUBLIC_BASE_PATH || ''
+      : ''
+  const STATIC_BASE = BASE_PATH + '/quran'
+
   useEffect(() => {
     ;(async () => {
       try {
-        const res = await fetch('/api/reciters')
+        const res = await fetch(`${STATIC_BASE}/reciters.json`)
         const list = (await res.json()) as Array<{ id: string; name: string }>
         setReciterOptions(list)
       } catch {
@@ -163,8 +169,8 @@ export default function Sidebar({
           { id: 'Abu_Bakr_Ash-Shaatree_128kbps', name: 'Abu Bakr Ash-Shaatree' },
           { id: 'Alafasy_128kbps', name: 'Mishary Rashid Alafasy' },
           { id: 'Ghamadi_64kbps', name: 'Saad Al-Ghamdi' },
-          { id: 'Abdul_Basit_Murattal_128kbps', name: 'Abdul Basit (Murattal' },
-          { id: 'Husary_128kbps', name: 'Al-Husary (Tartil' },
+          { id: 'Abdul_Basit_Murattal_128kbps', name: 'Abdul Basit (Murattal)' },
+          { id: 'Husary_128kbps', name: 'Al-Husary (Tartil)' },
           { id: 'Minshawy_Murattal_128kbps', name: 'Minshawy' },
         ])
       }
