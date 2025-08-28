@@ -92,6 +92,7 @@ export default function Sidebar({
   const router = useRouter()
   const [isFontOpen, setIsFontOpen] = useState(false)
   const [isTranslationsOpen, setTranslationsOpen] = useState(false)
+  const [translationQuery, setTranslationQuery] = useState('')
   const [isReciterOpen, setReciterOpen] = useState(false)
   const [isNotesOpen, setIsNotesOpen] = useState(false)
   const [isBookmarksOpen, setIsBookmarksOpen] = useState(false)
@@ -376,8 +377,21 @@ export default function Sidebar({
               <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isTranslationsOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
             </button>
             {isTranslationsOpen ? (
-              <div id="accordion-translations" style={{ marginTop: 8, display: 'grid', gap: 8, maxHeight: 260, overflow: 'auto' }}>
-                {translations.map((t) => {
+
+              <div id="accordion-translations" style={{ marginTop: 8, display: 'grid', gap: 6, maxHeight: 260, overflow: 'auto' }}>
+                <input
+                  className="input"
+                  type="text"
+                  placeholder={t(locale, 'searchTranslations')}
+                  value={translationQuery}
+                  onChange={(e) => setTranslationQuery(e.target.value)}
+                />
+                {(translationQuery
+                  ? translations.filter((tr) =>
+                      `${tr.language} ${tr.name} ${tr.id}`.toLowerCase().includes(translationQuery.toLowerCase())
+                    )
+                  : translations
+                ).map((t) => {
                   const checked = enabledTranslations.includes(t.id)
                   return (
                     <label key={t.id} style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
@@ -401,6 +415,7 @@ export default function Sidebar({
                   <div className="muted">{t(locale, 'noTranslations')}</div>
                 ) : null}
               </div>
+
             ) : null}
           </div>
         </div>

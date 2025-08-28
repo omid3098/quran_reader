@@ -19,6 +19,7 @@ const en = {
   noTranslations: 'No translations available',
   reciter: 'Reciter',
   searchReciters: 'Search reciters…',
+  searchTranslations: 'Search translations…',
   choose: 'Choose',
   notes: 'Notes',
   noNotes: 'No notes yet',
