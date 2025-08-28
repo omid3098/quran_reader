@@ -152,15 +152,8 @@ export default function Sidebar({
   useEffect(() => {
     ;(async () => {
       try {
-        const res = await fetch('https://everyayah.com/data/recitations.js')
-        const data = await res.json()
-        const list: Array<{ id: string; name: string }> = []
-        for (const key in data) {
-          const val = (data as any)[key]
-          if (val && typeof val === 'object' && 'subfolder' in val) {
-            list.push({ id: val.subfolder, name: val.name })
-          }
-        }
+        const res = await fetch('/api/reciters')
+        const list = (await res.json()) as Array<{ id: string; name: string }>
         setReciterOptions(list)
       } catch {
         setReciterOptions([
