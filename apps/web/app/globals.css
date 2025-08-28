@@ -286,3 +286,24 @@ a {
 .spin {
   animation: spin 1s linear infinite;
 }
+
+/* Mobile tweaks: make floating audio panel and buttons larger and more visible */
+@media (max-width: 640px) {
+  .floating-audio {
+    padding: 10px 16px;
+    gap: 10px;
+    border-color: var(--accent);
+    border-width: 2px;
+  }
+  .floating-audio .icon-btn {
+    width: 44px;
+    height: 44px;
+  }
+  .floating-audio .icon {
+    width: 22px;
+    height: 22px;
+  }
+  .floating-audio .sep {
+    height: 28px;
+  }
+}

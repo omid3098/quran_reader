@@ -24,8 +24,9 @@ type Verse = {
 
 type SurahMeta = { number: number; name_ar: string }
 
-const STATIC_BASE = (process.env.NEXT_PUBLIC_BASE_PATH || '') + '/quran'
-const BASE_PATH = process.env.NEXT_PUBLIC_BASE_PATH || ''
+// Respect basePath only in production to avoid 404s in local dev
+const BASE_PATH = process.env.NODE_ENV === 'production' ? (process.env.NEXT_PUBLIC_BASE_PATH || '') : ''
+const STATIC_BASE = BASE_PATH + '/quran'
 
 export default function ReaderClient({ params }: { params: { surah: string } }) {
     const router = useRouter()
@@ -989,5 +990,4 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         </>
     )
 }
-
 
