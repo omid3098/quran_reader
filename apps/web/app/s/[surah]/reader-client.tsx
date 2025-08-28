@@ -35,7 +35,19 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const surah = Number(params.surah)
     const [font, setFont] = useLocalStorage<'sm' | 'md' | 'lg'>('oqr:font', 'md')
     const [theme, setTheme] = useLocalStorage<'light' | 'dark'>('oqr:theme', 'dark')
-    const [enabledTranslations, setEnabledTranslations] = useLocalStorage<string[]>('oqr:translations', (sp.get('t')?.split(',').filter(Boolean)) || ['en.arberry'])
+    const [enabledTranslationsState, setEnabledTranslations] = useLocalStorage<any>('oqr:translations', (sp.get('t')?.split(',').filter(Boolean)) || ['en.arberry'])
+    const enabledTranslations: string[] = useMemo(() => {
+        const v = enabledTranslationsState
+        if (Array.isArray(v)) return v.filter(Boolean)
+        if (typeof v === 'string') return v.split(',').map((s) => s.trim()).filter(Boolean)
+        if (v && typeof v === 'object') {
+            try {
+                const keys = Object.keys(v).filter((k) => !!v[k])
+                if (keys.length) return keys
+            } catch {}
+        }
+        return ['en.arberry']
+    }, [enabledTranslationsState])
 
     const [translations, setTranslations] = useState<TranslationMeta[]>([])
     const [verses, setVerses] = useState<Verse[] | null>(null)
@@ -969,7 +981,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                     setTheme={setTheme}
                     translations={translations}
                     enabledTranslations={enabledTranslations}
-                    setEnabledTranslations={setEnabledTranslations}
+                    setEnabledTranslations={setEnabledTranslations as React.Dispatch<React.SetStateAction<string[]>>}
                     reciter={reciter}
                     setReciter={setReciter}
                     bookmarks={bookmarks}
@@ -990,4 +1002,3 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         </>
     )
 }
-
