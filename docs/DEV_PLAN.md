@@ -3,7 +3,7 @@
 Last updated: 2025-08-21
 
 ## Current status
-- Repo scaffolded as pnpm workspace monorepo
+- Repo scaffolded as Bun workspace monorepo
 - apps/api file-backed Read API with /health, /surahs, /translations, /verses (served from scripts/out)
 - apps/web Next.js App Router MVP complete:
   - Surah list page at /s (server component) listing surahs (Arabic names)
@@ -113,9 +113,9 @@ Last updated: 2025-08-21
   - DATABASE_URL=postgresql://oqr:oqr@localhost:5432/oqr?schema=public
   - USE_DATABASE=true
 - Generate client + migrate + seed (from apps/api):
-  - pnpm prisma generate
-  - pnpm prisma migrate dev --name init
-  - pnpm db:seed
+  - bunx prisma generate
+  - bunx prisma migrate dev --name init
+  - bun run --cwd apps/api db:seed
 
 ## Notes
 - Keep displayed scripture verbatim per Tanzil; derive-only for search later

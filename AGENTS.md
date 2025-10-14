@@ -4,7 +4,7 @@ Welcome! This repository mirrors the guard-rail driven workflow we use on other 
 
 ## Workflow expectations
 
-- Always install dependencies with `pnpm install`. Do not use npm or yarn.
+- Always install dependencies with `bun install`. Do not use pnpm, npm, or yarn.
 - Run the Bun gatekeeper (`bun run gates`) before you consider the work complete. It executes linting, type-checking, and all unit tests. Fix every failure before committing.
 - Keep pull requests focused and accompanied by tests that demonstrate the intended behaviour. Every bug fix should have a regression test.
 

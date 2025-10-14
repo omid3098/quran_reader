@@ -9,17 +9,17 @@ type Gate = {
 const gates: Gate[] = [
   {
     name: 'Lint',
-    cmd: ['pnpm', 'lint'],
+    cmd: ['bun', 'run', 'lint'],
     description: 'Checks formatting issues and common mistakes across every workspace package.',
   },
   {
     name: 'Typecheck',
-    cmd: ['pnpm', 'typecheck'],
+    cmd: ['bun', 'run', 'typecheck'],
     description: 'Ensures TypeScript types are sound before building.',
   },
   {
     name: 'Unit tests',
-    cmd: ['pnpm', 'test'],
+    cmd: ['bun', 'run', 'test'],
     description: 'Runs Vitest suites and any other package level unit tests.',
   },
 ];
@@ -54,7 +54,7 @@ async function main() {
     if (error instanceof Error) {
       console.error(`    ${error.message}`);
     }
-    Bun.exit(1);
+    process.exit(1);
   }
 
   const total = ((performance.now() - started) / 1000).toFixed(1);
