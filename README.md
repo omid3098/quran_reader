@@ -8,6 +8,7 @@ https://www.omid-saadat.com/quran_reader
 ## Prerequisites
 - Node.js 20+
 - pnpm (Corepack-enabled; run `corepack enable` once)
+- Bun 1.0+ (used for the automated release gates)
 
 ## Install
 ```bash
@@ -19,6 +20,24 @@ pnpm install
 pnpm --filter web dev
 # => copies XML assets into apps/web/public/quran and starts Next.js at http://localhost:3000
 ```
+
+## Quality gates
+
+Before merging or releasing, run the Bun gatekeeper to execute the full workspace checks:
+
+```bash
+bun run gates
+```
+
+This sequentially runs `pnpm lint`, `pnpm typecheck`, and `pnpm test`, failing fast if any step exits with a non-zero status.
+
+### Run unit tests only
+
+```bash
+pnpm test
+```
+
+Vitest test files live in `packages/*/test` and are automatically picked up by the gatekeeper.
 
 ## Build (static export)
 ```bash
