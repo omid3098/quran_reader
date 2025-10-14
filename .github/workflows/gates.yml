@@ -1,0 +1,24 @@
+name: Run Bun Gates
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  gates:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+        with:
+          bun-version: 1.2.14
+
+      - name: Install dependencies
+        run: bun install --frozen-lockfile
+
+      - name: Run quality gates
+        run: bun run gates
