@@ -21,21 +21,18 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
 
-      - name: Setup Node
-        uses: actions/setup-node@v4
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
         with:
-          node-version: 20
-
-      - name: Enable Corepack (pnpm)
-        run: corepack enable
+          bun-version: 1.2.14
 
       - name: Install dependencies
-        run: pnpm install --frozen-lockfile
+        run: bun install --frozen-lockfile
 
       - name: Build static site (Next.js export)
         env:
           NEXT_PUBLIC_BASE_PATH: /${{ github.event.repository.name }}
-        run: pnpm --filter web build
+        run: bun run --cwd apps/web build
 
       - name: Upload artifact
         uses: actions/upload-pages-artifact@v3

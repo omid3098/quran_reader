@@ -7,12 +7,14 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "pnpm -r build",
-    "lint": "pnpm -r lint",
-    "typecheck": "pnpm -r typecheck",
-    "dev": "pnpm -r --parallel dev"
+    "build": "bun scripts/run-workspaces.ts build",
+    "lint": "bun scripts/run-workspaces.ts lint",
+    "typecheck": "bun scripts/run-workspaces.ts typecheck",
+    "test": "bun scripts/run-workspaces.ts test",
+    "dev": "bun run --cwd apps/web dev",
+    "gates": "bun scripts/gates.ts"
   },
-  "packageManager": "pnpm@9.12.0+sha512.4abf725084d7bcbafbd728bfc7bee61f2f791f977fd87542b3579dcb23504d170d46337945e4c66485cd12d588a0c0e570ed9c477e7ccdd8507cf05f3f92eaca",
+  "packageManager": "bun@1.2.14",
   "devDependencies": {
     "@eslint/js": "^9.33.0",
     "@typescript-eslint/parser": "^8.40.0",
