@@ -5,6 +5,7 @@ import {
   buildPagedPages,
   clampPageNumber,
   resolveLeftPageSelection,
+  resolvePagedTypography,
   resolvePagePair,
   sanitizeLineWidth,
   sanitizePageLength,
@@ -61,5 +62,23 @@ describe('paged layout helpers', () => {
         expect(lineLength).toBeLessThanOrEqual(sanitizedWidth)
       })
     })
+  })
+
+  it('scales typography to fit available width', () => {
+    const singleBase = resolvePagedTypography({ lineWidth: 60, twoPage: false })
+    const singleWide = resolvePagedTypography({ lineWidth: 150, twoPage: false })
+    const singleNarrow = resolvePagedTypography({ lineWidth: 30, twoPage: false })
+    expect(singleWide.fontSize).toBeLessThan(singleBase.fontSize)
+    expect(singleNarrow.fontSize).toBeGreaterThan(singleBase.fontSize)
+
+    const twoPage = resolvePagedTypography({ lineWidth: 60, twoPage: true })
+    expect(twoPage.fontSize).toBeLessThanOrEqual(singleBase.fontSize)
+
+    const minBound = resolvePagedTypography({ lineWidth: 1000, twoPage: true })
+    const maxBound = resolvePagedTypography({ lineWidth: 5, twoPage: false })
+    expect(minBound.fontSize).toBeGreaterThanOrEqual(18)
+    expect(maxBound.fontSize).toBeLessThanOrEqual(42)
+    expect(twoPage.lineHeight).toBeGreaterThanOrEqual(1.6)
+    expect(twoPage.lineHeight).toBeLessThanOrEqual(2.2)
   })
 })

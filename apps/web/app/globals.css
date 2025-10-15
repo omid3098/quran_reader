@@ -371,14 +371,14 @@ a {
 .paged-page-body {
   display: grid;
   gap: 8px;
-  font-size: var(--arabic-size, 24px);
-  line-height: 1.9;
+  font-size: var(--paged-font-size, var(--arabic-size, 24px));
+  line-height: var(--paged-line-height, 1.9);
   text-align: right;
 }
 
 .paged-grid.two-page .paged-page-body {
-  font-size: clamp(18px, 2.1vw, 28px);
-  line-height: clamp(1.6, 2.2vw, 2);
+  font-size: var(--paged-font-size, clamp(18px, 2.1vw, 28px));
+  line-height: var(--paged-line-height, clamp(1.6, 2.2vw, 2));
 }
 
 @media (max-width: 960px) {

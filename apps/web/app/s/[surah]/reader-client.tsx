@@ -1,6 +1,6 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type CSSProperties, type MutableRefObject } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { Menu, Book, BookMarked, Settings, ChevronDown, FileText, Share2, ChevronLeft, ChevronRight, Pause, Play, ListEnd, Bookmark, LoaderCircle } from 'lucide-react'
 import type { Route } from 'next'
@@ -12,6 +12,7 @@ import {
     buildPagedPages,
     clampPageNumber,
     resolveLeftPageSelection,
+    resolvePagedTypography,
     resolvePagePair,
     sanitizeLineWidth,
     sanitizePageLength,
@@ -491,6 +492,20 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const totalPagedPages = pagedPages.length
     const manualRightClamped = totalPagedPages ? clampPageNumber(manualRightPage, totalPagedPages) : manualRightPage
     const manualLeftClamped = totalPagedPages ? clampPageNumber(manualLeftPage, totalPagedPages) : manualLeftPage
+    const pagedTypography = useMemo(
+        () => resolvePagedTypography({ lineWidth: sanitizedLineWidth, twoPage: twoPageView }),
+        [sanitizedLineWidth, twoPageView],
+    )
+    const pagedFontSize = pagedTypography.fontSize
+    const pagedLineHeight = pagedTypography.lineHeight
+    const pagedTypographyStyle = useMemo(
+        () =>
+            ({
+                '--paged-font-size': `${pagedFontSize}px`,
+                '--paged-line-height': `${pagedLineHeight}`,
+            }) as CSSProperties,
+        [pagedFontSize, pagedLineHeight],
+    )
     const pagePair = useMemo(
         () =>
             resolvePagePair({
@@ -823,7 +838,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         return (
             <article key={`paged-${position}-${page.index}`} className="paged-page" aria-label={`${pageLabel} ${page.index}`}>
                 <header className="paged-page-header">{pageLabel} {page.index}</header>
-                <div className="paged-page-body" dir="rtl" lang="ar">
+                <div className="paged-page-body" dir="rtl" lang="ar" style={pagedTypographyStyle}>
                     {page.lines.map((line, lineIndex) => {
                         const lineActive = activeAyah != null && line.ayahs.includes(activeAyah)
                         const selectLineAyah = line.ayahs[0]

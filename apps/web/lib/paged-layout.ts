@@ -163,3 +163,33 @@ export function resolveLeftPageSelection(params: {
   }
   return { rightPage: nextRight, manualLeftPage: nextRight };
 }
+
+const BASE_LINE_WIDTH = 60;
+
+type TypographyConfig = {
+  baseFont: number;
+  minFont: number;
+  maxFont: number;
+};
+
+const SINGLE_PAGE_TYPOGRAPHY: TypographyConfig = { baseFont: 32, minFont: 20, maxFont: 42 };
+const TWO_PAGE_TYPOGRAPHY: TypographyConfig = { baseFont: 30, minFont: 18, maxFont: 38 };
+
+export function resolvePagedTypography(params: { lineWidth: number; twoPage: boolean }): {
+  fontSize: number;
+  lineHeight: number;
+} {
+  const { lineWidth, twoPage } = params;
+  const width = sanitizeLineWidth(lineWidth);
+  const config = twoPage ? TWO_PAGE_TYPOGRAPHY : SINGLE_PAGE_TYPOGRAPHY;
+
+  const ratio = width / BASE_LINE_WIDTH || 1;
+  const scaledFont = config.baseFont / Math.sqrt(Math.max(ratio, 0.25));
+  const fontSize = clampNumber(Number.parseFloat(scaledFont.toFixed(2)), config.minFont, config.maxFont);
+
+  const relative = (fontSize - config.minFont) / Math.max(config.maxFont - config.minFont, 1);
+  const desiredLineHeight = 1.6 + relative * 0.5;
+  const lineHeight = clampNumber(Number.parseFloat(desiredLineHeight.toFixed(2)), 1.6, 2.2);
+
+  return { fontSize, lineHeight };
+}
