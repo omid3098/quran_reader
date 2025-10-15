@@ -62,6 +62,10 @@ interface SidebarProps {
   hydrated: boolean
 }
 
+const ACCORDION_SPACING = 6
+const STACK_GAP = 6
+const GRID_GAP = 5
+
 export default function Sidebar({
   surah,
   font,
@@ -317,7 +321,7 @@ export default function Sidebar({
               <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isFontOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
             </button>
             {isFontOpen ? (
-              <div id="accordion-font" style={{ marginTop: 8, display: 'flex', gap: 8 }}>
+              <div id="accordion-font" style={{ marginTop: ACCORDION_SPACING, display: 'flex', gap: STACK_GAP }}>
                 <button type="button" className={`icon-btn${font === 'sm' ? ' active' : ''}`} aria-pressed={font === 'sm'} aria-label={t(locale, 'fontSmall')} onClick={() => setFont('sm')} title={t(locale, 'fontSmall')}>
                   <span style={{ fontSize: 12, fontWeight: 700 }}>A</span>
                 </button>
@@ -350,7 +354,10 @@ export default function Sidebar({
             </button>
             {isTranslationsOpen ? (
 
-              <div id="accordion-translations" style={{ marginTop: 8, display: 'grid', gap: 6, maxHeight: 260, overflow: 'auto' }}>
+              <div
+                id="accordion-translations"
+                style={{ marginTop: ACCORDION_SPACING, display: 'grid', gap: GRID_GAP, maxHeight: 260, overflow: 'auto' }}
+              >
                 <input
                   className="input"
                   type="text"
@@ -431,7 +438,7 @@ export default function Sidebar({
             {isReciterOpen ? (
               <div
                 id="accordion-reciter"
-                style={{ marginTop: 8, display: 'grid', gap: 6, maxHeight: 260, overflow: 'auto' }}
+                style={{ marginTop: ACCORDION_SPACING, display: 'grid', gap: GRID_GAP, maxHeight: 260, overflow: 'auto' }}
               >
                 <input
                   className="input"
@@ -491,7 +498,17 @@ export default function Sidebar({
               </span>
             </button>
             {isNotesOpen ? (
-              <div id="accordion-notes" style={{ marginTop: 8, display: 'grid', gap: 6, gridTemplateColumns: 'repeat(auto-fill, minmax(6ch, 1fr))', maxHeight: 220, overflow: 'auto' }}>
+              <div
+                id="accordion-notes"
+                style={{
+                  marginTop: ACCORDION_SPACING,
+                  display: 'grid',
+                  gap: GRID_GAP,
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(6ch, 1fr))',
+                  maxHeight: 220,
+                  overflow: 'auto',
+                }}
+              >
                 {(!hydrated || Object.keys(notes).length === 0) ? (
                   <div className="muted">{t(locale, 'noNotes')}</div>
                 ) : (
@@ -546,7 +563,17 @@ export default function Sidebar({
               </span>
             </button>
             {isBookmarksOpen ? (
-              <div id="accordion-bookmarks" style={{ marginTop: 8, display: 'grid', gap: 6, gridTemplateColumns: 'repeat(auto-fill, minmax(6ch, 1fr))', maxHeight: 220, overflow: 'auto' }}>
+              <div
+                id="accordion-bookmarks"
+                style={{
+                  marginTop: ACCORDION_SPACING,
+                  display: 'grid',
+                  gap: GRID_GAP,
+                  gridTemplateColumns: 'repeat(auto-fill, minmax(6ch, 1fr))',
+                  maxHeight: 220,
+                  overflow: 'auto',
+                }}
+              >
                 {(!hydrated || Object.keys(bookmarks).length === 0) ? (
                   <div className="muted">{t(locale, 'noBookmarks')}</div>
                 ) : (
@@ -597,7 +624,16 @@ export default function Sidebar({
               <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isExportOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
             </button>
             {isExportOpen ? (
-              <div id="accordion-export" style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div
+                id="accordion-export"
+                style={{
+                  marginTop: ACCORDION_SPACING,
+                  display: 'flex',
+                  gap: STACK_GAP,
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                }}
+              >
                 <button type="button" className="icon-btn" title={t(locale, 'downloadJson')} aria-label={t(locale, 'downloadJson')} onClick={downloadExport}>
                   <Download className="icon" strokeWidth={2} aria-hidden />
                 </button>
@@ -643,7 +679,16 @@ export default function Sidebar({
               <ChevronDown className="icon" strokeWidth={2} aria-hidden style={{ transform: isImportOpen ? 'rotate(180deg)' : 'rotate(0deg)', transition: 'transform 0.15s' }} />
             </button>
             {isImportOpen ? (
-              <div id="accordion-import" style={{ marginTop: 8, display: 'flex', gap: 8, flexWrap: 'wrap', alignItems: 'center' }}>
+              <div
+                id="accordion-import"
+                style={{
+                  marginTop: ACCORDION_SPACING,
+                  display: 'flex',
+                  gap: STACK_GAP,
+                  flexWrap: 'wrap',
+                  alignItems: 'center',
+                }}
+              >
                 <input id="oqr-import-json" type="file" accept="application/json" onChange={(e) => { const f = e.target.files?.[0]; if (f) void handleImportFile(f) }} style={{ display: 'none' }} />
                 <button type="button" className="icon-btn" title={t(locale, 'importFromFile')} aria-label={t(locale, 'importFromFile')} onClick={() => {
                   const el = document.getElementById('oqr-import-json') as HTMLInputElement | null
@@ -688,7 +733,10 @@ export default function Sidebar({
               />
             </button>
             {isClearOpen ? (
-              <div id="accordion-clear" style={{ marginTop: 8, display: 'flex', flexDirection: 'column', gap: 8 }}>
+              <div
+                id="accordion-clear"
+                style={{ marginTop: ACCORDION_SPACING, display: 'flex', flexDirection: 'column', gap: STACK_GAP }}
+              >
                 <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                   <input type="checkbox" checked={clearNav} onChange={(e) => setClearNav(e.target.checked)} aria-label={t(locale, 'clearNavigations')} />
                   <MapPin className="icon" strokeWidth={2} aria-hidden />
@@ -739,8 +787,8 @@ export default function Sidebar({
               />
             </button>
             {isAssistantOpen ? (
-              <div id="accordion-ai" style={{ marginTop: 8 }}>
-                <div className="card" style={{ padding: 4, display: 'grid', gap: 8 }}>
+              <div id="accordion-ai" style={{ marginTop: ACCORDION_SPACING }}>
+                <div className="card" style={{ padding: 4, display: 'grid', gap: STACK_GAP }}>
                   <label style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
                     <input
                       type="checkbox"
@@ -752,7 +800,7 @@ export default function Sidebar({
                     <span>{t(locale, 'enableAssistant')}</span>
                   </label>
                   {aiSettings.enabled ? (
-                    <div style={{ display: 'grid', gap: 8 }}>
+                    <div style={{ display: 'grid', gap: STACK_GAP }}>
                       <ProviderPicker
                         value={aiSettings.selected}
                         onChange={(v) =>
@@ -764,9 +812,9 @@ export default function Sidebar({
                         style={{
                           width: '100%',
                           display: 'grid',
-                          gap: 8,
-                          marginTop: 8,
-                          paddingTop: 8,
+                          gap: STACK_GAP,
+                          marginTop: ACCORDION_SPACING,
+                          paddingTop: STACK_GAP,
                           borderTop: '1px solid rgba(255, 255, 255, 0.08)',
                         }}
                       >
@@ -813,9 +861,7 @@ export default function Sidebar({
                             {t(locale, modelsError)}
                           </span>
                         ) : null}
-                        <div
-                          style={{ display: 'flex', alignItems: 'center', gap: 8 }}
-                        >
+                        <div style={{ display: 'flex', alignItems: 'center', gap: STACK_GAP }}>
                           <button
                             type="button"
                             className="button"

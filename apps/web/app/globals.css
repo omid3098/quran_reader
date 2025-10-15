@@ -285,7 +285,7 @@ a {
 .sidebar-content {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
   min-height: 100%;
 }
 
@@ -295,7 +295,7 @@ a {
 
 .sidebar-sections {
   display: grid;
-  gap: 10px;
+  gap: 6px;
 }
 
 .sidebar-footer {
