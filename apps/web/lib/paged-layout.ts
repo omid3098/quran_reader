@@ -151,17 +151,25 @@ export function resolvePagePair(params: {
 export function resolveLeftPageSelection(params: {
   totalPages: number;
   selectedPage: number;
+  currentRightPage: number;
   syncPages: boolean;
-}): { rightPage: number; manualLeftPage: number | null } {
-  const { totalPages, selectedPage, syncPages } = params;
+}): { nextRightPage: number | null; manualLeftPage: number | null } {
+  const { totalPages, selectedPage, currentRightPage, syncPages } = params;
   if (totalPages <= 0) {
-    return { rightPage: 1, manualLeftPage: syncPages ? null : 1 };
+    return { nextRightPage: null, manualLeftPage: syncPages ? null : 1 };
   }
-  const nextRight = clampPageNumber(selectedPage, totalPages);
+  const selected = clampPageNumber(selectedPage, totalPages);
+  const currentRight = clampPageNumber(currentRightPage, totalPages);
+
   if (syncPages) {
-    return { rightPage: nextRight, manualLeftPage: null };
+    const expectedLeft = currentRight < totalPages ? currentRight + 1 : null;
+    if (selected === expectedLeft || selected === currentRight) {
+      return { nextRightPage: null, manualLeftPage: null };
+    }
+    return { nextRightPage: selected, manualLeftPage: null };
   }
-  return { rightPage: nextRight, manualLeftPage: nextRight };
+
+  return { nextRightPage: null, manualLeftPage: selected };
 }
 
 const BASE_LINE_WIDTH = 60;

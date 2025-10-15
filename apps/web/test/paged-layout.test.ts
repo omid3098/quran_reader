@@ -27,10 +27,19 @@ describe('paged layout helpers', () => {
     expect(resolvePagePair({ totalPages: 6, rightPage: 2, leftManualPage: 5, twoPageView: true, syncPages: false })).toEqual({ rightPage: 2, leftPage: 5 })
   })
 
-  it('resolves left page selections for synced and unsynced views', () => {
-    expect(resolveLeftPageSelection({ totalPages: 10, selectedPage: 4, syncPages: true })).toEqual({ rightPage: 4, manualLeftPage: null })
-    expect(resolveLeftPageSelection({ totalPages: 10, selectedPage: 4, syncPages: false })).toEqual({ rightPage: 4, manualLeftPage: 4 })
-    expect(resolveLeftPageSelection({ totalPages: 0, selectedPage: 8, syncPages: false })).toEqual({ rightPage: 1, manualLeftPage: 1 })
+  it('resolves left page selections without reordering synced spreads', () => {
+    expect(
+      resolveLeftPageSelection({ totalPages: 10, selectedPage: 4, currentRightPage: 3, syncPages: true }),
+    ).toEqual({ nextRightPage: null, manualLeftPage: null })
+    expect(
+      resolveLeftPageSelection({ totalPages: 10, selectedPage: 8, currentRightPage: 3, syncPages: true }),
+    ).toEqual({ nextRightPage: 8, manualLeftPage: null })
+    expect(
+      resolveLeftPageSelection({ totalPages: 10, selectedPage: 4, currentRightPage: 3, syncPages: false }),
+    ).toEqual({ nextRightPage: null, manualLeftPage: 4 })
+    expect(
+      resolveLeftPageSelection({ totalPages: 0, selectedPage: 8, currentRightPage: 1, syncPages: false }),
+    ).toEqual({ nextRightPage: null, manualLeftPage: 1 })
   })
 
   it('builds pages with respect to width and line limits', () => {

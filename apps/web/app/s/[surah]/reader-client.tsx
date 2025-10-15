@@ -599,16 +599,17 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const handleLeftPageVerseSelection = useCallback(
         (pageIndex: number, ayah: number) => {
             if (!totalPagedPages) return
-            const { rightPage: nextRight, manualLeftPage: nextManualLeft } = resolveLeftPageSelection({
+            const { nextRightPage, manualLeftPage: nextManualLeft } = resolveLeftPageSelection({
                 totalPages: totalPagedPages,
                 selectedPage: pageIndex,
+                currentRightPage,
                 syncPages: syncTwoPages,
             })
-            setManualRightPage(nextRight)
+            if (nextRightPage != null) setManualRightPage(nextRightPage)
             if (nextManualLeft != null) setManualLeftPage(nextManualLeft)
             setActiveAyah(ayah)
         },
-        [setManualLeftPage, setManualRightPage, setActiveAyah, syncTwoPages, totalPagedPages],
+        [setManualLeftPage, setManualRightPage, setActiveAyah, syncTwoPages, totalPagedPages, currentRightPage],
     )
 
     function handleLineWidthChange(value: number) {
