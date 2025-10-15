@@ -13,7 +13,12 @@
     "@types/node": "20.12.12",
     "@types/react": "18.3.3",
     "eslint": "9.9.0",
-    "typescript": "5.5.4"
+    "typescript": "5.5.4",
+    "vitest": "^1.3.1",
+    "@testing-library/react": "^14.2.1",
+    "@testing-library/user-event": "^14.5.2",
+    "@testing-library/jest-dom": "^6.4.2",
+    "jsdom": "^24.0.0"
   },
   "scripts": {
     "dev": "node ../../scripts/copy-xml.js && next dev",
@@ -21,6 +26,7 @@
     "build": "next build",
     "start": "next start",
     "lint": "eslint .",
-    "typecheck": "tsc -p tsconfig.json --noEmit"
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run"
   }
 }

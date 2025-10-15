@@ -1,17 +1,21 @@
 'use client'
 
 import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
+import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { Menu, Book, BookMarked, Settings, ChevronDown, FileText, Share2, ChevronLeft, ChevronRight, Pause, Play, ListEnd, Bookmark, LoaderCircle } from 'lucide-react'
 import type { Route } from 'next'
 import { useRouter, useSearchParams } from 'next/navigation'
 import { useLocalStorage } from '../../../hooks/use-local-storage'
 import { isRtlLanguage } from '../../../lib/is-rtl-language'
 import { encodeSharePayload, decodeSharePayload } from '../../../lib/share'
+import { buildPagedPages, clampPageNumber, resolvePagePair, sanitizeLineWidth, sanitizePageLength } from '../../../lib/paged-layout'
 import Sidebar from './Sidebar'
 import type { TranslationMeta } from '@openquranreader/types'
 import type { BookmarksSet, NotesMap, VerseKey } from './types'
 import { createAssistant } from '../../../src/features/assistant/useAssistant'
 import { useAISettings } from '../../../src/state/settings'
+import { useLocale } from '../../../src/state/locale'
+import { t } from '../../../src/i18n'
 import type { ChatMessage } from '@openquran/ai/types'
 
 type Verse = {
@@ -65,6 +69,14 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const [openNoteAyah, setOpenNoteAyah] = useState<number | null>(null)
     const [incomingShare, setIncomingShare] = useState<null | { bookmarks: VerseKey[]; notes: Array<[VerseKey, string]> }>(null)
     const [hydrated, setHydrated] = useState(false)
+    const [readerMode, setReaderMode] = useLocalStorage<'continuous' | 'paged'>('oqr:readerMode', 'continuous')
+    const [pageLineWidth, setPageLineWidth] = useLocalStorage<number>('oqr:pagedLineWidth', 60)
+    const [pageLineCount, setPageLineCount] = useLocalStorage<number>('oqr:pagedLinesPerPage', 15)
+    const [twoPageView, setTwoPageView] = useLocalStorage<boolean>('oqr:pagedTwoPage', false)
+    const [syncTwoPages, setSyncTwoPages] = useLocalStorage<boolean>('oqr:pagedSyncPages', true)
+    const [manualRightPage, setManualRightPage] = useLocalStorage<number>('oqr:pagedRightPage', 1)
+    const [manualLeftPage, setManualLeftPage] = useLocalStorage<number>('oqr:pagedLeftPage', 2)
+    const [locale, setLocale] = useLocale()
 
     // Audio state
     const [enabledRecitersState, setEnabledReciters] = useLocalStorage<any>('oqr:reciters', ['Alafasy_128kbps'])
@@ -100,6 +112,21 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     }, [theme])
 
     useEffect(() => { setHydrated(true) }, [])
+
+    useEffect(() => { setPageLineWidth((prev) => sanitizeLineWidth(prev)) }, [setPageLineWidth])
+    useEffect(() => { setPageLineCount((prev) => sanitizePageLength(prev)) }, [setPageLineCount])
+    useEffect(() => {
+        setManualRightPage((prev) => {
+            const rounded = Math.round(prev)
+            return Number.isFinite(rounded) && rounded > 0 ? rounded : 1
+        })
+    }, [setManualRightPage])
+    useEffect(() => {
+        setManualLeftPage((prev) => {
+            const rounded = Math.round(prev)
+            return Number.isFinite(rounded) && rounded > 0 ? rounded : 1
+        })
+    }, [setManualLeftPage])
 
     // Create a single audio element for this page
     useEffect(() => {
@@ -363,6 +390,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
 
     // when verses load or active ayah changes, ensure it is in range and scroll into view
     useEffect(() => {
+        if (readerMode !== 'continuous') return
         if (!verses || !verses.length) return
         const first = verses[0]?.ayah
         const last = verses[verses.length - 1]?.ayah
@@ -377,7 +405,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
             el?.scrollIntoView({ behavior: 'smooth', block: 'center' })
         }, 0)
         return () => clearTimeout(t)
-    }, [verses, activeAyah])
+    }, [verses, activeAyah, readerMode])
 
     // persist last position (surah + ayah) and per-surah last ayah
     useEffect(() => {
@@ -432,6 +460,8 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
 
     const arabicSizeVar = font === 'sm' ? '20px' : font === 'lg' ? '28px' : '24px'
     const translationSizeVar = font === 'sm' ? '12px' : font === 'lg' ? '16px' : '14px'
+    const sanitizedLineWidth = useMemo(() => sanitizeLineWidth(pageLineWidth), [pageLineWidth])
+    const sanitizedPageLength = useMemo(() => sanitizePageLength(pageLineCount), [pageLineCount])
     const selectedTranslations = useMemo(
         () =>
             enabledTranslations
@@ -439,6 +469,61 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                 .filter((t): t is TranslationMeta => !!t),
         [translations, enabledTranslations],
     )
+
+    const pagedPages = useMemo(
+        () =>
+            verses
+                ? buildPagedPages(
+                    verses.map((v) => ({ ayah: v.ayah, text: v.text_ar_simple, bismillah: v.bismillah })),
+                    sanitizedLineWidth,
+                    sanitizedPageLength,
+                )
+                : [],
+        [verses, sanitizedLineWidth, sanitizedPageLength],
+    )
+    const totalPagedPages = pagedPages.length
+    const manualRightClamped = totalPagedPages ? clampPageNumber(manualRightPage, totalPagedPages) : manualRightPage
+    const manualLeftClamped = totalPagedPages ? clampPageNumber(manualLeftPage, totalPagedPages) : manualLeftPage
+    const pagePair = useMemo(
+        () =>
+            resolvePagePair({
+                totalPages: totalPagedPages,
+                rightPage: manualRightClamped,
+                leftManualPage: manualLeftClamped,
+                twoPageView,
+                syncPages: syncTwoPages,
+            }),
+        [totalPagedPages, manualRightClamped, manualLeftClamped, twoPageView, syncTwoPages],
+    )
+    const currentRightPage = pagePair.rightPage
+    const currentLeftPage = pagePair.leftPage
+
+    useEffect(() => {
+        if (!totalPagedPages) return
+        setManualRightPage((prev) => clampPageNumber(prev, totalPagedPages))
+        setManualLeftPage((prev) => clampPageNumber(prev, totalPagedPages))
+    }, [totalPagedPages, setManualRightPage, setManualLeftPage])
+
+    const ayahToPage = useMemo(() => {
+        const map = new Map<number, number>()
+        pagedPages.forEach((page, pageIndex) => {
+            page.lines.forEach((line) => {
+                line.ayahs.forEach((ayah) => {
+                    if (!map.has(ayah)) map.set(ayah, pageIndex)
+                })
+            })
+        })
+        return map
+    }, [pagedPages])
+
+    useEffect(() => {
+        if (readerMode !== 'paged') return
+        if (!activeAyah) return
+        const index = ayahToPage.get(activeAyah)
+        if (index == null) return
+        const target = index + 1
+        setManualRightPage((prev) => (prev === target ? prev : target))
+    }, [readerMode, activeAyah, ayahToPage, setManualRightPage])
 
     function pad3(n: number) {
         return String(n).padStart(3, '0')
@@ -470,6 +555,31 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     function getGlobalAyahIndex(surahNum: number, ayahNum: number) {
         const offset = AYAH_OFFSET[surahNum] || 0
         return offset + ayahNum
+    }
+
+    function handleRightPageChange(requested: number) {
+        if (!totalPagedPages) {
+            setManualRightPage(1)
+            return
+        }
+        const clamped = clampPageNumber(requested, totalPagedPages)
+        setManualRightPage(clamped)
+        const page = pagedPages[clamped - 1]
+        if (page?.firstAyah) setActiveAyah(page.firstAyah)
+    }
+
+    function handleManualLeftPageChange(requested: number) {
+        if (!totalPagedPages) return
+        const clamped = clampPageNumber(requested, totalPagedPages)
+        setManualLeftPage(clamped)
+    }
+
+    function handleLineWidthChange(value: number) {
+        setPageLineWidth(sanitizeLineWidth(value))
+    }
+
+    function handlePageLengthChange(value: number) {
+        setPageLineCount(sanitizePageLength(value))
     }
 
     function buildAudioUrl(reciterId: string, surahNum: number, ayahNum: number) {
@@ -673,6 +783,63 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         return `${base}${BASE_PATH}/s/${surah}?${params.toString()}`
     }
 
+    const pagedRightPageContent = currentRightPage >= 1 && currentRightPage <= totalPagedPages ? pagedPages[currentRightPage - 1] : undefined
+    const pagedLeftPageContent = currentLeftPage && currentLeftPage >= 1 && currentLeftPage <= totalPagedPages ? pagedPages[currentLeftPage - 1] : undefined
+
+    function renderPagedPage(page: (typeof pagedPages)[number] | undefined, position: 'right' | 'left') {
+        const pageLabel = t(locale, 'pageLabel')
+        if (!page) {
+            const displayIndex = position === 'right' ? currentRightPage : currentLeftPage ?? '—'
+            return (
+                <article key={`paged-${position}-empty`} className="paged-page empty" aria-label={`${pageLabel} ${displayIndex}`}>
+                    <header className="paged-page-header">{pageLabel} {displayIndex}</header>
+                    <div className="paged-page-empty">{t(locale, 'noPage')}</div>
+                </article>
+            )
+        }
+        return (
+            <article key={`paged-${position}-${page.index}`} className="paged-page" aria-label={`${pageLabel} ${page.index}`}>
+                <header className="paged-page-header">{pageLabel} {page.index}</header>
+                <div className="paged-page-body" dir="rtl" lang="ar">
+                    {page.lines.map((line, lineIndex) => {
+                        const lineActive = activeAyah != null && line.ayahs.includes(activeAyah)
+                        return (
+                            <div
+                                key={`paged-line-${page.index}-${lineIndex}`}
+                                className={`paged-line${lineActive ? ' active' : ''}`}
+                                onClick={() => {
+                                    if (line.ayahs.length) setActiveAyah(line.ayahs[0])
+                                }}
+                            >
+                                {line.tokens.map((token, tokenIndex) => (
+                                    <span
+                                        key={`paged-token-${page.index}-${lineIndex}-${tokenIndex}`}
+                                        className={`paged-token${token.isMarker ? ' marker' : ''}${token.ayah === activeAyah ? ' active' : ''}`}
+                                        role={token.isMarker ? 'button' : undefined}
+                                        tabIndex={token.isMarker ? 0 : undefined}
+                                        onKeyDown={token.isMarker ? (e: ReactKeyboardEvent<HTMLSpanElement>) => {
+                                            if (e.key === 'Enter' || e.key === ' ') {
+                                                e.preventDefault()
+                                                setActiveAyah(token.ayah)
+                                            }
+                                        } : undefined}
+                                        onClick={(e) => {
+                                            e.stopPropagation()
+                                            setActiveAyah(token.ayah)
+                                        }}
+                                    >
+                                        {token.text}
+                                        {tokenIndex < line.tokens.length - 1 ? '\u00A0' : ''}
+                                    </span>
+                                ))}
+                            </div>
+                        )
+                    })}
+                </div>
+            </article>
+        )
+    }
+
     return (
         <div className={`dashboard${isSidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
             <aside className="dashboard-sidebar" aria-hidden={isSidebarCollapsed}>
@@ -711,6 +878,24 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                         setActiveAyah={setActiveAyah}
                         setOpenNoteAyah={setOpenNoteAyah}
                         hydrated={hydrated}
+                        readerMode={readerMode}
+                        setReaderMode={setReaderMode}
+                        pagedLineWidth={sanitizedLineWidth}
+                        onPagedLineWidthChange={handleLineWidthChange}
+                        pagedPageLength={sanitizedPageLength}
+                        onPagedPageLengthChange={handlePageLengthChange}
+                        twoPageView={twoPageView}
+                        setTwoPageView={setTwoPageView}
+                        syncTwoPages={syncTwoPages}
+                        setSyncTwoPages={setSyncTwoPages}
+                        rightPage={currentRightPage}
+                        onRightPageChange={handleRightPageChange}
+                        manualLeftPage={manualLeftClamped}
+                        onManualLeftPageChange={handleManualLeftPageChange}
+                        computedLeftPage={currentLeftPage}
+                        totalPagedPages={totalPagedPages}
+                        locale={locale}
+                        setLocale={setLocale}
                     />
                 </div>
             </aside>
@@ -842,6 +1027,17 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                             {Array.from({ length: 5 }).map((_, i) => (
                                 <div key={i} className="skeleton" style={{ height: 64 }} />
                             ))}
+                        </div>
+                    ) : readerMode === 'paged' ? (
+                        <div className="paged-container">
+                            {totalPagedPages === 0 ? (
+                                <div className="card" role="note">{t(locale, 'noPage')}</div>
+                            ) : (
+                                <div className={`paged-grid${twoPageView ? ' two-page' : ''}`} dir="rtl">
+                                    {renderPagedPage(pagedRightPageContent, 'right')}
+                                    {twoPageView ? renderPagedPage(pagedLeftPageContent, 'left') : null}
+                                </div>
+                            )}
                         </div>
                     ) : (
                         <div

@@ -36,9 +36,9 @@ import { ModelPicker } from '../../../src/features/assistant/ModelPicker'
 import { createAssistant } from '../../../src/features/assistant/useAssistant'
 import type { AISettings } from '../../../src/state/settings'
 import type { ChatMessage } from '@openquran/ai/types'
-import { useLocale } from '../../../src/state/locale'
 import { t } from '../../../src/i18n'
 import type { Locale, UIKey } from '../../../src/i18n'
+import { ReaderModeSection } from './ReaderModeSection'
 
 interface SidebarProps {
   surah: number
@@ -60,6 +60,24 @@ interface SidebarProps {
   setActiveAyah: (a: number) => void
   setOpenNoteAyah: (a: number) => void
   hydrated: boolean
+  readerMode: 'continuous' | 'paged'
+  setReaderMode: (mode: 'continuous' | 'paged') => void
+  pagedLineWidth: number
+  onPagedLineWidthChange: (value: number) => void
+  pagedPageLength: number
+  onPagedPageLengthChange: (value: number) => void
+  twoPageView: boolean
+  setTwoPageView: (value: boolean) => void
+  syncTwoPages: boolean
+  setSyncTwoPages: (value: boolean) => void
+  rightPage: number
+  onRightPageChange: (value: number) => void
+  manualLeftPage: number
+  onManualLeftPageChange: (value: number) => void
+  computedLeftPage: number | null
+  totalPagedPages: number
+  locale: Locale
+  setLocale: (locale: Locale) => void
 }
 
 const ACCORDION_SPACING = 6
@@ -86,6 +104,24 @@ export default function Sidebar({
   setActiveAyah,
   setOpenNoteAyah,
   hydrated,
+  readerMode,
+  setReaderMode,
+  pagedLineWidth,
+  onPagedLineWidthChange,
+  pagedPageLength,
+  onPagedPageLengthChange,
+  twoPageView,
+  setTwoPageView,
+  syncTwoPages,
+  setSyncTwoPages,
+  rightPage,
+  onRightPageChange,
+  manualLeftPage,
+  onManualLeftPageChange,
+  computedLeftPage,
+  totalPagedPages,
+  locale,
+  setLocale,
 }: SidebarProps) {
   const router = useRouter()
   const [isFontOpen, setIsFontOpen] = useState(false)
@@ -101,7 +137,6 @@ export default function Sidebar({
   const [models, setModels] = useState<Array<{ id: string; name?: string; free?: boolean }>>([])
   const [modelsError, setModelsError] = useState<UIKey | null>(null)
   const [testStatus, setTestStatus] = useState<'idle' | 'ok' | 'error' | 'loading'>('idle')
-  const [locale, setLocale] = useLocale()
   const [clearNav, setClearNav] = useState(false)
   const [clearBm, setClearBm] = useState(false)
   const [clearNt, setClearNt] = useState(false)
@@ -301,8 +336,28 @@ export default function Sidebar({
 
   return (
     <div className="sidebar-content" role="region" aria-label={t(locale, 'settingsSidebar')}>
-      <div className="sidebar-heading">{t(locale, 'settings')}</div>
-      <div className="sidebar-sections">
+  <div className="sidebar-heading">{t(locale, 'settings')}</div>
+  <div className="sidebar-sections">
+
+        <ReaderModeSection
+          locale={locale}
+          readerMode={readerMode}
+          onModeChange={(mode) => setReaderMode(mode)}
+          pagedLineWidth={pagedLineWidth}
+          onPagedLineWidthChange={onPagedLineWidthChange}
+          pagedPageLength={pagedPageLength}
+          onPagedPageLengthChange={onPagedPageLengthChange}
+          twoPageView={twoPageView}
+          onTwoPageViewChange={(value) => setTwoPageView(value)}
+          syncPages={syncTwoPages}
+          onSyncPagesChange={(value) => setSyncTwoPages(value)}
+          rightPage={rightPage}
+          onRightPageChange={onRightPageChange}
+          manualLeftPage={manualLeftPage}
+          onManualLeftPageChange={onManualLeftPageChange}
+          computedLeftPage={computedLeftPage}
+          totalPagedPages={totalPagedPages}
+        />
 
         <div className="section">
           <div role="region" aria-label={t(locale, 'fontSize')}>
