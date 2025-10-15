@@ -58,7 +58,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const surahDropdownRef = useRef<HTMLDivElement>(null)
     const surahListRef = useRef<HTMLDivElement>(null)
     const [activeAyah, setActiveAyah] = useState<number | null>(null)
-    const [isSidebarCollapsed, setSidebarCollapsed] = useState(false)
+    const [isSidebarCollapsed, setSidebarCollapsed] = useState(true)
     // Local bookmarks and notes
     const [bookmarks, setBookmarks] = useLocalStorage<BookmarksSet>('oqr:bookmarks', {})
     const [notes, setNotes] = useLocalStorage<NotesMap>('oqr:notes', {})
