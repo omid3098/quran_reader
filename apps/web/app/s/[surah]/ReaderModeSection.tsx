@@ -1,5 +1,11 @@
-import React, { type ChangeEvent } from 'react'
-import { LINE_WIDTH_BOUNDS, PAGE_LENGTH_BOUNDS, clampPageNumber, sanitizeLineWidth, sanitizePageLength } from '../../../lib/paged-layout'
+import React, { useCallback, useEffect, useState, type ChangeEvent, type KeyboardEvent } from 'react'
+import {
+  LINE_WIDTH_BOUNDS,
+  PAGE_LENGTH_BOUNDS,
+  clampPageNumber,
+  sanitizeLineWidth,
+  sanitizePageLength,
+} from '../../../lib/paged-layout'
 import { t } from '../../../src/i18n'
 import type { Locale } from '../../../src/i18n'
 
@@ -46,30 +52,121 @@ export function ReaderModeSection({
 }: ReaderModeSectionProps) {
   const maxPage = totalPagedPages > 0 ? totalPagedPages : 1
   const displayRightPage = clampPageNumber(rightPage, totalPagedPages)
-  const displayManualLeft = clampPageNumber(manualLeftPage, totalPagedPages)
+  const displayManualLeft = totalPagedPages > 0 ? clampPageNumber(manualLeftPage, totalPagedPages) : manualLeftPage
+
+  const [lineWidthInput, setLineWidthInput] = useState<string>(() => String(pagedLineWidth))
+  const [lineWidthEditing, setLineWidthEditing] = useState(false)
+
+  const [pageLengthInput, setPageLengthInput] = useState<string>(() => String(pagedPageLength))
+  const [pageLengthEditing, setPageLengthEditing] = useState(false)
+
+  const [rightPageInput, setRightPageInput] = useState<string>(() => String(displayRightPage))
+  const [rightPageEditing, setRightPageEditing] = useState(false)
+
+  const [leftPageInput, setLeftPageInput] = useState<string>(() => (syncPages ? String(computedLeftPage ?? '') : String(displayManualLeft)))
+  const [leftPageEditing, setLeftPageEditing] = useState(false)
+
+  useEffect(() => {
+    if (!lineWidthEditing) setLineWidthInput(String(pagedLineWidth))
+  }, [pagedLineWidth, lineWidthEditing])
+
+  useEffect(() => {
+    if (!pageLengthEditing) setPageLengthInput(String(pagedPageLength))
+  }, [pagedPageLength, pageLengthEditing])
+
+  useEffect(() => {
+    if (!rightPageEditing) setRightPageInput(String(displayRightPage))
+  }, [displayRightPage, rightPageEditing])
+
+  useEffect(() => {
+    if (syncPages) {
+      setLeftPageEditing(false)
+      setLeftPageInput(computedLeftPage ? String(computedLeftPage) : '')
+      return
+    }
+    if (!leftPageEditing) setLeftPageInput(String(displayManualLeft))
+  }, [syncPages, computedLeftPage, displayManualLeft, leftPageEditing])
+
+  const commitLineWidth = useCallback(() => {
+    const parsed = Number(lineWidthInput)
+    const sanitized = Number.isFinite(parsed) ? sanitizeLineWidth(parsed) : pagedLineWidth
+    onPagedLineWidthChange(sanitized)
+    setLineWidthInput(String(sanitized))
+    setLineWidthEditing(false)
+  }, [lineWidthInput, onPagedLineWidthChange, pagedLineWidth])
+
+  const commitPageLength = useCallback(() => {
+    const parsed = Number(pageLengthInput)
+    const sanitized = Number.isFinite(parsed) ? sanitizePageLength(parsed) : pagedPageLength
+    onPagedPageLengthChange(sanitized)
+    setPageLengthInput(String(sanitized))
+    setPageLengthEditing(false)
+  }, [pageLengthInput, onPagedPageLengthChange, pagedPageLength])
+
+  const commitRightPage = useCallback(() => {
+    const parsed = Number(rightPageInput)
+    const sanitized = Number.isFinite(parsed) ? clampPageNumber(parsed, totalPagedPages) : displayRightPage
+    onRightPageChange(sanitized)
+    setRightPageInput(String(sanitized))
+    setRightPageEditing(false)
+  }, [displayRightPage, onRightPageChange, rightPageInput, totalPagedPages])
+
+  const commitLeftPage = useCallback(() => {
+    if (syncPages) return
+    const parsed = Number(leftPageInput)
+    const sanitized = Number.isFinite(parsed) ? clampPageNumber(parsed, totalPagedPages) : displayManualLeft
+    onManualLeftPageChange(sanitized)
+    setLeftPageInput(String(sanitized))
+    setLeftPageEditing(false)
+  }, [displayManualLeft, leftPageInput, onManualLeftPageChange, syncPages, totalPagedPages])
 
   function handleLineWidthChange(e: ChangeEvent<HTMLInputElement>) {
-    const parsed = Number(e.target.value)
+    const value = e.target.value
+    setLineWidthEditing(true)
+    setLineWidthInput(value)
+    const parsed = Number(value)
     if (!Number.isFinite(parsed)) return
     onPagedLineWidthChange(sanitizeLineWidth(parsed))
   }
 
   function handlePageLengthChange(e: ChangeEvent<HTMLInputElement>) {
-    const parsed = Number(e.target.value)
+    const value = e.target.value
+    setPageLengthEditing(true)
+    setPageLengthInput(value)
+    const parsed = Number(value)
     if (!Number.isFinite(parsed)) return
     onPagedPageLengthChange(sanitizePageLength(parsed))
   }
 
   function handleRightPageInput(e: ChangeEvent<HTMLInputElement>) {
-    const parsed = Number(e.target.value)
+    const value = e.target.value
+    setRightPageEditing(true)
+    setRightPageInput(value)
+    if (!value.trim()) return
+    const parsed = Number(value)
     if (!Number.isFinite(parsed)) return
     onRightPageChange(clampPageNumber(parsed, totalPagedPages))
   }
 
   function handleLeftPageInput(e: ChangeEvent<HTMLInputElement>) {
-    const parsed = Number(e.target.value)
+    const value = e.target.value
+    setLeftPageEditing(true)
+    setLeftPageInput(value)
+    if (!value.trim()) return
+    const parsed = Number(value)
     if (!Number.isFinite(parsed)) return
     onManualLeftPageChange(clampPageNumber(parsed, totalPagedPages))
+  }
+
+  function handleNumberKeyDown(e: KeyboardEvent<HTMLInputElement>, commit: () => void) {
+    if (e.key === 'Enter') {
+      e.preventDefault()
+      commit()
+    }
+  }
+
+  function handleBlur(commit: () => void) {
+    commit()
   }
 
   return (
@@ -99,8 +196,10 @@ export function ReaderModeSection({
                 type="number"
                 min={LINE_WIDTH_BOUNDS.min}
                 max={LINE_WIDTH_BOUNDS.max}
-                value={pagedLineWidth}
+                value={lineWidthInput}
                 onChange={handleLineWidthChange}
+                onBlur={() => handleBlur(commitLineWidth)}
+                onKeyDown={(e) => handleNumberKeyDown(e, commitLineWidth)}
                 className="input"
               />
             </label>
@@ -110,8 +209,10 @@ export function ReaderModeSection({
                 type="number"
                 min={PAGE_LENGTH_BOUNDS.min}
                 max={PAGE_LENGTH_BOUNDS.max}
-                value={pagedPageLength}
+                value={pageLengthInput}
                 onChange={handlePageLengthChange}
+                onBlur={() => handleBlur(commitPageLength)}
+                onKeyDown={(e) => handleNumberKeyDown(e, commitPageLength)}
                 className="input"
               />
             </label>
@@ -121,8 +222,10 @@ export function ReaderModeSection({
                 type="number"
                 min={1}
                 max={maxPage}
-                value={displayRightPage}
+                value={rightPageInput}
                 onChange={handleRightPageInput}
+                onBlur={() => handleBlur(commitRightPage)}
+                onKeyDown={(e) => handleNumberKeyDown(e, commitRightPage)}
                 className="input"
               />
             </label>
@@ -150,8 +253,10 @@ export function ReaderModeSection({
                     type="number"
                     min={1}
                     max={maxPage}
-                    value={syncPages ? (computedLeftPage ?? '') : displayManualLeft}
+                    value={leftPageInput}
                     onChange={handleLeftPageInput}
+                    onBlur={() => handleBlur(commitLeftPage)}
+                    onKeyDown={(e) => handleNumberKeyDown(e, commitLeftPage)}
                     className="input"
                     disabled={syncPages}
                   />

@@ -1,6 +1,6 @@
 'use client'
 
-import { useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState, type MutableRefObject } from 'react'
 import type { KeyboardEvent as ReactKeyboardEvent } from 'react'
 import { Menu, Book, BookMarked, Settings, ChevronDown, FileText, Share2, ChevronLeft, ChevronRight, Pause, Play, ListEnd, Bookmark, LoaderCircle } from 'lucide-react'
 import type { Route } from 'next'
@@ -8,7 +8,14 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import { useLocalStorage } from '../../../hooks/use-local-storage'
 import { isRtlLanguage } from '../../../lib/is-rtl-language'
 import { encodeSharePayload, decodeSharePayload } from '../../../lib/share'
-import { buildPagedPages, clampPageNumber, resolvePagePair, sanitizeLineWidth, sanitizePageLength } from '../../../lib/paged-layout'
+import {
+    buildPagedPages,
+    clampPageNumber,
+    resolveLeftPageSelection,
+    resolvePagePair,
+    sanitizeLineWidth,
+    sanitizePageLength,
+} from '../../../lib/paged-layout'
 import Sidebar from './Sidebar'
 import type { TranslationMeta } from '@openquranreader/types'
 import type { BookmarksSet, NotesMap, VerseKey } from './types'
@@ -574,6 +581,21 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         setManualLeftPage(clamped)
     }
 
+    const handleLeftPageVerseSelection = useCallback(
+        (pageIndex: number, ayah: number) => {
+            if (!totalPagedPages) return
+            const { rightPage: nextRight, manualLeftPage: nextManualLeft } = resolveLeftPageSelection({
+                totalPages: totalPagedPages,
+                selectedPage: pageIndex,
+                syncPages: syncTwoPages,
+            })
+            setManualRightPage(nextRight)
+            if (nextManualLeft != null) setManualLeftPage(nextManualLeft)
+            setActiveAyah(ayah)
+        },
+        [setManualLeftPage, setManualRightPage, setActiveAyah, syncTwoPages, totalPagedPages],
+    )
+
     function handleLineWidthChange(value: number) {
         setPageLineWidth(sanitizeLineWidth(value))
     }
@@ -797,19 +819,27 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                 </article>
             )
         }
+        const isLeft = position === 'left'
         return (
             <article key={`paged-${position}-${page.index}`} className="paged-page" aria-label={`${pageLabel} ${page.index}`}>
                 <header className="paged-page-header">{pageLabel} {page.index}</header>
                 <div className="paged-page-body" dir="rtl" lang="ar">
                     {page.lines.map((line, lineIndex) => {
                         const lineActive = activeAyah != null && line.ayahs.includes(activeAyah)
+                        const selectLineAyah = line.ayahs[0]
+                        const handleLineActivate = () => {
+                            if (!selectLineAyah) return
+                            if (isLeft) {
+                                handleLeftPageVerseSelection(page.index, selectLineAyah)
+                            } else {
+                                setActiveAyah(selectLineAyah)
+                            }
+                        }
                         return (
                             <div
                                 key={`paged-line-${page.index}-${lineIndex}`}
                                 className={`paged-line${lineActive ? ' active' : ''}`}
-                                onClick={() => {
-                                    if (line.ayahs.length) setActiveAyah(line.ayahs[0])
-                                }}
+                                onClick={handleLineActivate}
                             >
                                 {line.tokens.map((token, tokenIndex) => (
                                     <span
@@ -820,12 +850,20 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                         onKeyDown={token.isMarker ? (e: ReactKeyboardEvent<HTMLSpanElement>) => {
                                             if (e.key === 'Enter' || e.key === ' ') {
                                                 e.preventDefault()
-                                                setActiveAyah(token.ayah)
+                                                if (isLeft) {
+                                                    handleLeftPageVerseSelection(page.index, token.ayah)
+                                                } else {
+                                                    setActiveAyah(token.ayah)
+                                                }
                                             }
                                         } : undefined}
                                         onClick={(e) => {
                                             e.stopPropagation()
-                                            setActiveAyah(token.ayah)
+                                            if (isLeft) {
+                                                handleLeftPageVerseSelection(page.index, token.ayah)
+                                            } else {
+                                                setActiveAyah(token.ayah)
+                                            }
                                         }}
                                     >
                                         {token.text}
@@ -1005,7 +1043,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
             </header>
 
             <main className="dashboard-content">
-                <div className="container">
+                <div className={`container${readerMode === 'paged' ? ' paged-full' : ''}`}>
                     <section style={{ padding: 16 }}>
                     {incomingShare ? (
                         <div className="card" role="region" aria-label="Incoming shared data" style={{ marginBottom: 12 }}>

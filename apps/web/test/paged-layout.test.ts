@@ -4,6 +4,7 @@ import {
   PAGE_LENGTH_BOUNDS,
   buildPagedPages,
   clampPageNumber,
+  resolveLeftPageSelection,
   resolvePagePair,
   sanitizeLineWidth,
   sanitizePageLength,
@@ -23,6 +24,12 @@ describe('paged layout helpers', () => {
     expect(resolvePagePair({ totalPages: 4, rightPage: 2, leftManualPage: 1, twoPageView: true, syncPages: true })).toEqual({ rightPage: 2, leftPage: 3 })
     expect(resolvePagePair({ totalPages: 3, rightPage: 3, leftManualPage: 2, twoPageView: true, syncPages: true })).toEqual({ rightPage: 3, leftPage: null })
     expect(resolvePagePair({ totalPages: 6, rightPage: 2, leftManualPage: 5, twoPageView: true, syncPages: false })).toEqual({ rightPage: 2, leftPage: 5 })
+  })
+
+  it('resolves left page selections for synced and unsynced views', () => {
+    expect(resolveLeftPageSelection({ totalPages: 10, selectedPage: 4, syncPages: true })).toEqual({ rightPage: 4, manualLeftPage: null })
+    expect(resolveLeftPageSelection({ totalPages: 10, selectedPage: 4, syncPages: false })).toEqual({ rightPage: 4, manualLeftPage: 4 })
+    expect(resolveLeftPageSelection({ totalPages: 0, selectedPage: 8, syncPages: false })).toEqual({ rightPage: 1, manualLeftPage: 1 })
   })
 
   it('builds pages with respect to width and line limits', () => {

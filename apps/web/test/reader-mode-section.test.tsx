@@ -44,7 +44,10 @@ describe('ReaderModeSection', () => {
     const lineWidthInput = screen.getByLabelText('Line width (characters)') as HTMLInputElement
     lineWidthInput.focus()
     await user.clear(lineWidthInput)
-    await user.type(lineWidthInput, '500')
+    await user.type(lineWidthInput, '50')
+    expect(lineWidthInput.value).toBe('50')
+    expect(onLineWidthChange).toHaveBeenLastCalledWith(50)
+    await user.type(lineWidthInput, '0')
     expect(onLineWidthChange).toHaveBeenLastCalledWith(LINE_WIDTH_BOUNDS.max)
 
     const pageLengthInput = screen.getByLabelText('Lines per page') as HTMLInputElement
@@ -54,7 +57,8 @@ describe('ReaderModeSection', () => {
 
     const rightPageInput = screen.getByLabelText('Right page') as HTMLInputElement
     await user.clear(rightPageInput)
-    await user.type(rightPageInput, '99')
+    await user.type(rightPageInput, '12')
+    expect(rightPageInput.value).toBe('12')
     expect(onRightPageChange).toHaveBeenLastCalledWith(8)
 
     const syncCheckbox = screen.getByLabelText('Sync pages') as HTMLInputElement
@@ -97,6 +101,7 @@ describe('ReaderModeSection', () => {
     expect(leftInput).not.toBeDisabled()
     await user.clear(leftInput)
     await user.type(leftInput, '99')
+    expect(leftInput.value).toBe('99')
     expect(onLeftPageChange).toHaveBeenLastCalledWith(8)
   })
 })

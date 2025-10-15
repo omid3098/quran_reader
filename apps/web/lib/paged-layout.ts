@@ -21,7 +21,7 @@ export type PagedPage = {
   firstAyah: number;
 };
 
-export const LINE_WIDTH_BOUNDS = { min: 20, max: 120 } as const;
+export const LINE_WIDTH_BOUNDS = { min: 20, max: 200 } as const;
 export const PAGE_LENGTH_BOUNDS = { min: 5, max: 40 } as const;
 
 export function clampNumber(value: number, min: number, max: number): number {
@@ -146,4 +146,20 @@ export function resolvePagePair(params: {
   }
   const left = clampPageNumber(leftManualPage, totalPages);
   return { rightPage: right, leftPage: left };
+}
+
+export function resolveLeftPageSelection(params: {
+  totalPages: number;
+  selectedPage: number;
+  syncPages: boolean;
+}): { rightPage: number; manualLeftPage: number | null } {
+  const { totalPages, selectedPage, syncPages } = params;
+  if (totalPages <= 0) {
+    return { rightPage: 1, manualLeftPage: syncPages ? null : 1 };
+  }
+  const nextRight = clampPageNumber(selectedPage, totalPages);
+  if (syncPages) {
+    return { rightPage: nextRight, manualLeftPage: null };
+  }
+  return { rightPage: nextRight, manualLeftPage: nextRight };
 }
