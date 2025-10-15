@@ -24,6 +24,7 @@ import { createAssistant } from '../../../src/features/assistant/useAssistant'
 import { useAISettings } from '../../../src/state/settings'
 import { useLocale } from '../../../src/state/locale'
 import { t } from '../../../src/i18n'
+import { usePagedActiveAyahSync } from './use-paged-active-ayah-sync'
 import type { ChatMessage } from '@openquran/ai/types'
 
 type Verse = {
@@ -538,14 +539,12 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         return map
     }, [pagedPages])
 
-    useEffect(() => {
-        if (readerMode !== 'paged') return
-        if (!activeAyah) return
-        const index = ayahToPage.get(activeAyah)
-        if (index == null) return
-        const target = index + 1
-        setManualRightPage((prev) => (prev === target ? prev : target))
-    }, [readerMode, activeAyah, ayahToPage, setManualRightPage])
+    const { markLeftSelection } = usePagedActiveAyahSync({
+        readerMode,
+        activeAyah,
+        ayahToPage,
+        setManualRightPage,
+    })
 
     function pad3(n: number) {
         return String(n).padStart(3, '0')
@@ -607,9 +606,18 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
             })
             if (nextRightPage != null) setManualRightPage(nextRightPage)
             if (nextManualLeft != null) setManualLeftPage(nextManualLeft)
+            markLeftSelection()
             setActiveAyah(ayah)
         },
-        [setManualLeftPage, setManualRightPage, setActiveAyah, syncTwoPages, totalPagedPages, currentRightPage],
+        [
+            setManualLeftPage,
+            setManualRightPage,
+            setActiveAyah,
+            syncTwoPages,
+            totalPagedPages,
+            currentRightPage,
+            markLeftSelection,
+        ],
     )
 
     function handleLineWidthChange(value: number) {
