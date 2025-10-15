@@ -1,4 +1,7 @@
 import React from 'react'
+import { readFileSync } from 'node:fs'
+import { fileURLToPath } from 'node:url'
+import { dirname, join } from 'node:path'
 import { render, screen } from '@testing-library/react'
 import userEvent from '@testing-library/user-event'
 import { describe, expect, it, vi } from 'vitest'
@@ -6,6 +9,15 @@ import { ReaderModeSection } from '../app/s/[surah]/ReaderModeSection'
 import { LINE_WIDTH_BOUNDS, PAGE_LENGTH_BOUNDS } from '../lib/paged-layout'
 
 describe('ReaderModeSection', () => {
+  it('is marked as a client component', () => {
+    const filePath = join(
+      dirname(fileURLToPath(import.meta.url)),
+      '../app/s/[surah]/ReaderModeSection.tsx',
+    )
+    const source = readFileSync(filePath, 'utf8').trimStart()
+    expect(source.startsWith("'use client'")).toBe(true)
+  })
+
   it('invokes callbacks for mode selection and inputs', async () => {
     const user = userEvent.setup()
     const onModeChange = vi.fn()

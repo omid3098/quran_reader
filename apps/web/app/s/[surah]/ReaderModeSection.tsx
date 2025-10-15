@@ -1,3 +1,5 @@
+'use client'
+
 import React, { useCallback, useEffect, useState, type ChangeEvent, type KeyboardEvent } from 'react'
 import {
   LINE_WIDTH_BOUNDS,
