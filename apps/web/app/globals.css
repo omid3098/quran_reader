@@ -285,7 +285,7 @@ a {
 .sidebar-content {
   display: flex;
   flex-direction: column;
-  gap: 16px;
+  gap: 12px;
   min-height: 100%;
 }
 
@@ -295,7 +295,7 @@ a {
 
 .sidebar-sections {
   display: grid;
-  gap: 16px;
+  gap: 10px;
 }
 
 .sidebar-footer {
@@ -318,7 +318,7 @@ a {
 }
 
 .section {
-  margin-bottom: 16px;
+  margin-bottom: 0;
 }
 
 /* Floating audio panel */
