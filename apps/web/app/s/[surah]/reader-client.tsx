@@ -678,16 +678,17 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
             <aside className="dashboard-sidebar" aria-hidden={isSidebarCollapsed}>
                 <div className="dashboard-sidebar-header">
                     <div className="brand">OpenQuranReader</div>
-                    <button
-                        type="button"
-                        className="icon-btn"
-                        aria-label="Collapse settings"
-                        title="Collapse settings"
-                        onClick={() => setSidebarCollapsed(true)}
-                        disabled={isSidebarCollapsed}
-                    >
-                        <ChevronLeft className="icon" strokeWidth={2} aria-hidden />
-                    </button>
+                    {!isSidebarCollapsed ? (
+                        <button
+                            type="button"
+                            className="icon-btn"
+                            aria-label="Collapse settings"
+                            title="Collapse settings"
+                            onClick={() => setSidebarCollapsed(true)}
+                        >
+                            <ChevronLeft className="icon" strokeWidth={2} aria-hidden />
+                        </button>
+                    ) : null}
                 </div>
                 <div className="dashboard-sidebar-body">
                     <Sidebar
@@ -719,20 +720,17 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                         <nav className="toolbar" aria-label="Reader controls" style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
                             {/* Left: Sidebar (menu) button */}
                             <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                                <button
-                                    type="button"
-                                    className="icon-btn"
-                                    onClick={() => setSidebarCollapsed((prev) => !prev)}
-                                    aria-pressed={!isSidebarCollapsed}
-                                    aria-label={isSidebarCollapsed ? 'Open settings' : 'Collapse settings'}
-                                    title={isSidebarCollapsed ? 'Open settings' : 'Collapse settings'}
-                                >
-                                    {isSidebarCollapsed ? (
+                                {isSidebarCollapsed ? (
+                                    <button
+                                        type="button"
+                                        className="icon-btn"
+                                        onClick={() => setSidebarCollapsed(false)}
+                                        aria-label="Open settings"
+                                        title="Open settings"
+                                    >
                                         <Menu className="icon" strokeWidth={2} aria-hidden />
-                                    ) : (
-                                        <ChevronLeft className="icon" strokeWidth={2} aria-hidden />
-                                    )}
-                                </button>
+                                    </button>
+                                ) : null}
                             </div>
 
                         {/* Center: Surah dropdown */}

@@ -55,7 +55,7 @@ a {
   align-items: center;
   justify-content: space-between;
   gap: 12px;
-  padding: 10px 16px;
+  padding: 16px;
 }
 
 .brand {
@@ -212,10 +212,13 @@ a {
 /* Dashboard shell */
 .dashboard {
   --sidebar-width: 320px;
+  --sidebar-visible-width: var(--sidebar-width);
   display: flex;
   min-height: 100vh;
   width: 100%;
   background: var(--bg);
+  height: 100vh;
+  overflow: hidden;
 }
 
 .dashboard-sidebar {
@@ -232,6 +235,10 @@ a {
 .dashboard.sidebar-collapsed .dashboard-sidebar {
   width: 0;
   border-right: none;
+}
+
+.dashboard.sidebar-collapsed {
+  --sidebar-visible-width: 0px;
 }
 
 .dashboard.sidebar-collapsed .dashboard-sidebar > * {
@@ -251,6 +258,7 @@ a {
   flex: 1;
   overflow-y: auto;
   padding: 16px;
+  overscroll-behavior: contain;
 }
 
 .dashboard-main {
@@ -263,6 +271,7 @@ a {
 .dashboard-content {
   flex: 1;
   overflow-y: auto;
+  overscroll-behavior: contain;
 }
 
 .sidebar-heading {
@@ -315,7 +324,7 @@ a {
 /* Floating audio panel */
 .floating-audio {
   position: fixed;
-  left: 50%;
+  left: calc(var(--sidebar-visible-width) + (100vw - var(--sidebar-visible-width)) / 2);
   bottom: 16px;
   transform: translateX(-50%);
   /* Frosted glass effect */
