@@ -58,7 +58,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     const surahDropdownRef = useRef<HTMLDivElement>(null)
     const surahListRef = useRef<HTMLDivElement>(null)
     const [activeAyah, setActiveAyah] = useState<number | null>(null)
-    const [isSidebarOpen, setSidebarOpen] = useState(false)
+    const [isSidebarCollapsed, setSidebarCollapsed] = useState(false)
     // Local bookmarks and notes
     const [bookmarks, setBookmarks] = useLocalStorage<BookmarksSet>('oqr:bookmarks', {})
     const [notes, setNotes] = useLocalStorage<NotesMap>('oqr:notes', {})
@@ -396,7 +396,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
             const target = document.activeElement as HTMLElement | null
             const tag = target?.tagName?.toLowerCase()
             if (tag === 'input' || tag === 'select' || tag === 'textarea' || target?.isContentEditable) return
-            if (isSurahOpen || isSidebarOpen) return
+            if (isSurahOpen) return
             if (!verses || !verses.length) return
             const first = verses[0]?.ayah || 1
             const last = verses[verses.length - 1]?.ayah || first
@@ -428,7 +428,7 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
         }
         window.addEventListener('keydown', handler)
         return () => window.removeEventListener('keydown', handler)
-    }, [verses, isSurahOpen, isSidebarOpen])
+    }, [verses, isSurahOpen])
 
     const arabicSizeVar = font === 'sm' ? '20px' : font === 'lg' ? '28px' : '24px'
     const translationSizeVar = font === 'sm' ? '12px' : font === 'lg' ? '16px' : '14px'
@@ -674,22 +674,66 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
     }
 
     return (
-        <>
-            <header className="header" role="banner">
-                <div className="header-inner">
-                    <nav className="toolbar" aria-label="Reader controls" style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
-                        {/* Left: Sidebar (menu) button */}
-                        <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
-                            <button
-                                type="button"
-                                className="icon-btn"
-                                onClick={() => setSidebarOpen(true)}
-                                aria-label="Open settings"
-                                title="Settings"
-                            >
-                                <Menu className="icon" strokeWidth={2} aria-hidden />
-                            </button>
-                        </div>
+        <div className={`dashboard${isSidebarCollapsed ? ' sidebar-collapsed' : ''}`}>
+            <aside className="dashboard-sidebar" aria-hidden={isSidebarCollapsed}>
+                <div className="dashboard-sidebar-header">
+                    <div className="brand">OpenQuranReader</div>
+                    <button
+                        type="button"
+                        className="icon-btn"
+                        aria-label="Collapse settings"
+                        title="Collapse settings"
+                        onClick={() => setSidebarCollapsed(true)}
+                        disabled={isSidebarCollapsed}
+                    >
+                        <ChevronLeft className="icon" strokeWidth={2} aria-hidden />
+                    </button>
+                </div>
+                <div className="dashboard-sidebar-body">
+                    <Sidebar
+                        surah={surah}
+                        font={font}
+                        setFont={setFont}
+                        theme={theme}
+                        setTheme={setTheme}
+                        translations={translations}
+                        enabledTranslations={enabledTranslations}
+                        setEnabledTranslations={setEnabledTranslations as React.Dispatch<React.SetStateAction<string[]>>}
+                        enabledReciters={enabledReciters}
+                        setEnabledReciters={setEnabledReciters as React.Dispatch<React.SetStateAction<string[]>>}
+                        bookmarks={bookmarks}
+                        notes={notes}
+                        setBookmarks={setBookmarks}
+                        setNotes={setNotes}
+                        aiSettings={aiSettings}
+                        setAISettings={setAISettings}
+                        setActiveAyah={setActiveAyah}
+                        setOpenNoteAyah={setOpenNoteAyah}
+                        hydrated={hydrated}
+                    />
+                </div>
+            </aside>
+            <div className="dashboard-main">
+                <header className="header" role="banner">
+                    <div className="header-inner">
+                        <nav className="toolbar" aria-label="Reader controls" style={{ width: '100%', display: 'grid', gridTemplateColumns: '1fr auto 1fr', alignItems: 'center' }}>
+                            {/* Left: Sidebar (menu) button */}
+                            <div style={{ display: 'flex', justifyContent: 'flex-start' }}>
+                                <button
+                                    type="button"
+                                    className="icon-btn"
+                                    onClick={() => setSidebarCollapsed((prev) => !prev)}
+                                    aria-pressed={!isSidebarCollapsed}
+                                    aria-label={isSidebarCollapsed ? 'Open settings' : 'Collapse settings'}
+                                    title={isSidebarCollapsed ? 'Open settings' : 'Collapse settings'}
+                                >
+                                    {isSidebarCollapsed ? (
+                                        <Menu className="icon" strokeWidth={2} aria-hidden />
+                                    ) : (
+                                        <ChevronLeft className="icon" strokeWidth={2} aria-hidden />
+                                    )}
+                                </button>
+                            </div>
 
                         {/* Center: Surah dropdown */}
                         <div ref={surahDropdownRef} style={{ position: 'relative', justifySelf: 'center' }}>
@@ -777,8 +821,9 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                 </div>
             </header>
 
-            <main className="container">
-                <section style={{ padding: 16 }}>
+            <main className="dashboard-content">
+                <div className="container">
+                    <section style={{ padding: 16 }}>
                     {incomingShare ? (
                         <div className="card" role="region" aria-label="Incoming shared data" style={{ marginBottom: 12 }}>
                             <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
@@ -956,7 +1001,11 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                                 )})}
                         </div>
                     )}
-                </section>
+                    </section>
+                    <footer className="footer" style={{ textAlign: 'left' }}>
+                        Open Qur’an Reader | Made with love and surrender · Audio: <a href="https://everyayah.com" target="_blank" rel="noreferrer">EveryAyah</a> · <a href="https://quran.com" target="_blank" rel="noreferrer">Quran.com</a>
+                    </footer>
+                </div>
 
                 {/* Floating audio controls */}
                 <div className="floating-audio" role="region" aria-label="Audio controls">
@@ -1005,34 +1054,8 @@ export default function ReaderClient({ params }: { params: { surah: string } }) 
                     </div>
                 ) : null}
 
-                <Sidebar
-                    isOpen={isSidebarOpen}
-                    onClose={() => setSidebarOpen(false)}
-                    surah={surah}
-                    font={font}
-                    setFont={setFont}
-                    theme={theme}
-                    setTheme={setTheme}
-                    translations={translations}
-                    enabledTranslations={enabledTranslations}
-                    setEnabledTranslations={setEnabledTranslations as React.Dispatch<React.SetStateAction<string[]>>}
-                    enabledReciters={enabledReciters}
-                    setEnabledReciters={setEnabledReciters as React.Dispatch<React.SetStateAction<string[]>>}
-                    bookmarks={bookmarks}
-                    notes={notes}
-                    setBookmarks={setBookmarks}
-                    setNotes={setNotes}
-                    aiSettings={aiSettings}
-                    setAISettings={setAISettings}
-                    setActiveAyah={setActiveAyah}
-                    setOpenNoteAyah={setOpenNoteAyah}
-                    hydrated={hydrated}
-                />
-
-                <footer className="footer" style={{ textAlign: 'left' }}>
-                    Open Qur’an Reader | Made with love and surrender · Audio: <a href="https://everyayah.com" target="_blank" rel="noreferrer">EveryAyah</a> · <a href="https://quran.com" target="_blank" rel="noreferrer">Quran.com</a>
-                </footer>
             </main>
-        </>
+        </div>
+        </div>
     )
 }

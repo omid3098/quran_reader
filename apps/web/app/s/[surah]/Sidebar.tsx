@@ -1,10 +1,9 @@
 'use client'
 
-import { useEffect, useState, useMemo, useRef } from 'react'
+import { useEffect, useState, useMemo } from 'react'
 import { useRouter } from 'next/navigation'
 import type { Route } from 'next'
 import {
-  X,
   File,
   ChevronDown,
   Languages,
@@ -42,8 +41,6 @@ import { t } from '../../../src/i18n'
 import type { Locale, UIKey } from '../../../src/i18n'
 
 interface SidebarProps {
-  isOpen: boolean
-  onClose: () => void
   surah: number
   font: 'sm' | 'md' | 'lg'
   setFont: (f: 'sm' | 'md' | 'lg') => void
@@ -66,8 +63,6 @@ interface SidebarProps {
 }
 
 export default function Sidebar({
-  isOpen,
-  onClose,
   surah,
   font,
   setFont,
@@ -111,26 +106,6 @@ export default function Sidebar({
     () => createAssistant({ selected: aiSettings.selected, keys: aiSettings.keys }),
     [aiSettings.selected, aiSettings.keys]
   )
-  const [width, setWidth] = useState(250)
-  const startX = useRef(0)
-  const startW = useRef(0)
-  function beginResize(e: React.MouseEvent) {
-    startX.current = e.clientX
-    startW.current = width
-    function move(ev: MouseEvent) {
-      const next = Math.min(
-        Math.max(220, startW.current + ev.clientX - startX.current),
-        480
-      )
-      setWidth(next)
-    }
-    function up() {
-      window.removeEventListener('mousemove', move)
-      window.removeEventListener('mouseup', up)
-    }
-    window.addEventListener('mousemove', move)
-    window.addEventListener('mouseup', up)
-  }
   const isHttps = typeof window !== 'undefined' && location.protocol === 'https:'
   const ollamaUrl = aiSettings.keys.OLLAMA_URL || 'http://localhost:11434'
   const ollamaBlocked = isHttps && !ollamaUrl.startsWith('https:')
@@ -321,20 +296,9 @@ export default function Sidebar({
   }
 
   return (
-    <>
-      {isOpen ? <div className="sidebar-backdrop" onClick={onClose} aria-hidden="true" /> : null}
-      <aside
-        className={`sidebar${isOpen ? ' open' : ''}`}
-        aria-hidden={!isOpen}
-        aria-label={t(locale, 'settingsSidebar')}
-        style={{ width }}
-      >
-        <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 }}>
-          <div className="muted">{t(locale, 'settings')}</div>
-          <button type="button" className="icon-btn" aria-label={t(locale, 'closeSidebar')} onClick={onClose}>
-            <X className="icon" strokeWidth={2} aria-hidden />
-          </button>
-        </div>
+    <div className="sidebar-content" role="region" aria-label={t(locale, 'settingsSidebar')}>
+      <div className="sidebar-heading">{t(locale, 'settings')}</div>
+      <div className="sidebar-sections">
 
         <div className="section">
           <div role="region" aria-label={t(locale, 'fontSize')}>
@@ -547,7 +511,6 @@ export default function Sidebar({
                             if (t) params.set('t', t)
                             params.set('v', String(a))
                             const href = (`/s/${s}?${params.toString()}`) as Route
-                            onClose()
                             if (here) { setActiveAyah(a); setOpenNoteAyah(a) }
                             else { router.push(href, { scroll: false }); setTimeout(() => setOpenNoteAyah(a), 50) }
                           }}
@@ -603,7 +566,6 @@ export default function Sidebar({
                             if (t) params.set('t', t)
                             params.set('v', String(a))
                             const href = (`/s/${s}?${params.toString()}`) as Route
-                            onClose()
                             if (here) setActiveAyah(a)
                             else router.push(href, { scroll: false })
                           }}
@@ -885,7 +847,8 @@ export default function Sidebar({
           </div>
         </div>
 
-        <div style={{ position: 'sticky', bottom: 0, paddingTop: 12, marginTop: 12, borderTop: '1px solid rgba(255, 255, 255, 0.08)', display: 'flex', justifyContent: 'space-between', alignItems: 'center', gap: 8 }}>
+      </div>
+      <div className="sidebar-footer">
           <a
             className="icon-btn"
             href="https://github.com/omid3098/quran_reader"
@@ -919,9 +882,7 @@ export default function Sidebar({
               <Moon className="icon" strokeWidth={2} aria-hidden />
             )}
           </button>
-        </div>
-        <div className="sidebar-resizer" onMouseDown={beginResize} />
-      </aside>
-    </>
+      </div>
+    </div>
   )
 }
