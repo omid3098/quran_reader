@@ -106,6 +106,16 @@ const App: React.FC = () => {
   const [currentVerseIndex, setCurrentVerseIndex] = useState<number>(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // Persist last read position so we can restore it on reload
+  useEffect(() => {
+    if (!currentChapter) return;
+    const verse = verses[currentVerseIndex];
+    if (!verse) return;
+
+    localStorage.setItem('lastSurahId', currentChapter.id.toString());
+    localStorage.setItem('lastVerseKey', verse.verse_key);
+  }, [currentChapter, currentVerseIndex, verses]);
+
   // --- Tafseer State ---
   const [tafseerModalOpen, setTafseerModalOpen] = useState(false);
   const [tafseerLoading, setTafseerLoading] = useState(false);
@@ -184,10 +194,30 @@ const App: React.FC = () => {
       setLoadingChapters(false);
       
       if (chaptersData.length > 0) {
+        const savedVerseKey = localStorage.getItem('lastVerseKey');
         const savedSurahId = localStorage.getItem('lastSurahId');
-        const initialId = savedSurahId ? parseInt(savedSurahId, 10) : 1;
-        const validId = chaptersData.find(c => c.id === initialId) ? initialId : 1;
-        handleChapterSelect(validId, chaptersData);
+
+        let targetVerseKey: string | null = null;
+        let initialId = 1;
+
+        if (savedVerseKey) {
+          const [surahStr, ayahStr] = savedVerseKey.split(':');
+          const surahId = parseInt(surahStr, 10);
+          const ayahNum = parseInt(ayahStr, 10);
+          const surahExists = chaptersData.some(c => c.id === surahId);
+
+          if (!isNaN(surahId) && !isNaN(ayahNum) && surahExists) {
+            initialId = surahId;
+            targetVerseKey = `${surahId}:${ayahNum}`;
+          }
+        }
+
+        if (!targetVerseKey && savedSurahId) {
+          const surahId = parseInt(savedSurahId, 10);
+          initialId = chaptersData.some(c => c.id === surahId) ? surahId : 1;
+        }
+
+        handleChapterSelect(initialId, chaptersData, targetVerseKey || undefined);
       }
     };
     init();
@@ -300,7 +330,7 @@ const App: React.FC = () => {
   }, [verses, loadingVerses, pendingScrollAyah]);
 
   // --- Handlers ---
-  const handleChapterSelect = async (id: number, chaptersList = chapters) => {
+  const handleChapterSelect = async (id: number, chaptersList = chapters, targetVerseKey?: string) => {
     const chapter = chaptersList.find(c => c.id === id);
     if (!chapter) return;
 
@@ -309,13 +339,26 @@ const App: React.FC = () => {
     setCurrentChapter(chapter);
     setLoadingVerses(true);
     setIsPlaying(false);
-    setCurrentVerseIndex(0);
 
     const versesData = await getVerses(id, settings.translationIds);
     setVerses(versesData);
+
+    if (targetVerseKey) {
+      const targetIndex = versesData.findIndex(v => v.verse_key === targetVerseKey);
+      if (targetIndex !== -1) {
+        setCurrentVerseIndex(targetIndex);
+        const [, ayahStr] = targetVerseKey.split(':');
+        setPendingScrollAyah(`ayah-${id}-${ayahStr}`);
+      } else {
+        setCurrentVerseIndex(0);
+      }
+    } else {
+      setCurrentVerseIndex(0);
+    }
+
     setLoadingVerses(false);
     
-    if (!pendingScrollAyah) {
+    if (!targetVerseKey && !pendingScrollAyah) {
       window.scrollTo({ top: 0, behavior: 'smooth' });
     }
   };
@@ -336,12 +379,17 @@ const App: React.FC = () => {
   };
 
   const handleNavigateFromSearch = (surahId: number, ayahNum: number) => {
+    const verseKey = `${surahId}:${ayahNum}`;
     const targetId = `ayah-${surahId}-${ayahNum}`;
     setPendingScrollAyah(targetId);
     
     if (currentChapter?.id !== surahId) {
-      handleChapterSelect(surahId);
+      handleChapterSelect(surahId, chapters, verseKey);
     } else {
+       const targetIndex = verses.findIndex(v => v.verse_key === verseKey);
+       if (targetIndex !== -1) {
+         setCurrentVerseIndex(targetIndex);
+       }
        const element = document.getElementById(targetId);
        if(element) element.scrollIntoView({ behavior: 'smooth', block: 'center' });
     }
