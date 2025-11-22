@@ -1,0 +1,190 @@
+
+import { Chapter, Verse, Reciter, TranslationResource } from '../types';
+
+const BASE_URL = 'https://api.alquran.cloud/v1';
+
+// Expanded list of Reciters supported by everyayah.com
+export const RECITERS: Reciter[] = [
+  { id: 'alafasy', name: 'Mishary Rashid Alafasy', subfolder: 'Alafasy_128kbps' },
+  { id: 'sudais', name: 'Abdur-Rahman as-Sudais', subfolder: 'Abdurrahmaan_As-Sudais_192kbps' },
+  { id: 'shuraym', name: 'Saud Al-Shuraym', subfolder: 'Saud_Al-Shuraim_128kbps' },
+  { id: 'maher', name: 'Maher Al Muaiqly', subfolder: 'MaherAlMuaiqly_128kbps' },
+  { id: 'husary', name: 'Mahmoud Khalil Al-Husary', subfolder: 'Husary_128kbps' },
+  { id: 'husary_mujawwad', name: 'Mahmoud Khalil Al-Husary (Mujawwad)', subfolder: 'Husary_Mujawwad_128kbps' },
+  { id: 'minshawi', name: 'Mohamed Siddiq Al-Minshawi', subfolder: 'Minshawy_Murattal_128kbps' },
+  { id: 'minshawi_mujawwad', name: 'Mohamed Siddiq Al-Minshawi (Mujawwad)', subfolder: 'Minshawy_Mujawwad_192kbps' },
+  { id: 'abdulbasit', name: 'AbdulBaset AbdulSamad (Murattal)', subfolder: 'Abdul_Basit_Murattal_192kbps' },
+  { id: 'abdulbasit_mujawwad', name: 'AbdulBaset AbdulSamad (Mujawwad)', subfolder: 'Abdul_Basit_Mujawwad_128kbps' },
+  { id: 'ghamadi', name: 'Saad Al-Ghamdi', subfolder: 'Ghamadi_40kbps' },
+  { id: 'hudhaify', name: 'Ali Al-Hudhaify', subfolder: 'Ali_Al-Hudhaify_128kbps' },
+  { id: 'hani_rifai', name: 'Hani Ar-Rifai', subfolder: 'Hani_Rifai_192kbps' },
+  { id: 'tunaiji', name: 'Khalifa Al Tunaiji', subfolder: 'Khalifa_Al_Tunaiji_64kbps' },
+  { id: 'ajamy', name: 'Ahmed ibn Ali al-Ajamy', subfolder: 'Ahmed_ibn_Ali_al-Ajamy_128kbps_ketaballah.net' },
+  { id: 'jibreel', name: 'Muhammad Jibreel', subfolder: 'Muhammad_Jibreel_128kbps' },
+  { id: 'tablawi', name: 'Mohammad Al Tablawi', subfolder: 'Mohammad_al_Tablaway_128kbps' },
+  { id: 'ayyoub', name: 'Muhammad Ayyoub', subfolder: 'Muhammad_Ayyoub_128kbps' },
+  { id: 'basfar', name: 'Abdullah Basfar', subfolder: 'Abdullah_Basfar_192kbps' },
+  { id: 'parhizgar', name: 'Shahriar Parhizgar', subfolder: 'Parhizgar_48kbps' },
+  { id: 'jaber', name: 'Ali Jaber', subfolder: 'Ali_Jaber_64kbps' },
+  { id: 'shatri', name: 'Abu Bakr al-Shatri', subfolder: 'Abu_Bakr_Ash-Shatri_128kbps' },
+  { id: 'banna', name: 'Mahmoud Ali Al Banna', subfolder: 'Mahmoud_Ali_Al_Banna_32kbps' },
+  { id: 'walk', name: 'Ibrahim Walk (English)', subfolder: 'Ibrahim_Walk_192kbps_TEST' },
+  { id: 'hedayatfar', name: 'Fooladvand - Hedayatfar (Persian)', subfolder: 'Fooladvand_Hedayatfar_40kbps' },
+  { id: 'makarem', name: 'Makarem Shirazi (Persian)', subfolder: 'Makarem_Kabiri_16Kbps' },
+  { id: 'shamshad', name: 'Shamshad Ali Khan (Urdu)', subfolder: 'Shamshad_Ali_Khan_46kbps' },
+];
+
+// List of preferred translation identifiers with correct names
+export const PREFERRED_TRANSLATIONS: Partial<TranslationResource>[] = [
+  // Persian - Tanzil IDs
+  { id: 'fa.ansarian', name: 'انصاریان', language_name: 'Persian', author_name: 'Hussain Ansarian', slug: 'ansarian' },
+  { id: 'fa.ayati', name: 'آیتی', language_name: 'Persian', author_name: 'AbdolMohammad Ayati', slug: 'ayati' },
+  { id: 'fa.bahrampour', name: 'بهرام‌پور', language_name: 'Persian', author_name: 'Abolfazl Bahrampour', slug: 'bahrampour' },
+  { id: 'fa.gharaati', name: 'قرائتی', language_name: 'Persian', author_name: 'Mohsen Qaraati', slug: 'gharaati' },
+  { id: 'fa.ghomshei', name: 'الهی قمشه‌ای', language_name: 'Persian', author_name: 'Mahdi Elahi Ghomshei', slug: 'ghomshei' },
+  { id: 'fa.fooladvand', name: 'فولادوند', language_name: 'Persian', author_name: 'Mohammad Mahdi Fooladvand', slug: 'fooladvand' },
+  { id: 'fa.khorramdel', name: 'خرمدل', language_name: 'Persian', author_name: 'Mostafa Khorramdel', slug: 'khorramdel' },
+  { id: 'fa.khorramshahi', name: 'خرمشاهی', language_name: 'Persian', author_name: 'Baha\'oddin Khorramshahi', slug: 'khorramshahi' },
+  { id: 'fa.makarem', name: 'مکارم شیرازی', language_name: 'Persian', author_name: 'Naser Makarem Shirazi', slug: 'makarem' },
+  { id: 'fa.mojtabavi', name: 'مجتبوی', language_name: 'Persian', author_name: 'Sayyed Jalaloddin Mojtabavi', slug: 'mojtabavi' },
+  { id: 'fa.moezzi', name: 'معزی', language_name: 'Persian', author_name: 'Mohammad Kazem Moezzi', slug: 'moezzi' },
+  { id: 'fa.sadeqi', name: 'صادقی تهرانی', language_name: 'Persian', author_name: 'Mohammad Sadeqi Tehrani', slug: 'sadeqi' },
+  { id: 'fa.safavi', name: 'صفوی', language_name: 'Persian', author_name: 'Mohammad Reza Safavi', slug: 'safavi' },
+];
+
+export const getChapters = async (): Promise<Chapter[]> => {
+  try {
+    const response = await fetch(`${BASE_URL}/surah`);
+    if (!response.ok) throw new Error('Failed to fetch chapters');
+    const data = await response.json();
+    
+    return data.data.map((s: any) => ({
+      id: s.number,
+      revelation_place: s.revelationType.toLowerCase(),
+      revelation_order: s.revelationOrder || 0,
+      bismillah_pre: s.number !== 1 && s.number !== 9, // All except Fatiha and Tawbah
+      name_simple: s.englishName,
+      name_complex: s.englishName,
+      name_arabic: s.name,
+      verses_count: s.numberOfAyahs,
+      translated_name: {
+        language_name: 'English',
+        name: s.englishNameTranslation
+      }
+    }));
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+};
+
+export const getAvailableTranslations = async (): Promise<TranslationResource[]> => {
+  try {
+    const response = await fetch(`${BASE_URL}/edition?type=translation`);
+    if (!response.ok) throw new Error('Failed to fetch translations');
+    const data = await response.json();
+    
+    const apiTranslations: TranslationResource[] = data.data.map((t: any) => ({
+      id: t.identifier,
+      name: t.name,
+      author_name: t.englishName,
+      slug: t.identifier,
+      language_name: capitalize(t.language)
+    }));
+    
+    // Merge and Override with PREFERRED_TRANSLATIONS to get correct Persian names
+    const merged = [...apiTranslations];
+
+    PREFERRED_TRANSLATIONS.forEach(pref => {
+      const index = merged.findIndex(m => m.id === pref.id);
+      if (index !== -1) {
+        merged[index] = { ...merged[index], ...pref };
+      }
+    });
+
+    // Move Preferred translations to top for visibility or sort by language
+    return merged.sort((a, b) => a.language_name.localeCompare(b.language_name));
+  } catch (error) {
+    console.error('Error fetching translations:', error);
+    return PREFERRED_TRANSLATIONS as TranslationResource[];
+  }
+};
+
+export const getVerses = async (chapterId: number, translationIds: string[] = ['en.sahih']): Promise<Verse[]> => {
+  try {
+    // We fetch Uthmani text + Simple text + requested translations
+    // 'quran-simple' provides the standard arabic script (الْحَمْدُ لِلَّهِ)
+    // 'quran-uthmani' provides the uthmani script (ٱلْحَمْدُ لِلَّهِ)
+    const ids = ['quran-uthmani', 'quran-simple', ...translationIds].join(',');
+    const response = await fetch(`${BASE_URL}/surah/${chapterId}/editions/${ids}`);
+    
+    if (!response.ok) throw new Error('Failed to fetch verses');
+    const data = await response.json();
+    
+    // data.data is an array of editions
+    const editions = Array.isArray(data.data) ? data.data : [data.data];
+    
+    const uthmani = editions.find((e: any) => e.edition?.identifier === 'quran-uthmani');
+    const simple = editions.find((e: any) => e.edition?.identifier === 'quran-simple');
+    
+    if (!uthmani) throw new Error('Uthmani text missing');
+    
+    // Fallback to uthmani if simple text is somehow missing
+    const simpleEdition = simple || uthmani;
+
+    const translationEditions = editions.filter((e: any) => 
+      e.edition?.identifier !== 'quran-uthmani' && 
+      e.edition?.identifier !== 'quran-simple'
+    );
+
+    return uthmani.ayahs.map((ayah: any, index: number) => ({
+      id: ayah.number, // Global ayah number
+      verse_key: `${chapterId}:${ayah.numberInSurah}`,
+      text_uthmani: ayah.text,
+      text_simple: simpleEdition.ayahs[index].text,
+      translations: translationEditions.map((edition: any) => {
+        // Lookup preferred name logic
+        const preferred = PREFERRED_TRANSLATIONS.find(p => p.id === edition.edition.identifier);
+        const resourceName = preferred?.name || edition.edition.name;
+
+        return {
+          id: edition.edition.identifier,
+          resource_id: edition.edition.identifier,
+          text: edition.ayahs[index].text,
+          direction: edition.edition.direction, // Capture direction (rtl/ltr)
+          resource_name: resourceName // Use preferred name if available
+        };
+      })
+    }));
+
+  } catch (error) {
+    console.error(error);
+    return [];
+  }
+};
+
+// Helper to construct audio URL using EveryAyah API (remains compatible)
+export const getAudioUrl = (reciterId: string, chapterId: number, verseNumber: number): string => {
+  const reciter = RECITERS.find(r => r.id === reciterId) || RECITERS[0];
+  const pad = (num: number) => num.toString().padStart(3, '0');
+  return `https://everyayah.com/data/${reciter.subfolder}/${pad(chapterId)}${pad(verseNumber)}.mp3`;
+};
+
+// Helper to capitalize language codes
+function capitalize(s: string) {
+  // Map common codes
+  const map: Record<string, string> = {
+    'en': 'English',
+    'fa': 'Persian',
+    'fr': 'French',
+    'de': 'German',
+    'es': 'Spanish',
+    'tr': 'Turkish',
+    'ur': 'Urdu',
+    'id': 'Indonesian',
+    'ru': 'Russian',
+    'zh': 'Chinese',
+    'bn': 'Bengali'
+  };
+  return map[s] || s.charAt(0).toUpperCase() + s.slice(1);
+}
