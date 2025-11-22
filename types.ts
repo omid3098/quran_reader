@@ -98,6 +98,7 @@ export interface QuranWord {
   text_uthmani: string;
   text_simple?: string; // sometimes provided
   root?: string; // The raw Arabic root e.g. "كتب"
+  lemma?: string; // The lemma/base form of the word
 }
 
 export interface RootAnalysis {
