@@ -10,6 +10,7 @@ interface AyahCardProps {
   onExplain: (verse: Verse, e: React.MouseEvent) => void;
   onNote: (verse: Verse, e: React.MouseEvent) => void;
   onSelect: () => void;
+  onWordClick?: (word: string, wordIndex: number, verseKey: string, rect: DOMRect) => void;
   isActive: boolean;
   fontSize: number;
   showTranslation: boolean;
@@ -17,12 +18,13 @@ interface AyahCardProps {
   scriptType: 'uthmani' | 'simple';
 }
 
-export const AyahCard: React.FC<AyahCardProps> = ({ 
-  verse, 
-  chapterId, 
-  onExplain, 
+export const AyahCard: React.FC<AyahCardProps> = ({
+  verse,
+  chapterId,
+  onExplain,
   onNote,
   onSelect,
+  onWordClick,
   isActive,
   fontSize,
   showTranslation,
@@ -40,14 +42,28 @@ export const AyahCard: React.FC<AyahCardProps> = ({
   // Select correct text based on setting
   const displayText = scriptType === 'simple' ? verse.text_simple : verse.text_uthmani;
   
+  const handleWordSpanClick = (e: React.MouseEvent<HTMLSpanElement>, word: string, wordIndex: number) => {
+    e.stopPropagation();
+    // Only trigger if there's no text selection (user is not dragging to select)
+    const selection = window.getSelection();
+    if (selection && selection.toString().length > 0) {
+      return;
+    }
+    if (onWordClick) {
+      const rect = e.currentTarget.getBoundingClientRect();
+      onWordClick(word, wordIndex, verse.verse_key, rect);
+    }
+  };
+
   const renderArabicText = () => {
     if (!displayText) return null;
     // Split by space to render individual words
     return displayText.split(' ').map((word, i, arr) => (
       <React.Fragment key={i}>
-        <span 
+        <span
           data-word-index={i}
-          className="hover:text-emerald-700 dark:hover:text-emerald-400 transition-colors duration-150 rounded px-0.5 -mx-0.5 cursor-text"
+          onClick={(e) => handleWordSpanClick(e, word, i)}
+          className="hover:text-emerald-700 dark:hover:text-emerald-400 transition-colors duration-150 rounded px-0.5 -mx-0.5 cursor-pointer"
         >
           {word}
         </span>

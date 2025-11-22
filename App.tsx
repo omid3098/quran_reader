@@ -437,6 +437,17 @@ const App: React.FC = () => {
       setSelectionContext(null);
   };
 
+  // --- Single-Click Word Handler ---
+  const handleWordClick = (word: string, wordIndex: number, verseKey: string, rect: DOMRect) => {
+    setSelectionContext({
+      text: word,
+      verseKey,
+      rect,
+      type: 'single',
+      wordIndex
+    });
+  };
+
   // --- Note Handlers ---
   const handleOpenNote = (verse: Verse, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -554,14 +565,15 @@ const App: React.FC = () => {
                 ) : (
                   <div className="space-y-2">
                     {verses.map((verse, index) => (
-                      <AyahCard 
-                        key={verse.id} 
-                        verse={verse} 
+                      <AyahCard
+                        key={verse.id}
+                        verse={verse}
                         chapterName={currentChapter?.name_simple || ''}
                         chapterId={currentChapter?.id || 0}
                         onExplain={handleTafseer}
                         onNote={handleOpenNote}
                         onSelect={() => handleVerseSelect(index)}
+                        onWordClick={handleWordClick}
                         isActive={currentVerseIndex === index}
                         fontSize={settings.fontSize}
                         showTranslation={settings.showTranslation}
