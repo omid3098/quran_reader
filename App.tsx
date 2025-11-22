@@ -31,7 +31,7 @@ const App: React.FC = () => {
   
   // --- Analysis & Context Menu State ---
   const [selectionContext, setSelectionContext] = useState<SelectionContext | null>(null);
-  const [analysisSidebarOpen, setAnalysisSidebarOpen] = useState(true); // Default Open for "Workstation" feel
+  const [analysisSidebarOpen, setAnalysisSidebarOpen] = useState(false); // Hidden by default; opens when research is triggered
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisMode, setAnalysisMode] = useState<'root' | 'phrase' | null>(null);
   const [rootData, setRootData] = useState<RootAnalysis | null>(null);
