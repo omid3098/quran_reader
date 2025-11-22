@@ -42,6 +42,75 @@ let localRootData: LocalRootData | null = null;
 let rootDataMeta: DataSourceMeta | null = null;
 let rootDataLoading: Promise<LocalRootData | null> | null = null;
 
+// Verse text cache for concordance display
+const verseTextCache: Map<string, string> = new Map();
+
+// Fetch verse text from API (with caching)
+const fetchVerseText = async (verseKey: string): Promise<string> => {
+  if (verseTextCache.has(verseKey)) {
+    return verseTextCache.get(verseKey)!;
+  }
+
+  try {
+    const response = await fetch(`https://api.alquran.cloud/v1/ayah/${verseKey}/quran-uthmani`);
+    if (!response.ok) return '';
+    const data = await response.json();
+    const text = data.data?.text || '';
+    verseTextCache.set(verseKey, text);
+    return text;
+  } catch {
+    return '';
+  }
+};
+
+// Batch fetch verse texts for multiple verse keys (grouped by surah for efficiency)
+const batchFetchVerseTexts = async (verseKeys: string[]): Promise<Map<string, string>> => {
+  const results = new Map<string, string>();
+
+  // Group verse keys by surah
+  const bySurah = new Map<number, string[]>();
+  for (const key of verseKeys) {
+    const [surah] = key.split(':').map(Number);
+    if (!bySurah.has(surah)) bySurah.set(surah, []);
+    bySurah.get(surah)!.push(key);
+  }
+
+  // Fetch each surah's verses
+  const fetchPromises = Array.from(bySurah.entries()).map(async ([surahNum, keys]) => {
+    // Check cache first
+    const uncachedKeys = keys.filter(k => !verseTextCache.has(k));
+    if (uncachedKeys.length === 0) {
+      // All cached
+      keys.forEach(k => results.set(k, verseTextCache.get(k)!));
+      return;
+    }
+
+    try {
+      const response = await fetch(`https://api.alquran.cloud/v1/surah/${surahNum}/quran-uthmani`);
+      if (!response.ok) return;
+      const data = await response.json();
+
+      // Cache all verses from this surah
+      for (const ayah of data.data?.ayahs || []) {
+        const key = `${surahNum}:${ayah.numberInSurah}`;
+        verseTextCache.set(key, ayah.text);
+        if (keys.includes(key)) {
+          results.set(key, ayah.text);
+        }
+      }
+    } catch {
+      // Fallback: fetch individually for failed surahs
+      for (const key of keys) {
+        const text = await fetchVerseText(key);
+        if (text) results.set(key, text);
+      }
+    }
+  });
+
+  await Promise.all(fetchPromises);
+  return results;
+};
+
 // Get data source metadata (for attribution display)
 export const getDataSourceMeta = (): DataSourceMeta | null => rootDataMeta;
 
@@ -167,24 +236,24 @@ export const findVersesByRoot = async (root: string): Promise<RootAnalysis> => {
   }
 
   const normalizedSearchRoot = normalizeArabic(root);
-  const matches: { verse_key: string; text: string }[] = [];
+  const matches: { verse_key: string; text: string; wordIndex: number }[] = [];
 
   // Search through all verses for the root
   for (const [verseKey, words] of Object.entries(data)) {
-    for (const word of words) {
-      if (word && normalizeArabic(word.r) === normalizedSearchRoot) {
-        // Fetch the full verse text for display
-        const verseText = words
-          .filter(w => w !== null)
-          .map(w => w!.t)
-          .join(' ');
+    let wordIndex = 0;
+    for (let i = 0; i < words.length; i++) {
+      const word = words[i];
+      if (word === null) continue;
 
+      if (normalizeArabic(word.r) === normalizedSearchRoot) {
         matches.push({
           verse_key: verseKey,
-          text: verseText
+          text: '', // Will be filled with actual verse text
+          wordIndex: wordIndex
         });
         break; // Only add each verse once
       }
+      wordIndex++;
     }
   }
 
@@ -195,10 +264,22 @@ export const findVersesByRoot = async (root: string): Promise<RootAnalysis> => {
     return aChap !== bChap ? aChap - bChap : aVerse - bVerse;
   });
 
+  // Limit to 50 results for performance
+  const limitedMatches = matches.slice(0, 50);
+
+  // Batch fetch actual verse texts
+  const verseKeys = limitedMatches.map(m => m.verse_key);
+  const verseTexts = await batchFetchVerseTexts(verseKeys);
+
+  // Fill in the actual verse texts
+  for (const match of limitedMatches) {
+    match.text = verseTexts.get(match.verse_key) || '';
+  }
+
   return {
     root,
     occurrences: matches.length,
-    verses: matches.slice(0, 50) // Limit to 50 results for performance
+    verses: limitedMatches
   };
 };
 

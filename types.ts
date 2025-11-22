@@ -106,7 +106,8 @@ export interface RootAnalysis {
   occurrences: number;
   verses: {
     verse_key: string;
-    text: string; // truncated preview
+    text: string; // full verse text
+    wordIndex?: number; // position of the matched word (for truncation)
   }[];
   debugInfo?: {
     selectedText: string;

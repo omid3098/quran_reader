@@ -4,6 +4,53 @@ import { X, Database, BookOpen, Search, ArrowRight } from 'lucide-react';
 import { RootAnalysis, SearchResult } from '../types';
 import { Spinner } from './Spinner';
 
+// Truncate verse text to ~6-7 words around the matched word position and wrap with ellipses when truncated
+const truncateAroundWord = (text: string, wordIndex?: number): string => {
+  if (!text) return '';
+
+  const words = text.split(/\s+/).filter(Boolean);
+  const totalWords = words.length;
+
+  // If verse is short enough (6 words or less), show all
+  if (totalWords <= 6) {
+    return words.join(' ');
+  }
+
+  // Clamp target index and center the window around the matched word when provided
+  const targetIndex = Math.min(
+    Math.max(wordIndex ?? Math.floor(totalWords / 2), 0),
+    totalWords - 1
+  );
+
+  const windowSize = 3; // 3 words on each side for context
+  let start = Math.max(0, targetIndex - windowSize);
+  let end = Math.min(totalWords, targetIndex + windowSize + 1);
+
+  // Ensure at least 6 words in the snippet by expanding toward available context
+  const desiredLength = 6;
+  const currentLength = end - start;
+  if (currentLength < desiredLength) {
+    const shortage = desiredLength - currentLength;
+    const expandBefore = Math.min(start, Math.ceil(shortage / 2));
+    start -= expandBefore;
+    const expandAfter = Math.min(totalWords - end, shortage - expandBefore);
+    end += expandAfter;
+
+    // If we still don't have enough words, expand in the remaining direction
+    const remaining = desiredLength - (end - start);
+    if (remaining > 0 && start > 0) {
+      start = Math.max(0, start - remaining);
+    } else if (remaining > 0 && end < totalWords) {
+      end = Math.min(totalWords, end + remaining);
+    }
+  }
+
+  const selectedWords = words.slice(start, end);
+
+  // Always wrap truncated snippets with ellipses to indicate there is more context
+  return `... ${selectedWords.join(' ')} ...`;
+};
+
 interface AnalysisSidebarProps {
   isOpen: boolean;
   onClose: () => void;
@@ -79,23 +126,22 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
                     <Search size={16} className="text-emerald-500" />
                     Concordance
                 </h3>
-                <div className="space-y-2">
+                <div className="space-y-1.5">
                   {rootData.verses.length > 0 ? (
                     rootData.verses.map((v, idx) => (
-                      <button
-                        key={idx}
-                        onClick={() => onNavigate(v.verse_key)}
-                        className="w-full text-left p-3 rounded-xl border border-slate-100 dark:border-slate-800 hover:border-emerald-400 hover:shadow-sm transition-all bg-white dark:bg-slate-900 group"
-                      >
-                        <div className="flex items-center justify-between mb-2">
-                          <span className="text-xs font-bold bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 px-2 py-0.5 rounded">
-                              {v.verse_key}
+                    <button
+                      key={idx}
+                      onClick={() => onNavigate(v.verse_key)}
+                      className="w-full text-right p-2 px-3 rounded-lg border border-slate-100 dark:border-slate-800 hover:border-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20 transition-all bg-white dark:bg-slate-900 group"
+                    >
+                        <div className="flex items-start justify-between gap-3">
+                          <p className="flex-1 font-quran text-slate-700 dark:text-slate-300 text-sm leading-relaxed text-right dir-rtl">
+                            {truncateAroundWord(v.text.replace(/<[^>]*>/g, ''), v.wordIndex)}
+                          </p>
+                          <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 inline-block min-w-[3rem] text-right">
+                            [{v.verse_key}]
                           </span>
-                          <ArrowRight size={14} className="opacity-0 group-hover:opacity-100 text-emerald-500 transition-opacity" />
                         </div>
-                        <p className="font-quran text-right text-slate-700 dark:text-slate-300 text-sm line-clamp-2 leading-loose dir-rtl">
-                          {v.text.replace(/<[^>]*>/g, '')}
-                        </p>
                       </button>
                     ))
                   ) : (
