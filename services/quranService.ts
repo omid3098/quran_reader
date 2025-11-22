@@ -1,5 +1,6 @@
 
 import { Chapter, Verse, Reciter, TranslationResource } from '../types';
+import { sanitizeQuranText } from './textSanitizer';
 
 const BASE_URL = 'https://api.alquran.cloud/v1';
 
@@ -139,25 +140,30 @@ export const getVerses = async (chapterId: number, translationIds: string[] = ['
 
     const hasPrefixedBismillah = chapterId !== 1 && chapterId !== 9;
 
-    return uthmani.ayahs.map((ayah: any, index: number) => ({
-      id: ayah.number, // Global ayah number
-      verse_key: `${chapterId}:${ayah.numberInSurah}`,
-      text_uthmani: hasPrefixedBismillah && index === 0 ? stripLeadingBismillah(ayah.text) : ayah.text,
-      text_simple: hasPrefixedBismillah && index === 0 ? stripLeadingBismillah(simpleEdition.ayahs[index].text) : simpleEdition.ayahs[index].text,
-      translations: translationEditions.map((edition: any) => {
-        // Lookup preferred name logic
-        const preferred = PREFERRED_TRANSLATIONS.find(p => p.id === edition.edition.identifier);
-        const resourceName = preferred?.name || edition.edition.name;
+    return uthmani.ayahs.map((ayah: any, index: number) => {
+      const rawUthmani = hasPrefixedBismillah && index === 0 ? stripLeadingBismillah(ayah.text) : ayah.text;
+      const rawSimple = hasPrefixedBismillah && index === 0 ? stripLeadingBismillah(simpleEdition.ayahs[index].text) : simpleEdition.ayahs[index].text;
 
-        return {
-          id: edition.edition.identifier,
-          resource_id: edition.edition.identifier,
-          text: edition.ayahs[index].text,
-          direction: edition.edition.direction, // Capture direction (rtl/ltr)
-          resource_name: resourceName // Use preferred name if available
-        };
-      })
-    }));
+      return {
+        id: ayah.number, // Global ayah number
+        verse_key: `${chapterId}:${ayah.numberInSurah}`,
+        text_uthmani: sanitizeQuranText(rawUthmani),
+        text_simple: sanitizeQuranText(rawSimple),
+        translations: translationEditions.map((edition: any) => {
+          // Lookup preferred name logic
+          const preferred = PREFERRED_TRANSLATIONS.find(p => p.id === edition.edition.identifier);
+          const resourceName = preferred?.name || edition.edition.name;
+
+          return {
+            id: edition.edition.identifier,
+            resource_id: edition.edition.identifier,
+            text: edition.ayahs[index].text,
+            direction: edition.edition.direction, // Capture direction (rtl/ltr)
+            resource_name: resourceName // Use preferred name if available
+          };
+        })
+      };
+    });
 
   } catch (error) {
     console.error(error);

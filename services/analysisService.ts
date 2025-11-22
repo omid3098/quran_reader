@@ -1,6 +1,7 @@
 
 
 import { Verse, QuranWord, RootAnalysis } from '../types';
+import { sanitizeQuranText } from './textSanitizer';
 
 const API_V4_BASE = 'https://api.quran.com/api/v4';
 const API_CLOUD_BASE = 'https://api.alquran.cloud/v1';
@@ -55,7 +56,7 @@ const fetchVerseText = async (verseKey: string): Promise<string> => {
     const response = await fetch(`https://api.alquran.cloud/v1/ayah/${verseKey}/quran-uthmani`);
     if (!response.ok) return '';
     const data = await response.json();
-    const text = data.data?.text || '';
+    const text = sanitizeQuranText(data.data?.text || '');
     verseTextCache.set(verseKey, text);
     return text;
   } catch {
@@ -93,9 +94,10 @@ const batchFetchVerseTexts = async (verseKeys: string[]): Promise<Map<string, st
       // Cache all verses from this surah
       for (const ayah of data.data?.ayahs || []) {
         const key = `${surahNum}:${ayah.numberInSurah}`;
-        verseTextCache.set(key, ayah.text);
+        const sanitized = sanitizeQuranText(ayah.text);
+        verseTextCache.set(key, sanitized);
         if (keys.includes(key)) {
-          results.set(key, ayah.text);
+          results.set(key, sanitized);
         }
       }
     } catch {
@@ -292,7 +294,7 @@ const findVersesByRootFromAPI = async (root: string): Promise<RootAnalysis> => {
 
     const matches = data.search.results.map((r: any) => ({
       verse_key: r.verse_key,
-      text: r.text
+      text: sanitizeQuranText(r.text)
     }));
 
     return {
@@ -330,7 +332,7 @@ export const searchPhrase = async (phrase: string): Promise<{ count: number; ver
       count: data.data.count,
       verses: data.data.matches.map((m: any) => ({
         verse_key: `${m.surah.number}:${m.numberInSurah}`,
-        text: m.text
+        text: sanitizeQuranText(m.text)
       }))
     };
   } catch (error) {
