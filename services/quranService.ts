@@ -137,11 +137,13 @@ export const getVerses = async (chapterId: number, translationIds: string[] = ['
       e.edition?.identifier !== 'quran-simple'
     );
 
+    const hasPrefixedBismillah = chapterId !== 1 && chapterId !== 9;
+
     return uthmani.ayahs.map((ayah: any, index: number) => ({
       id: ayah.number, // Global ayah number
       verse_key: `${chapterId}:${ayah.numberInSurah}`,
-      text_uthmani: ayah.text,
-      text_simple: simpleEdition.ayahs[index].text,
+      text_uthmani: hasPrefixedBismillah && index === 0 ? stripLeadingBismillah(ayah.text) : ayah.text,
+      text_simple: hasPrefixedBismillah && index === 0 ? stripLeadingBismillah(simpleEdition.ayahs[index].text) : simpleEdition.ayahs[index].text,
       translations: translationEditions.map((edition: any) => {
         // Lookup preferred name logic
         const preferred = PREFERRED_TRANSLATIONS.find(p => p.id === edition.edition.identifier);
@@ -161,6 +163,57 @@ export const getVerses = async (chapterId: number, translationIds: string[] = ['
     console.error(error);
     return [];
   }
+};
+
+// Remove a leading basmala so we don't duplicate it when we render the header.
+// Handles different diacritics/letter shapes from both uthmani and simple scripts.
+const stripLeadingBismillah = (text: string): string => {
+  if (!text) return text;
+
+  // Allow for arbitrary tashkeel and tatweel between the letters.
+  const diacritics = '\\p{Mn}\\u0640'; // marks + tatweel
+  const optSpace = `[\\s${diacritics}]*`;
+  const basmalaRegex = new RegExp(
+    '^' +
+      optSpace + 'ب' + optSpace +
+      'س' + optSpace +
+      'م' + optSpace +
+      'ا?' + optSpace + 'ل' + optSpace + 'ل' + optSpace + 'ه' + optSpace + // Allah
+      'ا?' + optSpace + 'ل' + optSpace + 'ر' + optSpace + 'ح' + optSpace + 'م' + optSpace + 'ا?' + optSpace + 'ن' + optSpace + // الرحمن
+      'ا?' + optSpace + 'ل' + optSpace + 'ر' + optSpace + 'ح' + optSpace + 'ي' + optSpace + 'م' + optSpace, // الرحيم
+    'u'
+  );
+
+  const stripped = text.replace(basmalaRegex, '').trim();
+  if (stripped.length !== text.trim().length) {
+    return stripped;
+  }
+
+  // Fallback: normalize aggressively and check again to catch unseen variants
+  const normalized = normalizeBasmala(text);
+  if (normalized.startsWith('بسم الله الرحمن الرحيم')) {
+    // Best effort: drop everything up to and including the last occurrence of "الرحيم"
+    const lastIdx = text.lastIndexOf('الرحيم');
+    if (lastIdx >= 0) {
+      return text.slice(lastIdx + 'الرحيم'.length).trimStart();
+    }
+  }
+
+  return text;
+};
+
+const normalizeBasmala = (text: string): string => {
+  return text
+    .normalize('NFKD')
+    .replace(/\u0640/g, '') // tatweel
+    .replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g, '') // tashkeel
+    .replace(/[ٱإأآ]/g, 'ا')
+    .replace(/[ىئ]/g, 'ي')
+    .replace(/[ؤ]/g, 'و')
+    .replace(/[ة]/g, 'ه')
+    .replace(/[^ءاأإآابتثجحخدذرزسشصضطظعغفقكلمنهوىي ]/g, '')
+    .replace(/\s+/g, ' ')
+    .trim();
 };
 
 // Helper to construct audio URL using EveryAyah API (remains compatible)

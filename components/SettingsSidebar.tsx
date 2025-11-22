@@ -130,6 +130,28 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
   const sortedLanguages = Object.keys(groupedTranslations).sort();
 
+  const translationMap = useMemo(() => {
+    const map: Record<string, TranslationResource> = {};
+    availableTranslations.forEach(t => {
+      map[t.id] = t;
+    });
+    return map;
+  }, [availableTranslations]);
+
+  const activeTranslations = useMemo(
+    () =>
+      (settings.translationIds || []).map(id =>
+        translationMap[id] || {
+          id,
+          name: id,
+          author_name: '',
+          slug: id,
+          language_name: 'Unknown'
+        }
+      ),
+    [settings.translationIds, translationMap]
+  );
+
   // Filter Reciters
   const filteredReciters = RECITERS.filter(r => 
     r.name.toLowerCase().includes(reciterSearch.toLowerCase())
@@ -255,6 +277,28 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
                 {settings.showTranslation && (
                   <div className="space-y-4">
+                    <div className="space-y-2">
+                      <div className="text-xs font-medium text-slate-500 uppercase tracking-wide">Active translations</div>
+                      {activeTranslations.length === 0 ? (
+                        <div className="text-xs text-slate-400 bg-slate-50 dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-slate-700 rounded-lg px-3 py-2">
+                          No translations selected
+                        </div>
+                      ) : (
+                        <div className="flex flex-wrap gap-2">
+                          {activeTranslations.map(trans => (
+                            <button
+                              key={trans.id}
+                              onClick={() => toggleTranslation(trans.id)}
+                              className="group inline-flex items-center gap-2 px-3 py-1 rounded-full bg-emerald-50 dark:bg-emerald-900/20 text-emerald-700 dark:text-emerald-200 text-xs font-medium border border-emerald-100 dark:border-emerald-800 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 transition-colors"
+                            >
+                              <span className="max-w-[140px] truncate text-left">{trans.name}</span>
+                              <X size={12} className="text-emerald-500 group-hover:text-emerald-700 dark:group-hover:text-emerald-100" />
+                            </button>
+                          ))}
+                        </div>
+                      )}
+                    </div>
+
                     {/* Search Input */}
                     <div className="relative">
                       <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
