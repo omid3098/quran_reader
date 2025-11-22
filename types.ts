@@ -101,6 +101,13 @@ export interface QuranWord {
   lemma?: string; // The lemma/base form of the word
 }
 
+export interface RootWordForm {
+  form: string; // Display form of the word in the Quranic text
+  normalizedForm: string; // Normalized form for matching/deduplication
+  lemma?: string;
+  occurrences: number;
+}
+
 export interface RootAnalysis {
   root: string;
   occurrences: number;
@@ -118,6 +125,7 @@ export interface RootAnalysis {
       root: string | null;
     }[];
   };
+  wordForms: RootWordForm[];
 }
 
 export interface SelectionContext {

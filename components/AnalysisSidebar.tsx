@@ -1,6 +1,6 @@
 
-import React from 'react';
-import { X, Database, BookOpen, Search, ArrowRight } from 'lucide-react';
+import React, { useEffect, useState } from 'react';
+import { X, Database, BookOpen, Search, ArrowRight, ChevronDown } from 'lucide-react';
 import { RootAnalysis, SearchResult } from '../types';
 import { Spinner } from './Spinner';
 
@@ -70,6 +70,14 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
   mode,
   onNavigate
 }) => {
+  const [isConcordanceOpen, setIsConcordanceOpen] = useState(true);
+  const [isWordFormsOpen, setIsWordFormsOpen] = useState(true);
+
+  useEffect(() => {
+    setIsConcordanceOpen(true);
+    setIsWordFormsOpen(true);
+  }, [rootData?.root]);
+
   return (
     <div className={`
       fixed inset-y-0 right-0 z-40 w-80 md:w-96 bg-white dark:bg-slate-950 border-l border-slate-200 dark:border-slate-800 transform transition-transform duration-300 ease-in-out shadow-2xl
@@ -120,33 +128,102 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
                 )}
               </div>
 
-              {/* Concordance List */}
-              <div>
-                <h3 className="text-sm font-bold text-slate-900 dark:text-white mb-3 flex items-center gap-2">
-                    <Search size={16} className="text-emerald-500" />
-                    Concordance
-                </h3>
-                <div className="space-y-1.5">
-                  {rootData.verses.length > 0 ? (
-                    rootData.verses.map((v, idx) => (
-                    <button
-                      key={idx}
-                      onClick={() => onNavigate(v.verse_key)}
-                      className="w-full text-right p-2 px-3 rounded-lg border border-slate-100 dark:border-slate-800 hover:border-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20 transition-all bg-white dark:bg-slate-900 group"
-                    >
-                        <div className="flex items-start justify-between gap-3">
-                          <p className="flex-1 font-quran text-slate-700 dark:text-slate-300 text-sm leading-relaxed text-right dir-rtl">
-                            {truncateAroundWord(v.text.replace(/<[^>]*>/g, ''), v.wordIndex)}
-                          </p>
-                          <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 inline-block min-w-[3rem] text-right">
-                            [{v.verse_key}]
-                          </span>
+              {/* Collapsible Sections */}
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+                  <button
+                    onClick={() => setIsConcordanceOpen(prev => !prev)}
+                    className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors rounded-2xl"
+                  >
+                    <div className="flex items-center gap-2">
+                      <Search size={16} className="text-emerald-500" />
+                      <div>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">Concordance</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">All verses with this root</p>
+                      </div>
+                    </div>
+                    <ChevronDown
+                      size={18}
+                      className={`text-slate-400 transition-transform ${isConcordanceOpen ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                  {isConcordanceOpen && (
+                    <div className="px-4 pb-4 space-y-1.5">
+                      {rootData.verses.length > 0 ? (
+                        rootData.verses.map((v, idx) => (
+                        <button
+                          key={idx}
+                          onClick={() => onNavigate(v.verse_key)}
+                          className="w-full text-right p-2 px-3 rounded-lg border border-slate-100 dark:border-slate-800 hover:border-emerald-400 hover:bg-emerald-50/50 dark:hover:bg-emerald-900/20 transition-all bg-white dark:bg-slate-900 group"
+                        >
+                            <div className="flex items-start justify-between gap-3">
+                              <p className="flex-1 font-quran text-slate-700 dark:text-slate-300 text-sm leading-relaxed text-right dir-rtl">
+                                {truncateAroundWord(v.text.replace(/<[^>]*>/g, ''), v.wordIndex)}
+                              </p>
+                              <span className="text-xs font-mono font-bold text-emerald-600 dark:text-emerald-400 inline-block min-w-[3rem] text-right">
+                                [{v.verse_key}]
+                              </span>
+                            </div>
+                          </button>
+                        ))
+                      ) : (
+                        <div className="text-center py-6 text-slate-400 dark:text-slate-500 text-sm bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                          No occurrences found.
                         </div>
-                      </button>
-                    ))
-                  ) : (
-                    <div className="text-center py-8 text-slate-400 dark:text-slate-500 text-sm bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
-                      No occurrences found.
+                      )}
+                    </div>
+                  )}
+                </div>
+
+                <div className="rounded-2xl border border-slate-100 dark:border-slate-800 bg-white dark:bg-slate-900 shadow-sm">
+                  <button
+                    onClick={() => setIsWordFormsOpen(prev => !prev)}
+                    className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-50 dark:hover:bg-slate-800/60 transition-colors rounded-2xl"
+                  >
+                    <div className="flex items-center gap-2">
+                      <BookOpen size={16} className="text-emerald-500" />
+                      <div>
+                        <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">Word Forms</p>
+                        <p className="text-xs text-slate-500 dark:text-slate-400">
+                          Other words sharing this root ({rootData.wordForms.length})
+                        </p>
+                      </div>
+                    </div>
+                    <ChevronDown
+                      size={18}
+                      className={`text-slate-400 transition-transform ${isWordFormsOpen ? 'rotate-180' : ''}`}
+                    />
+                  </button>
+                  {isWordFormsOpen && (
+                    <div className="px-4 pb-4">
+                      {rootData.wordForms.length > 0 ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                          {rootData.wordForms.map(form => (
+                            <div
+                              key={form.normalizedForm}
+                              className="p-3 rounded-xl border border-slate-100 dark:border-slate-800 bg-slate-50/80 dark:bg-slate-900/60"
+                            >
+                              <div className="flex items-center justify-between gap-2 mb-1">
+                                <span className="font-quran text-lg text-slate-800 dark:text-slate-100 dir-rtl leading-none">
+                                  {form.form}
+                                </span>
+                                <span className="text-[11px] px-2 py-0.5 rounded-full bg-emerald-50 text-emerald-700 dark:bg-emerald-900/40 dark:text-emerald-200">
+                                  {form.occurrences}x
+                                </span>
+                              </div>
+                              {form.lemma && (
+                                <p className="text-[11px] text-slate-500 dark:text-slate-400 truncate">
+                                  Lemma: {form.lemma}
+                                </p>
+                              )}
+                            </div>
+                          ))}
+                        </div>
+                      ) : (
+                        <div className="text-center py-6 text-slate-400 dark:text-slate-500 text-sm bg-slate-50 dark:bg-slate-900/50 rounded-xl border border-slate-100 dark:border-slate-800">
+                          No word forms found for this root.
+                        </div>
+                      )}
                     </div>
                   )}
                 </div>

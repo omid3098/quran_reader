@@ -1,6 +1,6 @@
 
 
-import { Verse, QuranWord, RootAnalysis } from '../types';
+import { Verse, QuranWord, RootAnalysis, RootWordForm } from '../types';
 import { sanitizeQuranText } from './textSanitizer';
 
 const API_V4_BASE = 'https://api.quran.com/api/v4';
@@ -239,21 +239,40 @@ export const findVersesByRoot = async (root: string): Promise<RootAnalysis> => {
 
   const normalizedSearchRoot = normalizeArabic(root);
   const matches: { verse_key: string; text: string; wordIndex: number }[] = [];
+  const wordFormsMap: Map<string, RootWordForm> = new Map();
 
   // Search through all verses for the root
   for (const [verseKey, words] of Object.entries(data)) {
     let wordIndex = 0;
+    let verseRecorded = false;
     for (let i = 0; i < words.length; i++) {
       const word = words[i];
       if (word === null) continue;
 
       if (normalizeArabic(word.r) === normalizedSearchRoot) {
-        matches.push({
-          verse_key: verseKey,
-          text: '', // Will be filled with actual verse text
-          wordIndex: wordIndex
-        });
-        break; // Only add each verse once
+        const normalizedForm = normalizeArabic(word.t || '');
+        if (normalizedForm) {
+          const existing = wordFormsMap.get(normalizedForm);
+          if (existing) {
+            existing.occurrences += 1;
+          } else {
+            wordFormsMap.set(normalizedForm, {
+              form: sanitizeQuranText(word.t || ''),
+              normalizedForm,
+              lemma: word.l || undefined,
+              occurrences: 1
+            });
+          }
+        }
+
+        if (!verseRecorded) {
+          matches.push({
+            verse_key: verseKey,
+            text: '', // Will be filled with actual verse text
+            wordIndex: wordIndex
+          });
+          verseRecorded = true; // Only add each verse once
+        }
       }
       wordIndex++;
     }
@@ -278,10 +297,16 @@ export const findVersesByRoot = async (root: string): Promise<RootAnalysis> => {
     match.text = verseTexts.get(match.verse_key) || '';
   }
 
+  const wordForms = Array.from(wordFormsMap.values()).sort((a, b) => {
+    if (b.occurrences !== a.occurrences) return b.occurrences - a.occurrences;
+    return a.form.localeCompare(b.form, 'ar');
+  });
+
   return {
     root,
     occurrences: matches.length,
-    verses: limitedMatches
+    verses: limitedMatches,
+    wordForms
   };
 };
 
@@ -300,11 +325,12 @@ const findVersesByRootFromAPI = async (root: string): Promise<RootAnalysis> => {
     return {
       root,
       occurrences: data.search.total_results || matches.length,
-      verses: matches
+      verses: matches,
+      wordForms: []
     };
   } catch (error) {
     console.error('Error finding root:', error);
-    return { root, occurrences: 0, verses: [] };
+    return { root, occurrences: 0, verses: [], wordForms: [] };
   }
 };
 

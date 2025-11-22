@@ -456,6 +456,7 @@ const App: React.FC = () => {
           root: "Not Found", 
           occurrences: 0, 
           verses: [],
+          wordForms: [],
           debugInfo
         });
     }
