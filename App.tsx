@@ -586,6 +586,8 @@ const App: React.FC = () => {
         onUpdateSettings={(newSettings) => setSettings({ ...settings, ...newSettings })}
         onExportNotes={handleExportNotes}
         onImportNotes={handleImportNotes}
+        notes={notes}
+        onJumpToNote={handleNavigateByKey}
       />
       
       {/* Main Layout Container */}

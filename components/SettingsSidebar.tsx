@@ -1,7 +1,7 @@
 
-import React, { useState, useEffect, useRef } from 'react';
-import { X, Type, Languages, Mic, ToggleLeft, ToggleRight, CheckSquare, Square, ChevronDown, ChevronUp, Search, Database, Download, Upload, PenTool } from 'lucide-react';
-import { AppSettings, TranslationResource, BackupData } from '../types';
+import React, { useState, useEffect, useRef, useMemo } from 'react';
+import { X, Type, Languages, Mic, ToggleLeft, ToggleRight, CheckSquare, Square, ChevronDown, ChevronUp, Search, Database, Download, Upload, PenTool, NotebookPen } from 'lucide-react';
+import { AppSettings, TranslationResource, BackupData, Note } from '../types';
 import { RECITERS, getAvailableTranslations } from '../services/quranService';
 import { Spinner } from './Spinner';
 
@@ -12,9 +12,11 @@ interface SettingsSidebarProps {
   onUpdateSettings: (newSettings: Partial<AppSettings>) => void;
   onExportNotes: () => void;
   onImportNotes: (data: BackupData) => void;
+  notes: Record<string, Note>;
+  onJumpToNote: (verseKey: string) => void;
 }
 
-type Section = 'font' | 'script' | 'translations' | 'reciters' | 'data' | null;
+type Section = 'font' | 'script' | 'translations' | 'reciters' | 'notes' | 'data' | null;
 
 export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({ 
   isOpen, 
@@ -22,7 +24,9 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   settings, 
   onUpdateSettings,
   onExportNotes,
-  onImportNotes
+  onImportNotes,
+  notes,
+  onJumpToNote
 }) => {
   const [expandedSection, setExpandedSection] = useState<Section>('font');
   const [availableTranslations, setAvailableTranslations] = useState<TranslationResource[]>([]);
@@ -30,6 +34,29 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   const [translationSearch, setTranslationSearch] = useState('');
   const [reciterSearch, setReciterSearch] = useState('');
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const noteSummary = useMemo(() => {
+    const list = Object.entries(notes || {}).map(([verseKey, note]) => ({
+      verseKey,
+      updatedAt: note?.updatedAt || ''
+    }));
+
+    list.sort((a, b) => {
+      const aTime = new Date(a.updatedAt || 0).getTime();
+      const bTime = new Date(b.updatedAt || 0).getTime();
+      return bTime - aTime;
+    });
+
+    return {
+      total: list.length,
+      list
+    };
+  }, [notes]);
+
+  const handleNoteJump = (verseKey: string) => {
+    onJumpToNote(verseKey);
+    onClose();
+  };
 
   // Load translations on mount
   useEffect(() => {
@@ -83,6 +110,8 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
     };
     reader.readAsText(file);
   };
+
+  const { total: totalNotes, list: noteList } = noteSummary;
 
   // Filter and Group Translations
   const filteredTranslations = availableTranslations.filter(t => 
@@ -333,6 +362,50 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             )}
           </div>
 
+          {/* Notes Section */}
+          <div className="border-b border-slate-100 dark:border-slate-800">
+             <button 
+              onClick={() => toggleSection('notes')}
+              className="w-full flex items-center justify-between p-5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+            >
+              <div className="flex items-center gap-3 text-slate-700 dark:text-slate-200">
+                <NotebookPen size={20} className="text-emerald-500" />
+                <h3 className="font-semibold">Notes</h3>
+              </div>
+              {expandedSection === 'notes' ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </button>
+
+            {expandedSection === 'notes' && (
+              <div className="px-5 pb-6 animate-in slide-in-from-top-2 duration-200 space-y-3">
+                 <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+                    <span>Saved Notes</span>
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      {totalNotes} total
+                    </span>
+                 </div>
+
+                 {totalNotes === 0 ? (
+                   <div className="text-xs text-slate-400 bg-slate-50 dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-slate-700 rounded-lg p-3 text-center">
+                     No notes yet. Add a note from any verse to see it here.
+                   </div>
+                 ) : (
+                   <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                     {noteList.map(note => (
+                       <button
+                         key={note.verseKey}
+                         onClick={() => handleNoteJump(note.verseKey)}
+                         className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-xs font-mono font-semibold text-slate-700 dark:text-slate-200 text-center shadow-sm transition-all"
+                       >
+                         {note.verseKey}
+                       </button>
+                     ))}
+                   </div>
+                 )}
+              </div>
+            )}
+          </div>
+
           {/* Data Management Section */}
           <div className="border-b border-slate-100 dark:border-slate-800">
              <button 
@@ -350,7 +423,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
               <div className="px-5 pb-6 animate-in slide-in-from-top-2 duration-200 space-y-3">
                  <button 
                    onClick={onExportNotes}
-                   className="w-full flex items-center justify-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 py-3 rounded-xl font-medium transition-colors"
+                   className="mt-3 w-full flex items-center justify-center gap-2 bg-emerald-50 dark:bg-emerald-900/20 hover:bg-emerald-100 dark:hover:bg-emerald-900/40 text-emerald-700 dark:text-emerald-400 py-3 rounded-xl font-medium transition-colors"
                  >
                    <Upload size={18} />
                    Export Notes
