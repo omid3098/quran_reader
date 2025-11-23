@@ -36,7 +36,8 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const noteSummary = useMemo(() => {
-    const list = Object.entries(notes || {}).map(([verseKey, note]) => ({
+    const noteEntries = Object.entries(notes || {}) as [string, Note][];
+    const list = noteEntries.map(([verseKey, note]) => ({
       verseKey,
       updatedAt: note?.updatedAt || ''
     }));
