@@ -357,6 +357,17 @@ const App: React.FC = () => {
     }
   }, [verses, loadingVerses, pendingScrollAyah]);
 
+  // Auto-scroll to current verse when audio advances
+  useEffect(() => {
+    if (currentChapter && verses[currentVerseIndex]) {
+      const verse = verses[currentVerseIndex];
+      if (verse.verse_key) {
+        const verseNum = verse.verse_key.split(":")[1];
+        setPendingScrollAyah(`ayah-${currentChapter.id}-${verseNum}`);
+      }
+    }
+  }, [currentVerseIndex, currentChapter, verses]);
+
   // --- Handlers ---
   const handleChapterSelect = async (
     id: number,
