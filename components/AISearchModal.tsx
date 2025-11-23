@@ -1,9 +1,8 @@
-
-import React, { useState } from 'react';
-import { X, Search, ArrowRight, Sparkles } from 'lucide-react';
-import { searchQuran } from '../services/geminiService';
-import { SearchResult } from '../types';
-import { Spinner } from './Spinner';
+import React, { useState } from "react";
+import { X, Search, ArrowRight, Sparkles } from "lucide-react";
+import { searchQuran } from "../services/geminiService";
+import { SearchResult } from "../types";
+import { Spinner } from "./Spinner";
 
 interface AISearchModalProps {
   isOpen: boolean;
@@ -12,7 +11,7 @@ interface AISearchModalProps {
 }
 
 export const AISearchModal: React.FC<AISearchModalProps> = ({ isOpen, onClose, onNavigate }) => {
-  const [query, setQuery] = useState('');
+  const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
   const [loading, setLoading] = useState(false);
   const [hasSearched, setHasSearched] = useState(false);
@@ -26,18 +25,18 @@ export const AISearchModal: React.FC<AISearchModalProps> = ({ isOpen, onClose, o
     setLoading(true);
     setResults([]);
     setHasSearched(true);
-    
+
     const data = await searchQuran(query);
     setResults(data);
     setLoading(false);
   };
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200 cursor-pointer"
       onClick={onClose}
     >
-      <div 
+      <div
         className="bg-white dark:bg-slate-900 w-full max-w-2xl rounded-2xl shadow-2xl overflow-hidden flex flex-col max-h-[80vh] cursor-default"
         onClick={(e) => e.stopPropagation()}
       >
@@ -46,7 +45,10 @@ export const AISearchModal: React.FC<AISearchModalProps> = ({ isOpen, onClose, o
             <Sparkles size={20} />
             <h3 className="font-semibold">AI Smart Search</h3>
           </div>
-          <button onClick={onClose} className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500 dark:text-slate-400">
+          <button
+            onClick={onClose}
+            className="p-2 hover:bg-slate-200 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-500 dark:text-slate-400"
+          >
             <X size={20} />
           </button>
         </div>
@@ -101,10 +103,17 @@ export const AISearchModal: React.FC<AISearchModalProps> = ({ isOpen, onClose, o
                 </div>
                 <div className="flex-1">
                   <div className="flex items-center justify-between mb-1">
-                    <h4 className="font-medium text-slate-800 dark:text-slate-200">Ayah {result.ayah}</h4>
-                    <ArrowRight size={16} className="text-slate-300 dark:text-slate-600 group-hover:text-emerald-500 transition-colors" />
+                    <h4 className="font-medium text-slate-800 dark:text-slate-200">
+                      Ayah {result.ayah}
+                    </h4>
+                    <ArrowRight
+                      size={16}
+                      className="text-slate-300 dark:text-slate-600 group-hover:text-emerald-500 transition-colors"
+                    />
                   </div>
-                  <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">{result.context}</p>
+                  <p className="text-sm text-slate-500 dark:text-slate-400 leading-relaxed">
+                    {result.context}
+                  </p>
                 </div>
               </button>
             ))}

@@ -1,5 +1,5 @@
-import { loadLocalRootData } from './analysisService';
-import { sanitizeQuranText } from './textSanitizer';
+import { loadLocalRootData } from "./analysisService";
+import { sanitizeQuranText } from "./textSanitizer";
 
 interface RootDataEntry {
   r?: string; // root
@@ -28,11 +28,11 @@ const TATWEEL_REGEX = /\u0640/g;
 const EMPTY_RESULT: LetterAnalysisResult = {
   totalLetters: 0,
   uniqueLetters: 0,
-  distribution: []
+  distribution: [],
 };
 
 const parseVerseKey = (verseKey: string): { surah: number; ayah: number } => {
-  const [surah, ayah] = verseKey.split(':').map(Number);
+  const [surah, ayah] = verseKey.split(":").map(Number);
   return { surah: surah || 0, ayah: ayah || 0 };
 };
 
@@ -46,8 +46,8 @@ const compareVerseKeys = (a: string, b: string): number => {
 const buildVerseText = (words: (RootDataEntry | null)[]): string => {
   const text = words
     .filter(Boolean)
-    .map(word => (word as RootDataEntry).t || '')
-    .join(' ');
+    .map((word) => (word as RootDataEntry).t || "")
+    .join(" ");
   return sanitizeQuranText(text);
 };
 
@@ -56,9 +56,9 @@ const extractLetters = (text: string): string[] => {
 
   // Remove ornamental characters, tatweel, and diacritics, keep base letters only.
   const cleaned = sanitizeQuranText(text)
-    .normalize('NFD')
-    .replace(DIACRITICS_REGEX, '')
-    .replace(TATWEEL_REGEX, '');
+    .normalize("NFD")
+    .replace(DIACRITICS_REGEX, "")
+    .replace(TATWEEL_REGEX, "");
 
   const letters: string[] = [];
   for (const char of cleaned) {
@@ -86,21 +86,24 @@ const buildResultFromCounts = (counts: Map<string, number>): LetterAnalysisResul
     .map(([letter, count]) => ({
       letter,
       count,
-      percentage: totalLetters ? parseFloat(((count / totalLetters) * 100).toFixed(2)) : 0
+      percentage: totalLetters ? parseFloat(((count / totalLetters) * 100).toFixed(2)) : 0,
     }))
     .sort((a, b) => {
       if (b.count !== a.count) return b.count - a.count;
-      return a.letter.localeCompare(b.letter, 'ar');
+      return a.letter.localeCompare(b.letter, "ar");
     });
 
   return {
     totalLetters,
     uniqueLetters: counts.size,
-    distribution
+    distribution,
   };
 };
 
-const countLettersForVerseKeys = (verseKeys: string[], data: LocalRootData): LetterAnalysisResult => {
+const countLettersForVerseKeys = (
+  verseKeys: string[],
+  data: LocalRootData
+): LetterAnalysisResult => {
   if (verseKeys.length === 0) return EMPTY_RESULT;
 
   const aggregate = new Map<string, number>();
@@ -130,11 +133,14 @@ export const analyzeSurah = async (surahNumber: number): Promise<LetterAnalysisR
   const data = await loadLocalRootData();
   if (!data) return EMPTY_RESULT;
 
-  const verseKeys = Object.keys(data).filter(key => key.startsWith(`${surahNumber}:`));
+  const verseKeys = Object.keys(data).filter((key) => key.startsWith(`${surahNumber}:`));
   return countLettersForVerseKeys(verseKeys, data);
 };
 
-export const analyzeRange = async (startVerse: string, endVerse: string): Promise<LetterAnalysisResult> => {
+export const analyzeRange = async (
+  startVerse: string,
+  endVerse: string
+): Promise<LetterAnalysisResult> => {
   const data = await loadLocalRootData();
   if (!data) return EMPTY_RESULT;
 
@@ -147,10 +153,12 @@ export const analyzeRange = async (startVerse: string, endVerse: string): Promis
   }
 
   const verseKeysInRange = Object.keys(data)
-    .filter(key => {
+    .filter((key) => {
       const parsed = parseVerseKey(key);
-      const afterStart = parsed.surah > start.surah || (parsed.surah === start.surah && parsed.ayah >= start.ayah);
-      const beforeEnd = parsed.surah < end.surah || (parsed.surah === end.surah && parsed.ayah <= end.ayah);
+      const afterStart =
+        parsed.surah > start.surah || (parsed.surah === start.surah && parsed.ayah >= start.ayah);
+      const beforeEnd =
+        parsed.surah < end.surah || (parsed.surah === end.surah && parsed.ayah <= end.ayah);
       return afterStart && beforeEnd;
     })
     .sort(compareVerseKeys);

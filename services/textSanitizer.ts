@@ -5,10 +5,7 @@
 const NON_TEXT_QURAN_CHARS = /[\u0610-\u061A\u06D6-\u06E4\u06E7-\u06ED\u08D4-\u08E1\u08E3-\u08FF]/g;
 
 export const sanitizeQuranText = (text: string): string => {
-  if (!text) return '';
+  if (!text) return "";
 
-  return text
-    .replace(NON_TEXT_QURAN_CHARS, '')
-    .replace(/\s+/g, ' ')
-    .trim();
+  return text.replace(NON_TEXT_QURAN_CHARS, "").replace(/\s+/g, " ").trim();
 };

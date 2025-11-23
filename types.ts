@@ -1,5 +1,3 @@
-
-
 export interface Chapter {
   id: number;
   revelation_place: string;
@@ -68,10 +66,10 @@ export interface AppSettings {
   fontSize: number;
   translationIds: string[];
   reciterId: string;
-  scriptType: 'uthmani' | 'simple';
+  scriptType: "uthmani" | "simple";
   showTranslation: boolean;
   autoPlay: boolean;
-  theme: 'light' | 'dark';
+  theme: "light" | "dark";
 }
 
 // Internal Note Structure
@@ -132,6 +130,6 @@ export interface SelectionContext {
   text: string;
   verseKey: string; // "1:1"
   rect: DOMRect;
-  type: 'single' | 'phrase';
+  type: "single" | "phrase";
   wordIndex?: number; // The 0-based index of the word in the verse
 }

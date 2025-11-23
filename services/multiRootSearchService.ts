@@ -1,5 +1,5 @@
-import { loadLocalRootData, normalizeArabic } from './analysisService';
-import { sanitizeQuranText } from './textSanitizer';
+import { loadLocalRootData, normalizeArabic } from "./analysisService";
+import { sanitizeQuranText } from "./textSanitizer";
 
 type RootDataEntry = {
   r?: string;
@@ -7,9 +7,9 @@ type RootDataEntry = {
   t?: string;
 };
 
-type LocalRootData = Record<string, (RootDataEntry | null)[]>;
+type _LocalRootData = Record<string, (RootDataEntry | null)[]>;
 
-export type BooleanOperator = 'AND' | 'OR' | 'NOT';
+export type BooleanOperator = "AND" | "OR" | "NOT";
 
 export interface SearchQuery {
   roots: string[];
@@ -24,10 +24,10 @@ export interface SearchResult {
   positions: number[]; // 1-based word positions
 }
 
-const normalizeRoot = (root: string): string => normalizeArabic(root || '');
+const normalizeRoot = (root: string): string => normalizeArabic(root || "");
 
 const parseVerseKey = (verseKey: string): { surah: number; ayah: number } => {
-  const [surah, ayah] = verseKey.split(':').map(Number);
+  const [surah, ayah] = verseKey.split(":").map(Number);
   return { surah: surah || 0, ayah: ayah || 0 };
 };
 
@@ -41,8 +41,8 @@ const compareVerseKeys = (a: string, b: string): number => {
 const buildVerseText = (words: (RootDataEntry | null)[]): string => {
   const text = words
     .filter(Boolean)
-    .map(word => (word as RootDataEntry).t || '')
-    .join(' ');
+    .map((word) => (word as RootDataEntry).t || "")
+    .join(" ");
   return sanitizeQuranText(text);
 };
 
@@ -62,9 +62,9 @@ const meetsProximity = (
   normalizedRoots: string[],
   maxDistance?: number
 ): boolean => {
-  if (typeof maxDistance !== 'number' || maxDistance < 0 || normalizedRoots.length < 2) return true;
+  if (typeof maxDistance !== "number" || maxDistance < 0 || normalizedRoots.length < 2) return true;
 
-  const presentRoots = normalizedRoots.filter(root => positionsByRoot.has(root));
+  const presentRoots = normalizedRoots.filter((root) => positionsByRoot.has(root));
   if (presentRoots.length < 2) return false;
 
   let best = Number.POSITIVE_INFINITY;
@@ -110,32 +110,40 @@ export const searchByRoots = async (query: SearchQuery): Promise<SearchResult[]>
 
     let matches = false;
     switch (query.operator) {
-      case 'AND':
-        matches = normalizedRoots.every(root => positionsByRoot.has(root));
+      case "AND":
+        matches = normalizedRoots.every((root) => positionsByRoot.has(root));
         break;
-      case 'OR':
+      case "OR":
         matches = matchedPositions.length > 0;
         break;
-      case 'NOT':
-        matches = normalizedRoots.every(root => !positionsByRoot.has(root));
+      case "NOT":
+        matches = normalizedRoots.every((root) => !positionsByRoot.has(root));
         break;
     }
 
     if (!matches) continue;
-    if (query.operator !== 'NOT' && !meetsProximity(positionsByRoot, normalizedRoots, query.proximity)) continue;
+    if (
+      query.operator !== "NOT" &&
+      !meetsProximity(positionsByRoot, normalizedRoots, query.proximity)
+    )
+      continue;
 
     results.push({
       verseKey,
       verseText: buildVerseText(words),
       matchedRoots: Array.from(matchedRoots),
-      positions: matchedPositions
+      positions: matchedPositions,
     });
   }
 
   return results.sort((a, b) => compareVerseKeys(a.verseKey, b.verseKey));
 };
 
-export const searchWithProximity = async (root1: string, root2: string, maxDistance: number): Promise<SearchResult[]> => {
+export const searchWithProximity = async (
+  root1: string,
+  root2: string,
+  maxDistance: number
+): Promise<SearchResult[]> => {
   const normalizedA = normalizeRoot(root1);
   const normalizedB = normalizeRoot(root2);
   if (!normalizedA || !normalizedB) return [];
@@ -185,7 +193,7 @@ export const searchWithProximity = async (root1: string, root2: string, maxDista
         verseKey,
         verseText: buildVerseText(words),
         matchedRoots: Array.from(matchedRoots),
-        positions: closestPair
+        positions: closestPair,
       });
     }
   }

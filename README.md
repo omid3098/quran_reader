@@ -2,19 +2,99 @@
 <img width="1200" height="475" alt="GHBanner" src="https://github.com/user-attachments/assets/0aa67016-6eaf-458a-adb2-6e31a0763ed6" />
 </div>
 
-# Run and deploy your AI Studio app
+# Open Quran Reader
 
-This contains everything you need to run your app locally.
+A feature-rich, AI-powered Quran study application built with React, TypeScript, and Vite.
 
-View your app in AI Studio: https://ai.studio/apps/drive/1K7MonXE1RWRLVEfo0G790Z9DzZVqHelm
+## Features
 
-## Run Locally
+- **Quran Reader** - Clean interface for reading in Uthmani and Simple scripts
+- **Audio Player** - Verse-by-verse recitations from 20+ renowned reciters
+- **Translations** - Multiple translations in various languages
+- **AI Search** - Natural language search powered by Gemini API
+- **AI Tafseer** - Easy-to-understand verse explanations
+- **Word Analysis** - Root identification, Abjad calculation, and more
+- **Note-Taking** - Personal notes saved locally
 
-**Prerequisites:**  Node.js
+## Getting Started
 
+### Prerequisites
 
-1. Install dependencies:
-   `npm install`
-2. Set the `GEMINI_API_KEY` in [.env.local](.env.local) to your Gemini API key
-3. Run the app:
-   `npm run dev`
+- [Bun](https://bun.sh/) (recommended) or Node.js
+- Gemini API key
+
+### Installation
+
+```bash
+# Install dependencies
+bun install
+
+# Set up environment
+cp .env.local.example .env.local
+# Edit .env.local and add your GEMINI_API_KEY
+```
+
+### Development
+
+```bash
+# Start development server
+bun run dev
+```
+
+The app will be available at `http://localhost:3000`
+
+### Quality Gates
+
+Before committing any changes, run the gates command to ensure quality:
+
+```bash
+bun run gates
+```
+
+This runs:
+
+1. TypeScript type checking
+2. ESLint linting
+3. Prettier formatting check
+4. Unit tests (80% coverage required)
+5. E2E tests
+
+### Available Scripts
+
+| Command             | Description                  |
+| ------------------- | ---------------------------- |
+| `bun run dev`       | Start development server     |
+| `bun run build`     | Build for production         |
+| `bun run preview`   | Preview production build     |
+| `bun run gates`     | Run all quality checks       |
+| `bun run test`      | Run all tests                |
+| `bun run test:unit` | Run unit tests with coverage |
+| `bun run test:e2e`  | Run E2E tests                |
+| `bun run lint`      | Run ESLint                   |
+| `bun run format`    | Format code with Prettier    |
+
+## Development Workflow (TDD)
+
+This project follows Test-Driven Development:
+
+1. **Write tests first** - Create failing tests for new features
+2. **Run gates** - Confirm tests fail as expected
+3. **Implement** - Write code to make tests pass
+4. **Run gates** - Ensure all tests pass
+5. **Commit** - Pre-commit hooks will verify quality
+
+See [CONTRIBUTING.md](CONTRIBUTING.md) for detailed guidelines.
+
+## Tech Stack
+
+- **React 19** - UI framework
+- **TypeScript 5.8** - Type-safe development
+- **Vite 6** - Build tool and dev server
+- **Tailwind CSS** - Utility-first styling
+- **Vitest** - Unit testing
+- **Playwright** - E2E testing
+- **ESLint + Prettier** - Code quality
+
+## License
+
+MIT

@@ -1,8 +1,7 @@
-
-import React, { useEffect, useRef } from 'react';
-import { Search, BookOpen, Copy, Calculator, Sparkles } from 'lucide-react';
-import { SelectionContext } from '../types';
-import { calculateAbjad } from '../services/analysisService';
+import React, { useEffect, useRef } from "react";
+import { Search, BookOpen, Copy } from "lucide-react";
+import { SelectionContext } from "../types";
+import { calculateAbjad } from "../services/analysisService";
 
 interface SmartContextMenuProps {
   context: SelectionContext;
@@ -12,12 +11,12 @@ interface SmartContextMenuProps {
   onCopy: () => void;
 }
 
-export const SmartContextMenu: React.FC<SmartContextMenuProps> = ({ 
-  context, 
-  onClose, 
-  onAnalyzeRoot, 
-  onSearchPhrase, 
-  onCopy
+export const SmartContextMenu: React.FC<SmartContextMenuProps> = ({
+  context,
+  onClose,
+  onAnalyzeRoot,
+  onSearchPhrase,
+  onCopy,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const abjadValue = calculateAbjad(context.text);
@@ -28,74 +27,74 @@ export const SmartContextMenu: React.FC<SmartContextMenuProps> = ({
         onClose();
       }
     };
-    document.addEventListener('mousedown', handleClickOutside);
-    return () => document.removeEventListener('mousedown', handleClickOutside);
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
   }, [onClose]);
 
   // Calculate Position (keep it within viewport)
   const left = Math.min(context.rect.left, window.innerWidth - 240);
-  const top = context.rect.bottom + 10; 
-  
+  const top = context.rect.bottom + 10;
+
   // Ensure it doesn't go off bottom
   const correctedTop = top + 200 > window.innerHeight ? context.rect.top - 200 : top;
 
   return (
-    <div 
+    <div
       ref={ref}
       style={{ top: correctedTop, left }}
       className="fixed z-50 w-60 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-100 dark:border-slate-700 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
     >
       <div className="bg-slate-50 dark:bg-slate-950/50 p-3 border-b border-slate-100 dark:border-slate-800">
         <div className="flex items-center justify-between mb-1">
-            <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-                {context.type === 'single' ? 'Word Analysis' : 'Phrase Selection'}
-            </span>
-            <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded">
-                Abjad: {abjadValue}
-            </span>
+          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+            {context.type === "single" ? "Word Analysis" : "Phrase Selection"}
+          </span>
+          <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded">
+            Abjad: {abjadValue}
+          </span>
         </div>
         <div className="font-quran text-lg text-slate-800 dark:text-slate-100 truncate dir-rtl text-right">
-            {context.text}
+          {context.text}
         </div>
       </div>
 
       <div className="p-1.5 space-y-0.5">
-        {context.type === 'single' ? (
-             <button 
-                onClick={onAnalyzeRoot}
-                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-slate-700 dark:text-slate-200 transition-colors group"
-             >
-                <div className="p-1.5 rounded-md bg-slate-100 dark:bg-slate-800 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/50 text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                    <BookOpen size={16} />
-                </div>
-                <div className="flex flex-col items-start">
-                    <span className="font-medium">Analyze Root</span>
-                    <span className="text-[10px] text-slate-400">View lexicon & matches</span>
-                </div>
-             </button>
+        {context.type === "single" ? (
+          <button
+            onClick={onAnalyzeRoot}
+            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-slate-700 dark:text-slate-200 transition-colors group"
+          >
+            <div className="p-1.5 rounded-md bg-slate-100 dark:bg-slate-800 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/50 text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+              <BookOpen size={16} />
+            </div>
+            <div className="flex flex-col items-start">
+              <span className="font-medium">Analyze Root</span>
+              <span className="text-[10px] text-slate-400">View lexicon & matches</span>
+            </div>
+          </button>
         ) : (
-             <button 
-                onClick={onSearchPhrase}
-                className="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-slate-700 dark:text-slate-200 transition-colors group"
-             >
-                <div className="p-1.5 rounded-md bg-slate-100 dark:bg-slate-800 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/50 text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
-                    <Search size={16} />
-                </div>
-                <div className="flex flex-col items-start">
-                    <span className="font-medium">Search Phrase</span>
-                    <span className="text-[10px] text-slate-400">Find exact matches</span>
-                </div>
-             </button>
+          <button
+            onClick={onSearchPhrase}
+            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-emerald-50 dark:hover:bg-emerald-900/20 text-slate-700 dark:text-slate-200 transition-colors group"
+          >
+            <div className="p-1.5 rounded-md bg-slate-100 dark:bg-slate-800 group-hover:bg-emerald-100 dark:group-hover:bg-emerald-900/50 text-slate-500 dark:text-slate-400 group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">
+              <Search size={16} />
+            </div>
+            <div className="flex flex-col items-start">
+              <span className="font-medium">Search Phrase</span>
+              <span className="text-[10px] text-slate-400">Find exact matches</span>
+            </div>
+          </button>
         )}
 
-        <button 
-           onClick={onCopy}
-           className="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors group"
+        <button
+          onClick={onCopy}
+          className="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors group"
         >
-           <div className="p-1.5 rounded-md bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors">
-                <Copy size={16} />
-           </div>
-           <span className="font-medium">Copy with Citation</span>
+          <div className="p-1.5 rounded-md bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors">
+            <Copy size={16} />
+          </div>
+          <span className="font-medium">Copy with Citation</span>
         </button>
       </div>
     </div>

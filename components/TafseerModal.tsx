@@ -1,7 +1,6 @@
-
-import React from 'react';
-import { X, Sparkles, BookOpen } from 'lucide-react';
-import { Spinner } from './Spinner';
+import React from "react";
+import { X, Sparkles } from "lucide-react";
+import { Spinner } from "./Spinner";
 
 interface TafseerModalProps {
   isOpen: boolean;
@@ -12,21 +11,28 @@ interface TafseerModalProps {
   verseKey: string;
 }
 
-export const TafseerModal: React.FC<TafseerModalProps> = ({ isOpen, onClose, loading, content, surahName, verseKey }) => {
+export const TafseerModal: React.FC<TafseerModalProps> = ({
+  isOpen,
+  onClose,
+  loading,
+  content,
+  surahName,
+  verseKey,
+}) => {
   if (!isOpen) return null;
 
   return (
-    <div 
+    <div
       className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/50 backdrop-blur-sm animate-in fade-in duration-200 cursor-pointer"
       onClick={onClose}
     >
-      <div 
+      <div
         className="bg-white dark:bg-slate-900 w-full max-w-xl rounded-2xl shadow-2xl overflow-hidden relative cursor-default"
         onClick={(e) => e.stopPropagation()}
       >
         <div className="h-2 bg-gradient-to-r from-emerald-400 to-emerald-600 w-full"></div>
-        <button 
-          onClick={onClose} 
+        <button
+          onClick={onClose}
           className="absolute top-4 right-4 p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors"
         >
           <X size={20} />
@@ -38,9 +44,11 @@ export const TafseerModal: React.FC<TafseerModalProps> = ({ isOpen, onClose, loa
               <Sparkles size={24} />
             </div>
             <div>
-              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">Tafseer & Insight</h2>
+              <h2 className="text-xl font-bold text-slate-800 dark:text-slate-100">
+                Tafseer & Insight
+              </h2>
               <p className="text-sm text-slate-500 dark:text-slate-400">
-                Surah {surahName}, Ayah {verseKey.split(':')[1]}
+                Surah {surahName}, Ayah {verseKey.split(":")[1]}
               </p>
             </div>
           </div>

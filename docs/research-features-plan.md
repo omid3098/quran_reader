@@ -5,13 +5,16 @@
 This document outlines new statistical and algorithmic research features for Open Quran Reader. All features are **data-driven and deterministic** — no reliance on AI for core functionality.
 
 ### Principles
+
 - **Reproducible**: Same input always produces same output
 - **Data-based**: Use existing `quran-roots.json` corpus data
 - **No interpretation**: Focus on statistics, patterns, and linguistic analysis
 - **AI as "Plan Z"**: Only use AI for well-structured tasks with predictable outputs
 
 ### Data Source
+
 The `public/quran-roots.json` file contains:
+
 ```typescript
 {
   "_meta": {
@@ -52,10 +55,10 @@ interface LetterAnalysisResult {
 }
 
 // Functions to implement:
-function countLetters(text: string): Map<string, number>
-function analyzeVerse(verseKey: string): LetterAnalysisResult
-function analyzeSurah(surahNumber: number): LetterAnalysisResult
-function analyzeRange(startVerse: string, endVerse: string): LetterAnalysisResult
+function countLetters(text: string): Map<string, number>;
+function analyzeVerse(verseKey: string): LetterAnalysisResult;
+function analyzeSurah(surahNumber: number): LetterAnalysisResult;
+function analyzeRange(startVerse: string, endVerse: string): LetterAnalysisResult;
 ```
 
 ### 1.2 Multi-Root Search Engine
@@ -63,7 +66,7 @@ function analyzeRange(startVerse: string, endVerse: string): LetterAnalysisResul
 **File**: `services/multiRootSearchService.ts`
 
 ```typescript
-type BooleanOperator = 'AND' | 'OR' | 'NOT';
+type BooleanOperator = "AND" | "OR" | "NOT";
 
 interface SearchQuery {
   roots: string[];
@@ -79,8 +82,8 @@ interface SearchResult {
 }
 
 // Functions to implement:
-function searchByRoots(query: SearchQuery): SearchResult[]
-function searchWithProximity(root1: string, root2: string, maxDistance: number): SearchResult[]
+function searchByRoots(query: SearchQuery): SearchResult[];
+function searchWithProximity(root1: string, root2: string, maxDistance: number): SearchResult[];
 ```
 
 ### 1.3 Verse Similarity Calculator
@@ -96,9 +99,9 @@ interface SimilarityResult {
 }
 
 // Jaccard Similarity: |A ∩ B| / |A ∪ B|
-function calculateJaccardSimilarity(verse1Roots: string[], verse2Roots: string[]): number
-function findSimilarVerses(verseKey: string, topN: number): SimilarityResult[]
-function compareVerses(verse1: string, verse2: string): SimilarityResult
+function calculateJaccardSimilarity(verse1Roots: string[], verse2Roots: string[]): number;
+function findSimilarVerses(verseKey: string, topN: number): SimilarityResult[];
+function compareVerses(verse1: string, verse2: string): SimilarityResult;
 ```
 
 ---
@@ -112,15 +115,18 @@ function compareVerses(verse1: string, verse2: string): SimilarityResult
 **UI Location**: New "Research Lab" panel or modal
 
 **Input**:
+
 - Scope selector: Verse / Surah / Juz / Custom Range / Entire Quran
 - Surah/verse picker when applicable
 
 **Output**:
+
 - Bar chart showing letter frequencies
 - Table with: Letter, Count, Percentage
 - Option to export as CSV/JSON
 
 **Algorithm**:
+
 1. Fetch verse text(s) for selected scope
 2. Normalize Arabic (remove diacritics, tatweel)
 3. Count each unique letter
@@ -154,10 +160,12 @@ function compareVerses(verse1: string, verse2: string): SimilarityResult
 **Features**:
 
 #### A. Letter Count in Surah
+
 - For each Muqatta'at surah, count occurrences of its opening letters
 - Example: In Surah Al-Baqarah (الم), count ا، ل، م separately
 
 **Output**:
+
 ```
 Surah 2 (Al-Baqarah) - Opening: الم
 ├── ا (Alif): 4,502 occurrences
@@ -167,21 +175,24 @@ Surah 2 (Al-Baqarah) - Opening: الم
 ```
 
 #### B. Cross-Surah Comparison
+
 - Compare letter ratios across all surahs with same opening
 - Example: Compare all الم surahs
 
 **Output Table**:
 | Surah | ا Count | ل Count | م Count | ا:ل:م Ratio |
 |-------|---------|---------|---------|-------------|
-| 2     | 4502    | 3202    | 2195    | 2.05:1.46:1 |
-| 3     | 2521    | 1892    | 1251    | 2.02:1.51:1 |
-| ...   | ...     | ...     | ...     | ...         |
+| 2 | 4502 | 3202 | 2195 | 2.05:1.46:1 |
+| 3 | 2521 | 1892 | 1251 | 2.02:1.51:1 |
+| ... | ... | ... | ... | ... |
 
 #### C. Pattern Discovery
+
 - Identify statistical patterns (if any)
 - Compare Muqatta'at surahs vs non-Muqatta'at surahs
 
 **Data Structure**:
+
 ```typescript
 interface MuqattaatSurah {
   surahNumber: number;
@@ -209,26 +220,31 @@ const MUQATTAAT_SURAHS: MuqattaatSurah[] = [
 **Features**:
 
 #### A. Unique Roots
+
 - Find roots appearing in only 1 verse
 - Find roots appearing only in 1 surah
 
 #### B. Unique Word Forms
+
 - Find exact word forms (with diacritics) appearing only once
 
 #### C. Rare Vocabulary Browser
+
 - Slider: Show words/roots appearing 1-N times
 - Filter by surah or entire Quran
 
 **Algorithm**:
+
 1. Build frequency map of all roots/words from `quran-roots.json`
 2. Filter by occurrence count threshold
 3. For each result, show the verse(s) where it appears
 
 **Output**:
+
 ```typescript
 interface HapaxResult {
-  text: string;      // the word or root
-  type: 'root' | 'word' | 'lemma';
+  text: string; // the word or root
+  type: "root" | "word" | "lemma";
   count: number;
   occurrences: {
     verseKey: string;
@@ -246,16 +262,19 @@ interface HapaxResult {
 **Description**: Find verses containing specific combinations of roots.
 
 **Input Examples**:
+
 - `صبر AND صلاة` → Verses with both patience and prayer
 - `موت OR حياة` → Verses with death or life
 - `أمن NOT كفر` → Verses with belief but not disbelief
 
 **UI**:
+
 - Text input with syntax hints
 - Root autocomplete from known roots
 - Operator buttons: AND, OR, NOT
 
 **Algorithm**:
+
 ```typescript
 function searchBooleanRoots(query: string): SearchResult[] {
   const parsed = parseQuery(query); // Extract roots and operators
@@ -267,13 +286,13 @@ function searchBooleanRoots(query: string): SearchResult[] {
     const versesWithRoot = rootVerseMap.get(root);
 
     switch (operator) {
-      case 'AND':
+      case "AND":
         resultSet = intersection(resultSet, versesWithRoot);
         break;
-      case 'OR':
+      case "OR":
         resultSet = union(resultSet, versesWithRoot);
         break;
-      case 'NOT':
+      case "NOT":
         resultSet = difference(resultSet, versesWithRoot);
         break;
     }
@@ -290,6 +309,7 @@ function searchBooleanRoots(query: string): SearchResult[] {
 **Description**: Find verses where two roots appear within N words of each other.
 
 **Input**:
+
 - Root 1: `قلب`
 - Root 2: `ذكر`
 - Max distance: 5 words
@@ -297,6 +317,7 @@ function searchBooleanRoots(query: string): SearchResult[] {
 **Output**: Verses where "heart" and "remember" appear within 5 words
 
 **Algorithm**:
+
 ```typescript
 function proximitySearch(root1: string, root2: string, maxDistance: number): SearchResult[] {
   const results: SearchResult[] = [];
@@ -311,7 +332,7 @@ function proximitySearch(root1: string, root2: string, maxDistance: number): Sea
           results.push({
             verseKey,
             positions: [p1, p2],
-            distance: Math.abs(p1 - p2)
+            distance: Math.abs(p1 - p2),
           });
           break;
         }
@@ -330,6 +351,7 @@ function proximitySearch(root1: string, root2: string, maxDistance: number): Sea
 **Description**: Find verses most similar to a given verse based on shared vocabulary.
 
 **Algorithm**: Jaccard Similarity
+
 ```
 Similarity(A, B) = |Roots(A) ∩ Roots(B)| / |Roots(A) ∪ Roots(B)|
 ```
@@ -339,6 +361,7 @@ Similarity(A, B) = |Roots(A) ∩ Roots(B)| / |Roots(A) ∪ Roots(B)|
 **Output**: Top N most similar verses, ranked by similarity score
 
 **Enhancements**:
+
 - Weight important roots higher (lower frequency = higher weight)
 - TF-IDF weighting for better relevance
 - Exclude common roots (الله، قال، كان) optionally
@@ -354,14 +377,17 @@ Similarity(A, B) = |Roots(A) ∩ Roots(B)| / |Roots(A) ∪ Roots(B)|
 **Features**:
 
 #### A. Word Frequency Counter
+
 - Count occurrences of any word/root
 - Show distribution across surahs
 
 #### B. Symmetry Finder
+
 - Find pairs of words with equal occurrence counts
 - Example: "life" and "death" both appear X times
 
 #### C. Phrase Repetition
+
 - Find repeated phrases (2+ words)
 - Show all locations
 
@@ -374,16 +400,19 @@ Similarity(A, B) = |Roots(A) ∩ Roots(B)| / |Roots(A) ∪ Roots(B)|
 **Features**:
 
 #### A. First Word Analysis
+
 - First word of each surah
 - First word of each verse in a surah
 - Pattern identification
 
 #### B. فواصل (Verse Endings) Analysis
+
 - Last word/root of each verse
 - Rhyme pattern detection
 - Common endings per surah
 
 #### C. Verse Length Statistics
+
 - Word count per verse
 - Character count per verse
 - Distribution charts
@@ -398,6 +427,7 @@ Similarity(A, B) = |Roots(A) ∩ Roots(B)| / |Roots(A) ∪ Roots(B)|
 **Features**:
 
 #### A. Meccan vs Medinan
+
 Requires surah metadata indicating revelation period.
 
 - Letter frequency comparison
@@ -406,6 +436,7 @@ Requires surah metadata indicating revelation period.
 - Root usage patterns
 
 #### B. Surah Comparison
+
 - Compare any two surahs
 - Side-by-side statistics
 - Shared vs unique vocabulary
@@ -465,21 +496,25 @@ Requires surah metadata indicating revelation period.
 ## Implementation Order
 
 ### Priority 1 (Foundation)
+
 1. Letter Analysis Utilities (`letterAnalysisService.ts`)
 2. Letter Frequency Analyzer UI
 3. Muqatta'at Explorer
 
 ### Priority 2 (Search)
+
 4. Multi-Root Search Engine (`multiRootSearchService.ts`)
 5. Multi-Root Boolean Search UI
 6. Proximity Search
 
 ### Priority 3 (Analysis)
+
 7. Hapax Legomena Finder
 8. Verse Similarity Calculator (`similarityService.ts`)
 9. Verse Similarity Search UI
 
 ### Priority 4 (Patterns)
+
 10. Repetition Statistics
 11. Structural Pattern Analysis
 12. Comparative Statistics
@@ -489,10 +524,12 @@ Requires surah metadata indicating revelation period.
 ## Data Requirements
 
 ### Already Available
+
 - `quran-roots.json`: Root, lemma, word text for every word
 - Verse texts via API or cache
 
 ### May Need to Add
+
 - `surah-metadata.json`: Meccan/Medinan classification, verse counts
 - Pre-computed indexes for performance:
   - `root-to-verses-index.json`: Map each root to all verses containing it

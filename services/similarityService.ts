@@ -1,4 +1,4 @@
-import { loadLocalRootData, normalizeArabic } from './analysisService';
+import { loadLocalRootData, normalizeArabic } from "./analysisService";
 
 type RootDataEntry = {
   r?: string;
@@ -18,7 +18,7 @@ export interface SimilarityResult {
 let verseRootsIndex: Map<string, Set<string>> | null = null;
 
 const parseVerseKey = (verseKey: string): { surah: number; ayah: number } => {
-  const [surah, ayah] = verseKey.split(':').map(Number);
+  const [surah, ayah] = verseKey.split(":").map(Number);
   return { surah: surah || 0, ayah: ayah || 0 };
 };
 
@@ -38,7 +38,7 @@ const buildVerseRootsIndex = async (): Promise<Map<string, Set<string>> | null> 
   const index = new Map<string, Set<string>>();
   for (const [verseKey, words] of Object.entries(data)) {
     const roots = new Set<string>();
-    words.forEach(word => {
+    words.forEach((word) => {
       if (!word?.r) return;
       const normalized = normalizeArabic(word.r);
       if (normalized) roots.add(normalized);
@@ -58,14 +58,17 @@ const getRootsForVerse = async (verseKey: string): Promise<Set<string>> => {
   return index.get(verseKey) || new Set();
 };
 
-export const calculateJaccardSimilarity = (verse1Roots: string[], verse2Roots: string[]): number => {
+export const calculateJaccardSimilarity = (
+  verse1Roots: string[],
+  verse2Roots: string[]
+): number => {
   const setA = new Set(verse1Roots.map(normalizeArabic).filter(Boolean));
   const setB = new Set(verse2Roots.map(normalizeArabic).filter(Boolean));
 
   if (setA.size === 0 || setB.size === 0) return 0;
 
   let intersection = 0;
-  setA.forEach(root => {
+  setA.forEach((root) => {
     if (setB.has(root)) intersection += 1;
   });
 
@@ -79,22 +82,25 @@ export const compareVerses = async (verse1: string, verse2: string): Promise<Sim
   const [roots1, roots2] = await Promise.all([getRootsForVerse(verse1), getRootsForVerse(verse2)]);
 
   const sharedRoots: string[] = [];
-  roots1.forEach(root => {
+  roots1.forEach((root) => {
     if (roots2.has(root)) sharedRoots.push(root);
   });
 
-  sharedRoots.sort((a, b) => a.localeCompare(b, 'ar'));
+  sharedRoots.sort((a, b) => a.localeCompare(b, "ar"));
   const score = calculateJaccardSimilarity(Array.from(roots1), Array.from(roots2));
 
   return {
     verseKey: verse2,
     score,
     sharedRoots,
-    sharedRootCount: sharedRoots.length
+    sharedRootCount: sharedRoots.length,
   };
 };
 
-export const findSimilarVerses = async (verseKey: string, topN: number): Promise<SimilarityResult[]> => {
+export const findSimilarVerses = async (
+  verseKey: string,
+  topN: number
+): Promise<SimilarityResult[]> => {
   const index = await buildVerseRootsIndex();
   if (!index) return [];
 
@@ -107,11 +113,11 @@ export const findSimilarVerses = async (verseKey: string, topN: number): Promise
     if (otherVerseKey === verseKey) continue;
 
     const sharedRoots: string[] = [];
-    roots.forEach(root => {
+    roots.forEach((root) => {
       if (targetRoots.has(root)) sharedRoots.push(root);
     });
 
-    sharedRoots.sort((a, b) => a.localeCompare(b, 'ar'));
+    sharedRoots.sort((a, b) => a.localeCompare(b, "ar"));
 
     const score = calculateJaccardSimilarity(Array.from(targetRoots), Array.from(roots));
     if (score === 0) continue;
@@ -120,7 +126,7 @@ export const findSimilarVerses = async (verseKey: string, topN: number): Promise
       verseKey: otherVerseKey,
       score,
       sharedRoots,
-      sharedRootCount: sharedRoots.length
+      sharedRootCount: sharedRoots.length,
     });
   }
 

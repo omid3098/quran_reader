@@ -25,3 +25,9 @@ dist-ssr
 
 # Playwright MCP
 .playwright-mcp/
+
+# Test artifacts
+coverage/
+test-results/
+playwright-report/
+playwright/.cache/
