@@ -62,6 +62,8 @@ export interface TranslationResource {
   language_name: string;
 }
 
+export type UserLanguage = "en" | "fa";
+
 export interface AppSettings {
   fontSize: number;
   translationIds: string[];
@@ -70,6 +72,7 @@ export interface AppSettings {
   showTranslation: boolean;
   autoPlay: boolean;
   theme: "light" | "dark";
+  userLanguage?: UserLanguage;
 }
 
 // Internal Note Structure

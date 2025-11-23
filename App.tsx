@@ -9,6 +9,7 @@ import { NoteModal } from "./components/NoteModal";
 import { SmartContextMenu } from "./components/SmartContextMenu";
 import { AnalysisSidebar } from "./components/AnalysisSidebar";
 import { IframeModal } from "./components/IframeModal";
+import { LanguageSelectionModal } from "./components/LanguageSelectionModal";
 import { getChapters, getVerses, getAudioUrl } from "./services/quranService";
 import { explainAyah } from "./services/geminiService";
 import {
@@ -27,6 +28,7 @@ import {
   NoteExportTuple,
   SelectionContext,
   RootAnalysis,
+  UserLanguage,
 } from "./types";
 import { Spinner } from "./components/Spinner";
 
@@ -611,6 +613,16 @@ const App: React.FC = () => {
     }));
   };
 
+  // --- Language Selection Handler ---
+  const handleLanguageSelect = (language: UserLanguage) => {
+    const defaultTranslation = language === "fa" ? "fa.makarem" : "en.sahih";
+    setSettings((prev) => ({
+      ...prev,
+      userLanguage: language,
+      translationIds: [defaultTranslation],
+    }));
+  };
+
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300 overflow-x-hidden">
       <Header
@@ -750,6 +762,12 @@ const App: React.FC = () => {
         onClose={() => setIframeData({ ...iframeData, isOpen: false })}
         url={iframeData.url}
         title={iframeData.title}
+      />
+
+      {/* Language Selection Modal (First-time users) */}
+      <LanguageSelectionModal
+        isOpen={!settings.userLanguage}
+        onSelectLanguage={handleLanguageSelect}
       />
     </div>
   );

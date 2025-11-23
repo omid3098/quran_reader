@@ -2,8 +2,25 @@ import { test, expect } from "@playwright/test";
 
 test.describe("Reading Experience", () => {
   test.beforeEach(async ({ page }) => {
+    // Set up localStorage to bypass language selection modal
+    await page.goto("/");
+    await page.evaluate(() => {
+      localStorage.setItem(
+        "luminaSettings",
+        JSON.stringify({
+          fontSize: 32,
+          translationIds: ["en.sahih"],
+          reciterId: "alafasy",
+          scriptType: "simple",
+          showTranslation: true,
+          autoPlay: true,
+          theme: "dark",
+          userLanguage: "en",
+        })
+      );
+    });
     // Navigate and wait for network to settle
-    await page.goto("/", { waitUntil: "networkidle" });
+    await page.reload({ waitUntil: "networkidle" });
     // Wait for header to be visible (always loads)
     await page.waitForSelector("header", { timeout: 30000 });
     // Try to wait for verses, but don't fail if API is slow

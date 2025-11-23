@@ -16,8 +16,9 @@ import {
   Upload,
   PenTool,
   NotebookPen,
+  Globe,
 } from "lucide-react";
-import { AppSettings, TranslationResource, BackupData, Note } from "../types";
+import { AppSettings, TranslationResource, BackupData, Note, UserLanguage } from "../types";
 import { RECITERS, getAvailableTranslations } from "../services/quranService";
 import { Spinner } from "./Spinner";
 
@@ -32,7 +33,15 @@ interface SettingsSidebarProps {
   onJumpToNote: (verseKey: string) => void;
 }
 
-type Section = "font" | "script" | "translations" | "reciters" | "notes" | "data" | null;
+type Section =
+  | "language"
+  | "font"
+  | "script"
+  | "translations"
+  | "reciters"
+  | "notes"
+  | "data"
+  | null;
 
 export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   isOpen,
@@ -209,6 +218,48 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         </div>
 
         <div className="flex-1 overflow-y-auto no-scrollbar">
+          {/* Language Section */}
+          <div className="border-b border-slate-100 dark:border-slate-800">
+            <button
+              onClick={() => toggleSection("language")}
+              className="w-full flex items-center justify-between p-5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+            >
+              <div className="flex items-center gap-3 text-slate-700 dark:text-slate-200">
+                <Globe size={20} className="text-emerald-500" />
+                <h3 className="font-semibold">Language</h3>
+              </div>
+              {expandedSection === "language" ? <ChevronUp size={18} /> : <ChevronDown size={18} />}
+            </button>
+
+            {expandedSection === "language" && (
+              <div className="px-5 pb-6 animate-in slide-in-from-top-2 duration-200">
+                <div className="flex flex-col gap-3">
+                  <button
+                    onClick={() => onUpdateSettings({ userLanguage: "en" as UserLanguage })}
+                    className={`w-full py-3 px-4 rounded-xl text-left font-medium transition-colors border ${
+                      settings.userLanguage === "en"
+                        ? "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
+                        : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
+                    }`}
+                  >
+                    English
+                  </button>
+                  <button
+                    onClick={() => onUpdateSettings({ userLanguage: "fa" as UserLanguage })}
+                    className={`w-full py-3 px-4 rounded-xl text-right font-medium transition-colors border font-vazir ${
+                      settings.userLanguage === "fa"
+                        ? "bg-emerald-50 dark:bg-emerald-900/30 border-emerald-200 dark:border-emerald-800 text-emerald-700 dark:text-emerald-300"
+                        : "bg-slate-50 dark:bg-slate-800/50 border-slate-100 dark:border-slate-700 text-slate-700 dark:text-slate-200 hover:bg-slate-100 dark:hover:bg-slate-700"
+                    }`}
+                    dir="rtl"
+                  >
+                    فارسی
+                  </button>
+                </div>
+              </div>
+            )}
+          </div>
+
           {/* Font Size Section */}
           <div className="border-b border-slate-100 dark:border-slate-800">
             <button
