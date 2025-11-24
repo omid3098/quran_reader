@@ -1,7 +1,8 @@
 import React, { useEffect, useRef } from "react";
-import { Search, BookOpen, Copy } from "lucide-react";
-import { SelectionContext } from "../types";
+import { Search, BookOpen, Copy, Languages } from "lucide-react";
+import { SelectionContext, UserLanguage } from "../types";
 import { calculateAbjad } from "../services/analysisService";
+import { getServicesForLanguage, TranslationService } from "../services/translationServices";
 
 interface SmartContextMenuProps {
   context: SelectionContext;
@@ -9,6 +10,8 @@ interface SmartContextMenuProps {
   onAnalyzeRoot: () => void;
   onSearchPhrase: () => void;
   onCopy: () => void;
+  onTranslate: (service: TranslationService, word: string) => void;
+  userLanguage: UserLanguage;
 }
 
 export const SmartContextMenu: React.FC<SmartContextMenuProps> = ({
@@ -17,9 +20,14 @@ export const SmartContextMenu: React.FC<SmartContextMenuProps> = ({
   onAnalyzeRoot,
   onSearchPhrase,
   onCopy,
+  onTranslate,
+  userLanguage,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
   const abjadValue = calculateAbjad(context.text);
+
+  // Get translation services available for user's language
+  const translationServices = getServicesForLanguage(userLanguage);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -86,6 +94,21 @@ export const SmartContextMenu: React.FC<SmartContextMenuProps> = ({
             </div>
           </button>
         )}
+
+        {/* Translation options - only for single words */}
+        {context.type === "single" &&
+          translationServices.map((service) => (
+            <button
+              key={service.id}
+              onClick={() => onTranslate(service, context.text)}
+              className="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-slate-200 transition-colors group"
+            >
+              <div className="p-1.5 rounded-md bg-slate-100 dark:bg-slate-800 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">
+                <Languages size={16} />
+              </div>
+              <span className="font-medium">{service.name}</span>
+            </button>
+          ))}
 
         <button
           onClick={onCopy}

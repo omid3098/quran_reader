@@ -19,6 +19,7 @@ import {
   searchPhrase,
   normalizeArabic,
 } from "./services/analysisService";
+import { TranslationService } from "./services/translationServices";
 import {
   Chapter,
   Verse,
@@ -532,6 +533,26 @@ const App: React.FC = () => {
     setSelectionContext(null);
   };
 
+  // --- Translation Handler ---
+  const handleTranslate = (service: TranslationService, word: string) => {
+    const targetLanguage = settings.userLanguage || "en";
+    const url = service.getUrl(word, targetLanguage);
+
+    if (service.supportsIframe) {
+      // Open in iframe modal
+      setIframeData({
+        isOpen: true,
+        url,
+        title: `${service.name} - ${word}`,
+      });
+    } else {
+      // Open in new tab (for services that block iframe embedding)
+      window.open(url, "_blank", "noopener,noreferrer");
+    }
+
+    setSelectionContext(null);
+  };
+
   // --- Single-Click Word Handler ---
   const handleWordClick = (word: string, wordIndex: number, verseKey: string, rect: DOMRect) => {
     setSelectionContext({
@@ -754,6 +775,8 @@ const App: React.FC = () => {
           onAnalyzeRoot={handleAnalyzeRoot}
           onSearchPhrase={handleSearchPhrase}
           onCopy={handleCopySelection}
+          onTranslate={handleTranslate}
+          userLanguage={settings.userLanguage || "en"}
         />
       )}
 
