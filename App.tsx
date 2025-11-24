@@ -19,6 +19,8 @@ import {
   searchPhrase,
   normalizeArabic,
   calculateAbjad,
+  findWordsWithSameAbjad,
+  findRootForWord,
 } from "./services/analysisService";
 import { TranslationService } from "./services/translationServices";
 import {
@@ -477,7 +479,45 @@ const App: React.FC = () => {
 
     const normalized = normalizeArabic(selectionContext.text);
     const abjadValue = calculateAbjad(selectionContext.text);
-    const words = await getVerseWordData(selectionContext.verseKey);
+
+    // For standalone words (no verseKey), use the word-to-root index
+    if (!selectionContext.verseKey) {
+      const [root, sameAbjadWords] = await Promise.all([
+        findRootForWord(selectionContext.text),
+        findWordsWithSameAbjad(abjadValue, normalized),
+      ]);
+
+      const debugInfo = {
+        selectedText: selectionContext.text,
+        normalizedText: normalized,
+        abjadValue,
+        sameAbjadWords,
+      };
+
+      if (root) {
+        const analysis = await findVersesByRoot(root);
+        setRootData({
+          ...analysis,
+          debugInfo,
+        });
+      } else {
+        setRootData({
+          root: "Not Found",
+          occurrences: 0,
+          verses: [],
+          wordForms: [],
+          debugInfo,
+        });
+      }
+
+      setAnalysisLoading(false);
+      return;
+    }
+
+    const [words, sameAbjadWords] = await Promise.all([
+      getVerseWordData(selectionContext.verseKey),
+      findWordsWithSameAbjad(abjadValue, normalized),
+    ]);
 
     const verseWordsDebug = words.map((w) => ({
       text: w.text_uthmani,
@@ -492,6 +532,7 @@ const App: React.FC = () => {
       selectedText: selectionContext.text,
       normalizedText: normalized,
       abjadValue,
+      sameAbjadWords,
       verseWords: verseWordsDebug,
     };
 
@@ -564,6 +605,15 @@ const App: React.FC = () => {
       rect,
       type: "single",
       wordIndex,
+    });
+  };
+
+  // --- Standalone Word Click (from same abjad list) ---
+  const handleStandaloneWordClick = (word: string, rect: DOMRect) => {
+    setSelectionContext({
+      text: word,
+      rect,
+      type: "single",
     });
   };
 
@@ -728,6 +778,7 @@ const App: React.FC = () => {
           phraseData={phraseData}
           mode={analysisMode}
           onNavigate={handleNavigateByKey}
+          onWordClick={handleStandaloneWordClick}
         />
       </div>
 
@@ -780,6 +831,7 @@ const App: React.FC = () => {
           onCopy={handleCopySelection}
           onTranslate={handleTranslate}
           userLanguage={settings.userLanguage || "en"}
+          hideCopy={!selectionContext.verseKey}
         />
       )}
 

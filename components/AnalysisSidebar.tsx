@@ -58,6 +58,7 @@ interface AnalysisSidebarProps {
   phraseData: { count: number; verses: { verse_key: string; text: string }[] } | null;
   mode: "root" | "phrase" | null;
   onNavigate: (verseKey: string) => void;
+  onWordClick?: (word: string, rect: DOMRect) => void;
 }
 
 export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
@@ -68,13 +69,14 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
   phraseData,
   mode,
   onNavigate,
+  onWordClick,
 }) => {
-  const [isConcordanceOpen, setIsConcordanceOpen] = useState(true);
-  const [isWordFormsOpen, setIsWordFormsOpen] = useState(true);
+  const [isConcordanceOpen, setIsConcordanceOpen] = useState(false);
+  const [isWordFormsOpen, setIsWordFormsOpen] = useState(false);
 
   useEffect(() => {
-    setIsConcordanceOpen(true);
-    setIsWordFormsOpen(true);
+    setIsConcordanceOpen(false);
+    setIsWordFormsOpen(false);
   }, [rootData?.root]);
 
   return (
@@ -139,6 +141,35 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
                     </span>
                   </div>
                 </div>
+
+                {/* Same Abjad Words */}
+                {rootData.debugInfo?.sameAbjadWords &&
+                  rootData.debugInfo.sameAbjadWords.length > 0 && (
+                    <div className="mt-4 pt-4 border-t border-slate-200 dark:border-slate-700">
+                      <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-2">
+                        Same Abjad Value ({rootData.debugInfo.abjadValue})
+                      </span>
+                      <div className="flex flex-wrap gap-2">
+                        {rootData.debugInfo.sameAbjadWords.slice(0, 12).map((word, idx) => (
+                          <button
+                            key={idx}
+                            onClick={(e) => {
+                              const rect = e.currentTarget.getBoundingClientRect();
+                              onWordClick?.(word, rect);
+                            }}
+                            className="font-quran text-sm bg-emerald-50 dark:bg-emerald-900/20 text-emerald-800 dark:text-emerald-200 px-2 py-1 rounded-lg border border-emerald-200 dark:border-emerald-800/50 dir-rtl hover:bg-emerald-100 dark:hover:bg-emerald-900/40 hover:border-emerald-300 dark:hover:border-emerald-700 transition-colors cursor-pointer"
+                          >
+                            {word}
+                          </button>
+                        ))}
+                        {rootData.debugInfo.sameAbjadWords.length > 12 && (
+                          <span className="text-xs text-slate-400 self-center">
+                            +{rootData.debugInfo.sameAbjadWords.length - 12} more
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  )}
               </div>
 
               {/* Root Header */}
@@ -170,7 +201,10 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
                       <Search size={16} className="text-emerald-500" />
                       <div>
                         <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
-                          Concordance
+                          Concordance{" "}
+                          <span className="text-emerald-600 dark:text-emerald-400">
+                            ({rootData.verses.length})
+                          </span>
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
                           All verses with this root
@@ -219,10 +253,13 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
                       <BookOpen size={16} className="text-emerald-500" />
                       <div>
                         <p className="text-sm font-bold text-slate-900 dark:text-white leading-tight">
-                          Word Forms
+                          Word Forms{" "}
+                          <span className="text-emerald-600 dark:text-emerald-400">
+                            ({rootData.wordForms.length})
+                          </span>
                         </p>
                         <p className="text-xs text-slate-500 dark:text-slate-400">
-                          Other words sharing this root ({rootData.wordForms.length})
+                          Other words sharing this root
                         </p>
                       </div>
                     </div>

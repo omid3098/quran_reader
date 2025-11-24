@@ -11,6 +11,7 @@ interface SmartContextMenuProps {
   onCopy: () => void;
   onTranslate: (service: TranslationService, word: string) => void;
   userLanguage: UserLanguage;
+  hideCopy?: boolean;
 }
 
 export const SmartContextMenu: React.FC<SmartContextMenuProps> = ({
@@ -21,6 +22,7 @@ export const SmartContextMenu: React.FC<SmartContextMenuProps> = ({
   onCopy,
   onTranslate,
   userLanguage,
+  hideCopy,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
 
@@ -103,15 +105,17 @@ export const SmartContextMenu: React.FC<SmartContextMenuProps> = ({
             </button>
           ))}
 
-        <button
-          onClick={onCopy}
-          className="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors group"
-        >
-          <div className="p-1.5 rounded-md bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors">
-            <Copy size={16} />
-          </div>
-          <span className="font-medium">Copy with Citation</span>
-        </button>
+        {!hideCopy && (
+          <button
+            onClick={onCopy}
+            className="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800 text-slate-700 dark:text-slate-200 transition-colors group"
+          >
+            <div className="p-1.5 rounded-md bg-slate-100 dark:bg-slate-800 group-hover:bg-slate-200 dark:group-hover:bg-slate-700 text-slate-500 dark:text-slate-400 transition-colors">
+              <Copy size={16} />
+            </div>
+            <span className="font-medium">Copy with Citation</span>
+          </button>
+        )}
       </div>
     </div>
   );

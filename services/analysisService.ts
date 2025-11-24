@@ -241,6 +241,107 @@ export const calculateAbjad = (text: string): number => {
   return sum;
 };
 
+// Abjad index cache: maps abjad value -> array of unique words with that value
+let abjadIndex: Map<number, string[]> | null = null;
+let abjadIndexLoading: Promise<Map<number, string[]>> | null = null;
+
+// Build the abjad index from all Quranic words (cached)
+const buildAbjadIndex = async (): Promise<Map<number, string[]>> => {
+  if (abjadIndex) return abjadIndex;
+
+  if (abjadIndexLoading) return abjadIndexLoading;
+
+  abjadIndexLoading = (async () => {
+    const data = await loadLocalRootData();
+    const index = new Map<number, string[]>();
+    const seenNormalized = new Set<string>();
+
+    if (data) {
+      for (const words of Object.values(data)) {
+        for (const word of words) {
+          if (word?.t) {
+            const normalized = normalizeArabic(word.t);
+            // Skip if we've already processed this normalized form
+            if (seenNormalized.has(normalized)) continue;
+            seenNormalized.add(normalized);
+
+            const abjad = calculateAbjad(word.t);
+            if (!index.has(abjad)) {
+              index.set(abjad, []);
+            }
+            index.get(abjad)!.push(sanitizeQuranText(word.t));
+          }
+        }
+      }
+    }
+
+    abjadIndex = index;
+    return index;
+  })();
+
+  return abjadIndexLoading;
+};
+
+// Find words with the same Abjad value as the target
+export const findWordsWithSameAbjad = async (
+  targetAbjad: number,
+  excludeNormalized?: string
+): Promise<string[]> => {
+  const index = await buildAbjadIndex();
+  const words = index.get(targetAbjad) || [];
+
+  if (excludeNormalized) {
+    // Filter out the word we're analyzing
+    return words.filter((w) => normalizeArabic(w) !== excludeNormalized);
+  }
+
+  return words;
+};
+
+// Word-to-root index cache: maps normalized word -> root
+let wordToRootIndex: Map<string, string> | null = null;
+let wordToRootIndexLoading: Promise<Map<string, string>> | null = null;
+
+// Build the word-to-root index from all Quranic words (cached)
+const buildWordToRootIndex = async (): Promise<Map<string, string>> => {
+  if (wordToRootIndex) return wordToRootIndex;
+
+  if (wordToRootIndexLoading) return wordToRootIndexLoading;
+
+  wordToRootIndexLoading = (async () => {
+    const data = await loadLocalRootData();
+    const index = new Map<string, string>();
+
+    if (data) {
+      for (const words of Object.values(data)) {
+        for (const word of words) {
+          if (word?.t && word?.r) {
+            const normalized = normalizeArabic(word.t);
+            if (normalized && !index.has(normalized)) {
+              index.set(normalized, word.r);
+            }
+          }
+        }
+      }
+    }
+
+    wordToRootIndex = index;
+    return index;
+  })();
+
+  return wordToRootIndexLoading;
+};
+
+// Find the root for a standalone Arabic word (without verse context)
+export const findRootForWord = async (word: string): Promise<string | null> => {
+  const index = await buildWordToRootIndex();
+  const normalized = normalizeArabic(word);
+
+  if (!normalized) return null;
+
+  return index.get(normalized) || null;
+};
+
 // Get word data from local root database
 export const getVerseWordData = async (verseKey: string): Promise<QuranWord[]> => {
   const data = await loadLocalRootData();

@@ -121,6 +121,7 @@ export interface RootAnalysis {
     selectedText: string;
     normalizedText: string;
     abjadValue: number;
+    sameAbjadWords?: string[];
     verseWords?: {
       text: string;
       normalized: string;
@@ -132,7 +133,7 @@ export interface RootAnalysis {
 
 export interface SelectionContext {
   text: string;
-  verseKey: string; // "1:1"
+  verseKey?: string; // "1:1" - optional for standalone words
   rect: DOMRect;
   type: "single" | "phrase";
   wordIndex?: number; // The 0-based index of the word in the verse
