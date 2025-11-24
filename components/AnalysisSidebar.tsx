@@ -110,16 +110,42 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
 
           {!loading && mode === "root" && rootData && (
             <div className="space-y-6 animate-in fade-in slide-in-from-right-4 duration-300">
+              {/* Word Details Section */}
+              <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
+                <div className="text-center mb-4">
+                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                    Selected Word
+                  </span>
+                  <div className="font-quran text-3xl text-slate-800 dark:text-slate-100 mt-1 dir-rtl">
+                    {rootData.debugInfo?.selectedText}
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-3">
+                  <div className="bg-white dark:bg-slate-800 rounded-xl p-3 text-center border border-slate-100 dark:border-slate-700">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                      Normalized
+                    </span>
+                    <span className="font-quran text-lg text-slate-700 dark:text-slate-200 dir-rtl">
+                      {rootData.debugInfo?.normalizedText}
+                    </span>
+                  </div>
+                  <div className="bg-white dark:bg-slate-800 rounded-xl p-3 text-center border border-slate-100 dark:border-slate-700">
+                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider block mb-1">
+                      Abjad
+                    </span>
+                    <span className="font-mono text-lg text-emerald-600 dark:text-emerald-400 font-bold">
+                      {rootData.debugInfo?.abjadValue}
+                    </span>
+                  </div>
+                </div>
+              </div>
+
               {/* Root Header */}
               <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl p-6 text-center border border-emerald-100 dark:border-emerald-800/50">
-                <div className="flex items-center justify-center gap-2 mb-2">
-                  <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
-                    ROOT FOR
-                  </span>
-                  <span className="font-quran text-lg text-emerald-700 dark:text-emerald-300 leading-none pt-1">
-                    {rootData.debugInfo?.normalizedText}
-                  </span>
-                </div>
+                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                  Root
+                </span>
 
                 <div className="font-quran text-5xl text-emerald-800 dark:text-emerald-200 mt-2 mb-4 dir-rtl">
                   {rootData.root}

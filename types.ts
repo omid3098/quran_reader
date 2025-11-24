@@ -120,6 +120,7 @@ export interface RootAnalysis {
   debugInfo?: {
     selectedText: string;
     normalizedText: string;
+    abjadValue: number;
     verseWords?: {
       text: string;
       normalized: string;

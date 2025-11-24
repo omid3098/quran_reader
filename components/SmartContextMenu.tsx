@@ -1,7 +1,6 @@
 import React, { useEffect, useRef } from "react";
 import { Search, BookOpen, Copy, Languages } from "lucide-react";
 import { SelectionContext, UserLanguage } from "../types";
-import { calculateAbjad } from "../services/analysisService";
 import { getServicesForLanguage, TranslationService } from "../services/translationServices";
 
 interface SmartContextMenuProps {
@@ -24,7 +23,6 @@ export const SmartContextMenu: React.FC<SmartContextMenuProps> = ({
   userLanguage,
 }) => {
   const ref = useRef<HTMLDivElement>(null);
-  const abjadValue = calculateAbjad(context.text);
 
   // Get translation services available for user's language
   const translationServices = getServicesForLanguage(userLanguage);
@@ -53,14 +51,9 @@ export const SmartContextMenu: React.FC<SmartContextMenuProps> = ({
       className="fixed z-50 w-60 bg-white dark:bg-slate-900 rounded-xl shadow-2xl border border-slate-100 dark:border-slate-700 flex flex-col overflow-hidden animate-in fade-in zoom-in-95 duration-150"
     >
       <div className="bg-slate-50 dark:bg-slate-950/50 p-3 border-b border-slate-100 dark:border-slate-800">
-        <div className="flex items-center justify-between mb-1">
-          <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
-            {context.type === "single" ? "Word Analysis" : "Phrase Selection"}
-          </span>
-          <span className="text-[10px] font-mono text-emerald-600 dark:text-emerald-400 bg-emerald-50 dark:bg-emerald-900/30 px-1.5 py-0.5 rounded">
-            Abjad: {abjadValue}
-          </span>
-        </div>
+        <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+          {context.type === "single" ? "Word" : "Phrase"}
+        </span>
         <div className="font-quran text-lg text-slate-800 dark:text-slate-100 truncate dir-rtl text-right">
           {context.text}
         </div>
@@ -76,8 +69,8 @@ export const SmartContextMenu: React.FC<SmartContextMenuProps> = ({
               <BookOpen size={16} />
             </div>
             <div className="flex flex-col items-start">
-              <span className="font-medium">Analyze Root</span>
-              <span className="text-[10px] text-slate-400">View lexicon & matches</span>
+              <span className="font-medium">Analyze</span>
+              <span className="text-[10px] text-slate-400">View word details & root</span>
             </div>
           </button>
         ) : (

@@ -18,6 +18,7 @@ import {
   findVersesByRoot,
   searchPhrase,
   normalizeArabic,
+  calculateAbjad,
 } from "./services/analysisService";
 import { TranslationService } from "./services/translationServices";
 import {
@@ -475,6 +476,7 @@ const App: React.FC = () => {
     setRootData(null);
 
     const normalized = normalizeArabic(selectionContext.text);
+    const abjadValue = calculateAbjad(selectionContext.text);
     const words = await getVerseWordData(selectionContext.verseKey);
 
     const verseWordsDebug = words.map((w) => ({
@@ -489,6 +491,7 @@ const App: React.FC = () => {
     const debugInfo = {
       selectedText: selectionContext.text,
       normalizedText: normalized,
+      abjadValue,
       verseWords: verseWordsDebug,
     };
 
