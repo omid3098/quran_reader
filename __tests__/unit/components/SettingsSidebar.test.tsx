@@ -147,4 +147,31 @@ describe("SettingsSidebar", () => {
     }
     // Close is also triggered by backdrop click
   });
+
+  describe("Notes Section", () => {
+    it("should display notes sorted by surah:verse index", async () => {
+      const notesWithMultipleVerses: Record<string, Note> = {
+        "2:45": { text: "Note for 2:45", updatedAt: "2024-01-01T10:00:00Z" },
+        "1:1": { text: "Note for 1:1", updatedAt: "2024-01-02T10:00:00Z" },
+        "1:7": { text: "Note for 1:7", updatedAt: "2024-01-03T10:00:00Z" },
+        "3:10": { text: "Note for 3:10", updatedAt: "2024-01-04T10:00:00Z" },
+        "2:1": { text: "Note for 2:1", updatedAt: "2024-01-05T10:00:00Z" },
+      };
+
+      render(<SettingsSidebar {...defaultProps} notes={notesWithMultipleVerses} />);
+
+      // Click to expand Notes section
+      const notesButton = await screen.findByText("Notes");
+      fireEvent.click(notesButton);
+
+      // Get all note buttons in order
+      const noteButtons = await screen.findAllByRole("button", {
+        name: /^\d+:\d+$/,
+      });
+      const verseKeys = noteButtons.map((btn) => btn.textContent);
+
+      // Should be sorted by surah:verse (1:1, 1:7, 2:1, 2:45, 3:10)
+      expect(verseKeys).toEqual(["1:1", "1:7", "2:1", "2:45", "3:10"]);
+    });
+  });
 });

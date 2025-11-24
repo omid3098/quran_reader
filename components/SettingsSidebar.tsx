@@ -68,9 +68,10 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
     }));
 
     list.sort((a, b) => {
-      const aTime = new Date(a.updatedAt || 0).getTime();
-      const bTime = new Date(b.updatedAt || 0).getTime();
-      return bTime - aTime;
+      const [aSurah, aVerse] = a.verseKey.split(":").map(Number);
+      const [bSurah, bVerse] = b.verseKey.split(":").map(Number);
+      if (aSurah !== bSurah) return aSurah - bSurah;
+      return aVerse - bVerse;
     });
 
     return {
