@@ -24,6 +24,8 @@ export const Header: React.FC<HeaderProps> = ({
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [filter, setFilter] = useState("");
   const dropdownRef = useRef<HTMLDivElement>(null);
+  const listRef = useRef<HTMLDivElement>(null);
+  const selectedItemRef = useRef<HTMLButtonElement>(null);
 
   useEffect(() => {
     const handleClickOutside = (event: MouseEvent) => {
@@ -34,6 +36,19 @@ export const Header: React.FC<HeaderProps> = ({
     document.addEventListener("mousedown", handleClickOutside);
     return () => document.removeEventListener("mousedown", handleClickOutside);
   }, []);
+
+  // Auto-scroll to selected surah when dropdown opens
+  useEffect(() => {
+    if (dropdownOpen && selectedItemRef.current && listRef.current) {
+      // Small delay to ensure the dropdown is rendered
+      requestAnimationFrame(() => {
+        selectedItemRef.current?.scrollIntoView({
+          block: "center",
+          behavior: "instant",
+        });
+      });
+    }
+  }, [dropdownOpen]);
 
   const filteredChapters = chapters.filter(
     (c) =>
@@ -92,10 +107,11 @@ export const Header: React.FC<HeaderProps> = ({
                     autoFocus
                   />
                 </div>
-                <div className="overflow-y-auto p-2 flex-1">
+                <div ref={listRef} className="overflow-y-auto p-2 flex-1">
                   {filteredChapters.map((chapter) => (
                     <button
                       key={chapter.id}
+                      ref={currentChapter?.id === chapter.id ? selectedItemRef : null}
                       onClick={() => {
                         onSelectChapter(chapter.id);
                         setDropdownOpen(false);
