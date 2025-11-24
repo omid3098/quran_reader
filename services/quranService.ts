@@ -196,7 +196,7 @@ export const getChapters = async (): Promise<Chapter[]> => {
       bismillah_pre: s.number !== 1 && s.number !== 9, // All except Fatiha and Tawbah
       name_simple: s.englishName,
       name_complex: s.englishName,
-      name_arabic: s.name,
+      name_arabic: sanitizeQuranText(s.name),
       verses_count: s.numberOfAyahs,
       translated_name: {
         language_name: "English",

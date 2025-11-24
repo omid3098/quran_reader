@@ -137,7 +137,7 @@ export const Header: React.FC<HeaderProps> = ({
                           </span>
                         </div>
                       </div>
-                      <span className="font-vazir text-slate-400 dark:text-slate-600">
+                      <span dir="rtl" className="font-vazir text-slate-400 dark:text-slate-600">
                         {chapter.name_arabic}
                       </span>
                     </button>
