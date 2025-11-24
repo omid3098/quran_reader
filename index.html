@@ -69,6 +69,25 @@
       html {
         scroll-behavior: smooth;
       }
+
+      /* Force Vazirmatn font on BlockNote editor */
+      .rich-note-editor,
+      .rich-note-editor * {
+        font-family: "Vazirmatn", sans-serif !important;
+      }
+      .rich-note-editor [data-content-type="paragraph"],
+      .rich-note-editor [data-content-type="heading"],
+      .rich-note-editor [data-content-type="bulletListItem"],
+      .rich-note-editor [data-content-type="numberedListItem"] {
+        font-family: "Vazirmatn", sans-serif !important;
+      }
+      /* Make BlockNote editor background transparent to match modal */
+      .rich-note-editor .bn-editor,
+      .rich-note-editor .bn-container,
+      .rich-note-editor .mantine-Paper-root {
+        background: transparent !important;
+        background-color: transparent !important;
+      }
     </style>
     <script type="importmap">
       {

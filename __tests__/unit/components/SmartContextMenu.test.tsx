@@ -36,9 +36,9 @@ describe("SmartContextMenu", () => {
     expect(screen.getByText("كتاب")).toBeInTheDocument();
   });
 
-  it("should show Analyze Root button for single word selection", () => {
+  it("should show Analyze button for single word selection", () => {
     render(<SmartContextMenu {...defaultProps} />);
-    expect(screen.getByText("Analyze Root")).toBeInTheDocument();
+    expect(screen.getByText("Analyze")).toBeInTheDocument();
   });
 
   it("should show Search Phrase button for phrase selection", () => {
@@ -106,9 +106,9 @@ describe("SmartContextMenu", () => {
     expect(defaultProps.onCopy).toHaveBeenCalled();
   });
 
-  it("should call onAnalyzeRoot when Analyze Root button is clicked", () => {
+  it("should call onAnalyzeRoot when Analyze button is clicked", () => {
     render(<SmartContextMenu {...defaultProps} />);
-    const analyzeButton = screen.getByText("Analyze Root");
+    const analyzeButton = screen.getByText("Analyze");
     fireEvent.click(analyzeButton);
     expect(defaultProps.onAnalyzeRoot).toHaveBeenCalled();
   });

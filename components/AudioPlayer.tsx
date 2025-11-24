@@ -1,5 +1,5 @@
 import React from "react";
-import { Play, Pause, SkipForward, SkipBack, Repeat } from "lucide-react";
+import { Play, Pause, SkipForward, SkipBack, Repeat, BookMarked } from "lucide-react";
 
 interface AudioPlayerProps {
   isPlaying: boolean;
@@ -9,6 +9,8 @@ interface AudioPlayerProps {
   onClose: () => void;
   autoPlayEnabled: boolean;
   onToggleAutoPlay: () => void;
+  hasSurahNotes?: boolean;
+  onOpenSurahNotes?: () => void;
 }
 
 export const AudioPlayer: React.FC<AudioPlayerProps> = ({
@@ -18,10 +20,34 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   onPrev,
   autoPlayEnabled,
   onToggleAutoPlay,
+  hasSurahNotes = false,
+  onOpenSurahNotes,
 }) => {
   return (
     <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-30 animate-in slide-in-from-bottom duration-300">
       <div className="bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white rounded-full shadow-lg shadow-black/20 dark:shadow-black/40 px-8 py-3 flex items-center gap-6 border border-emerald-500 backdrop-blur-md">
+        {/* Surah Notes Button */}
+        <button
+          onClick={onOpenSurahNotes}
+          className={`
+            relative transition-colors duration-200 flex items-center justify-center
+            ${
+              hasSurahNotes
+                ? "text-emerald-600 dark:text-emerald-400"
+                : "text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300"
+            }
+          `}
+          title="Surah Notes"
+        >
+          <BookMarked size={20} />
+          {hasSurahNotes && (
+            <span className="absolute -top-1 -right-1 w-2 h-2 bg-emerald-500 rounded-full" />
+          )}
+        </button>
+
+        {/* Left Separator */}
+        <div className="h-8 w-px bg-slate-200 dark:bg-slate-700"></div>
+
         {/* Controls */}
         <div className="flex items-center gap-6">
           <button
@@ -53,7 +79,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
           </button>
         </div>
 
-        {/* Separator */}
+        {/* Right Separator */}
         <div className="h-8 w-px bg-slate-200 dark:bg-slate-700"></div>
 
         {/* Autoplay Toggle */}

@@ -104,6 +104,33 @@ The application allows users to read the Quran, listen to recitations, view tran
 - **Linting/Formatting:** ESLint and Prettier are configured for code quality and consistency.
 - **Package Manager:** Bun is used as the package manager (not npm).
 
+## Design Conventions
+
+### User Data Styling
+
+**Yellow color** is used consistently throughout the app to indicate user-generated content. When users see yellow, they know they're looking at their own data.
+
+**Examples:**
+
+- Verse notes (in AyahCard)
+- Surah notes (in SurahNoteModal)
+- Note indicators and buttons
+
+**Color Palette:**
+| Usage | Light Theme | Dark Theme |
+|-------|-------------|------------|
+| Background | `bg-yellow-50` | `dark:bg-yellow-900/20` |
+| Border | `border-yellow-200` | `dark:border-yellow-700` |
+| Text | `text-yellow-600` | `dark:text-yellow-400` |
+| Accent | `bg-yellow-100` | `dark:bg-yellow-500/10` |
+| Indicator dot | `bg-yellow-400` | `bg-yellow-400` |
+
+### Fonts
+
+- **Vazirmatn** (`font-vazir`): Used for Arabic/Persian text and user notes
+- **Inter** (`font-sans`): Used for UI elements
+- **Amiri** (`font-serif`): Alternative Arabic font
+
 ## Testing (Test-Driven Development)
 
 This project follows **Test-Driven Development (TDD)** practices. All changes must pass the `gates` command before being merged.

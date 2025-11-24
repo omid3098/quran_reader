@@ -75,21 +75,70 @@ export interface AppSettings {
   userLanguage?: UserLanguage;
 }
 
-// Internal Note Structure
+// Internal Note Structure (Legacy - plain text)
 export interface Note {
   text: string;
   updatedAt: string;
 }
 
-// For Import/Export JSON Structure
-export type NoteExportTuple = [string, string, string];
+// Rich Note Structure (BlockNote-based)
+export interface RichNote {
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  blocks: any[]; // BlockNote PartialBlock[] - using any to avoid tight coupling
+  updatedAt: string;
+  createdAt: string;
+}
 
-export interface BackupData {
-  v: number;
+// Verse-level rich notes
+export interface VerseNote extends RichNote {
+  verseKey: string;
+}
+
+// Surah-level notes
+export interface SurahNote extends RichNote {
+  surahId: number;
+}
+
+// For Import/Export JSON Structure
+export type NoteExportTuple = [string, string, string]; // [verseKey, text, updatedAt] - Legacy
+
+// Rich note export format
+export interface RichNoteExport {
+  key: string; // verse_key for verse notes
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  blocks: any[];
+  updatedAt: string;
+  createdAt: string;
+}
+
+export interface SurahNoteExport {
+  surahId: number;
+  // eslint-disable-next-line @typescript-eslint/no-explicit-any
+  blocks: any[];
+  updatedAt: string;
+  createdAt: string;
+}
+
+// Backup data v1 (legacy)
+export interface BackupDataV1 {
+  v: 1;
   bookmarks: string[];
   notes: NoteExportTuple[];
   exportedAt: string;
 }
+
+// Backup data v2 (rich notes)
+export interface BackupDataV2 {
+  v: 2;
+  bookmarks: string[];
+  notes: RichNoteExport[]; // Rich verse notes
+  surahNotes: SurahNoteExport[]; // Surah-level notes
+  legacyNotes?: NoteExportTuple[]; // For migration support
+  exportedAt: string;
+}
+
+// Union type for import compatibility
+export type BackupData = BackupDataV1 | BackupDataV2;
 
 // --- Analysis & Research Types ---
 

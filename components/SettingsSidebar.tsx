@@ -18,7 +18,14 @@ import {
   NotebookPen,
   Globe,
 } from "lucide-react";
-import { AppSettings, TranslationResource, BackupData, Note, UserLanguage } from "../types";
+import {
+  AppSettings,
+  TranslationResource,
+  BackupData,
+  VerseNote,
+  UserLanguage,
+  SurahNote,
+} from "../types";
 import { RECITERS, getAvailableTranslations } from "../services/quranService";
 import { Spinner } from "./Spinner";
 
@@ -29,7 +36,8 @@ interface SettingsSidebarProps {
   onUpdateSettings: (newSettings: Partial<AppSettings>) => void;
   onExportNotes: () => void;
   onImportNotes: (data: BackupData) => void;
-  notes: Record<string, Note>;
+  notes: Record<string, VerseNote>;
+  surahNotes?: Record<number, SurahNote>;
   onJumpToNote: (verseKey: string) => void;
 }
 
@@ -51,6 +59,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   onExportNotes,
   onImportNotes,
   notes,
+  surahNotes,
   onJumpToNote,
 }) => {
   const [expandedSection, setExpandedSection] = useState<Section>("font");
@@ -61,7 +70,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const noteSummary = useMemo(() => {
-    const noteEntries = Object.entries(notes || {}) as [string, Note][];
+    const noteEntries = Object.entries(notes || {}) as [string, VerseNote][];
     const list = noteEntries.map(([verseKey, note]) => ({
       verseKey,
       updatedAt: note?.updatedAt || "",
@@ -538,32 +547,64 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
             </button>
 
             {expandedSection === "notes" && (
-              <div className="px-5 pb-6 animate-in slide-in-from-top-2 duration-200 space-y-3">
-                <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
-                  <span>Saved Notes</span>
-                  <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300">
-                    <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
-                    {totalNotes} total
-                  </span>
+              <div className="px-5 pb-6 animate-in slide-in-from-top-2 duration-200 space-y-4">
+                {/* Verse Notes */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+                    <span>Verse Notes</span>
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300">
+                      <span className="w-2 h-2 rounded-full bg-emerald-500"></span>
+                      {totalNotes}
+                    </span>
+                  </div>
+
+                  {totalNotes === 0 ? (
+                    <div className="text-xs text-slate-400 bg-slate-50 dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-slate-700 rounded-lg p-3 text-center">
+                      No verse notes yet.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
+                      {noteList.map((note) => (
+                        <button
+                          key={note.verseKey}
+                          onClick={() => handleNoteJump(note.verseKey)}
+                          className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-xs font-mono font-semibold text-slate-700 dark:text-slate-200 text-center shadow-sm transition-all"
+                        >
+                          {note.verseKey}
+                        </button>
+                      ))}
+                    </div>
+                  )}
                 </div>
 
-                {totalNotes === 0 ? (
-                  <div className="text-xs text-slate-400 bg-slate-50 dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-slate-700 rounded-lg p-3 text-center">
-                    No notes yet. Add a note from any verse to see it here.
+                {/* Surah Notes */}
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between text-[11px] font-semibold text-slate-500 uppercase tracking-wide">
+                    <span>Surah Notes</span>
+                    <span className="inline-flex items-center gap-1 px-2 py-1 rounded-full bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 text-slate-600 dark:text-slate-300">
+                      <span className="w-2 h-2 rounded-full bg-blue-500"></span>
+                      {Object.keys(surahNotes || {}).length}
+                    </span>
                   </div>
-                ) : (
-                  <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-                    {noteList.map((note) => (
-                      <button
-                        key={note.verseKey}
-                        onClick={() => handleNoteJump(note.verseKey)}
-                        className="px-2.5 py-1.5 rounded-lg bg-white dark:bg-slate-900 border border-slate-200 dark:border-slate-700 hover:border-emerald-400 hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-xs font-mono font-semibold text-slate-700 dark:text-slate-200 text-center shadow-sm transition-all"
-                      >
-                        {note.verseKey}
-                      </button>
-                    ))}
-                  </div>
-                )}
+
+                  {Object.keys(surahNotes || {}).length === 0 ? (
+                    <div className="text-xs text-slate-400 bg-slate-50 dark:bg-slate-900/40 border border-dashed border-slate-200 dark:border-slate-700 rounded-lg p-3 text-center">
+                      No surah notes yet. Use the floating button while reading to add surah-level
+                      notes.
+                    </div>
+                  ) : (
+                    <div className="grid grid-cols-3 sm:grid-cols-4 gap-2">
+                      {Object.keys(surahNotes || {}).map((surahId) => (
+                        <div
+                          key={surahId}
+                          className="px-2.5 py-1.5 rounded-lg bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 text-xs font-mono font-semibold text-blue-700 dark:text-blue-300 text-center"
+                        >
+                          Surah {surahId}
+                        </div>
+                      ))}
+                    </div>
+                  )}
+                </div>
               </div>
             )}
           </div>

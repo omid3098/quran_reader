@@ -1,7 +1,7 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { SettingsSidebar } from "@/components/SettingsSidebar";
-import type { AppSettings, Note } from "@/types";
+import type { AppSettings, VerseNote } from "@/types";
 
 // Mock the quranService
 vi.mock("@/services/quranService", () => ({
@@ -36,7 +36,7 @@ describe("SettingsSidebar", () => {
     userLanguage: "en",
   };
 
-  const mockNotes: Record<string, Note> = {};
+  const mockNotes: Record<string, VerseNote> = {};
 
   const defaultProps = {
     isOpen: true,
@@ -150,12 +150,37 @@ describe("SettingsSidebar", () => {
 
   describe("Notes Section", () => {
     it("should display notes sorted by surah:verse index", async () => {
-      const notesWithMultipleVerses: Record<string, Note> = {
-        "2:45": { text: "Note for 2:45", updatedAt: "2024-01-01T10:00:00Z" },
-        "1:1": { text: "Note for 1:1", updatedAt: "2024-01-02T10:00:00Z" },
-        "1:7": { text: "Note for 1:7", updatedAt: "2024-01-03T10:00:00Z" },
-        "3:10": { text: "Note for 3:10", updatedAt: "2024-01-04T10:00:00Z" },
-        "2:1": { text: "Note for 2:1", updatedAt: "2024-01-05T10:00:00Z" },
+      const notesWithMultipleVerses: Record<string, VerseNote> = {
+        "2:45": {
+          verseKey: "2:45",
+          blocks: [{ type: "paragraph", content: "Note for 2:45" }],
+          updatedAt: "2024-01-01T10:00:00Z",
+          createdAt: "2024-01-01T10:00:00Z",
+        },
+        "1:1": {
+          verseKey: "1:1",
+          blocks: [{ type: "paragraph", content: "Note for 1:1" }],
+          updatedAt: "2024-01-02T10:00:00Z",
+          createdAt: "2024-01-02T10:00:00Z",
+        },
+        "1:7": {
+          verseKey: "1:7",
+          blocks: [{ type: "paragraph", content: "Note for 1:7" }],
+          updatedAt: "2024-01-03T10:00:00Z",
+          createdAt: "2024-01-03T10:00:00Z",
+        },
+        "3:10": {
+          verseKey: "3:10",
+          blocks: [{ type: "paragraph", content: "Note for 3:10" }],
+          updatedAt: "2024-01-04T10:00:00Z",
+          createdAt: "2024-01-04T10:00:00Z",
+        },
+        "2:1": {
+          verseKey: "2:1",
+          blocks: [{ type: "paragraph", content: "Note for 2:1" }],
+          updatedAt: "2024-01-05T10:00:00Z",
+          createdAt: "2024-01-05T10:00:00Z",
+        },
       };
 
       render(<SettingsSidebar {...defaultProps} notes={notesWithMultipleVerses} />);

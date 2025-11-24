@@ -1,30 +1,32 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
-import { Save, Trash2 } from "lucide-react";
+import { Trash2, Save } from "lucide-react";
+import { useState, useCallback, useEffect, useRef } from "react";
 import { PartialBlock } from "@blocknote/core";
 import { RichNoteEditor } from "./RichNoteEditor";
-import { VerseNote } from "../types";
+import { SurahNote } from "../types";
 
-interface NoteModalProps {
+interface SurahNoteModalProps {
   isOpen: boolean;
   onClose: () => void;
-  verseKey: string;
-  initialNote?: VerseNote;
+  surahId: number;
+  surahName: string;
+  initialNote?: SurahNote;
   onSave: (blocks: PartialBlock[]) => void;
   onDelete: () => void;
   theme: "light" | "dark";
   onNavigateToVerse?: (surahId: number, verseNumber?: number) => void;
 }
 
-export const NoteModal: React.FC<NoteModalProps> = ({
+export function SurahNoteModal({
   isOpen,
   onClose,
-  verseKey,
+  surahId,
+  surahName,
   initialNote,
   onSave,
   onDelete,
   theme,
   onNavigateToVerse,
-}) => {
+}: SurahNoteModalProps) {
   const [blocks, setBlocks] = useState<PartialBlock[]>(initialNote?.blocks || []);
   const [hasChanges, setHasChanges] = useState(false);
   const initialBlocksRef = useRef<string>("");
@@ -38,7 +40,7 @@ export const NoteModal: React.FC<NoteModalProps> = ({
       // Store serialized initial state to compare against
       initialBlocksRef.current = JSON.stringify(newBlocks);
     }
-  }, [isOpen, initialNote, verseKey]);
+  }, [isOpen, initialNote, surahId]);
 
   const handleChange = useCallback((newBlocks: PartialBlock[]) => {
     setBlocks(newBlocks);
@@ -54,7 +56,7 @@ export const NoteModal: React.FC<NoteModalProps> = ({
   };
 
   const handleDelete = () => {
-    if (window.confirm("Delete this note?")) {
+    if (window.confirm(`Are you sure you want to delete all notes for ${surahName}?`)) {
       onDelete();
       onClose();
     }
@@ -106,14 +108,14 @@ export const NoteModal: React.FC<NoteModalProps> = ({
           />
         </div>
 
-        {/* Bottom Left: Verse Key Indicator */}
+        {/* Bottom Left: Surah Name Indicator */}
         <div className="absolute bottom-6 left-8 pointer-events-none select-none">
           <span
             className={`text-xl font-bold font-sans ${
               theme === "dark" ? "text-slate-800" : "text-slate-200"
             }`}
           >
-            {verseKey}
+            {surahName}
           </span>
         </div>
 
@@ -170,4 +172,4 @@ export const NoteModal: React.FC<NoteModalProps> = ({
       </div>
     </div>
   );
-};
+}

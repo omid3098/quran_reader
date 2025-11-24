@@ -10,6 +10,7 @@ import { SmartContextMenu } from "./components/SmartContextMenu";
 import { AnalysisSidebar } from "./components/AnalysisSidebar";
 import { IframeModal } from "./components/IframeModal";
 import { LanguageSelectionModal } from "./components/LanguageSelectionModal";
+import { SurahNoteModal } from "./components/SurahNoteModal";
 import { getChapters, getVerses, getAudioUrl } from "./services/quranService";
 import { explainAyah } from "./services/geminiService";
 import {
@@ -28,12 +29,17 @@ import {
   Verse,
   AppSettings,
   Note,
+  VerseNote,
   BackupData,
+  BackupDataV1,
   NoteExportTuple,
   SelectionContext,
   RootAnalysis,
   UserLanguage,
+  SurahNote,
 } from "./types";
+import { textToBlocks, blocksToText } from "./components/RichNoteEditor";
+import { PartialBlock } from "@blocknote/core";
 import { Spinner } from "./components/Spinner";
 
 const App: React.FC = () => {
@@ -67,12 +73,32 @@ const App: React.FC = () => {
     title: "",
   });
 
-  // --- Notes State ---
-  const [notes, setNotes] = useState<Record<string, Note>>(() => {
+  // --- Notes State (with migration from legacy plain text to blocks) ---
+  const [notes, setNotes] = useState<Record<string, VerseNote>>(() => {
     const savedNotes = localStorage.getItem("luminaNotes");
     if (savedNotes) {
       try {
-        return JSON.parse(savedNotes);
+        const parsed = JSON.parse(savedNotes);
+        // Migrate legacy plain text notes to block format
+        const migrated: Record<string, VerseNote> = {};
+        for (const [key, value] of Object.entries(parsed)) {
+          const noteValue = value as Note | VerseNote;
+          if ("blocks" in noteValue) {
+            // Already in new format
+            migrated[key] = noteValue as VerseNote;
+          } else if ("text" in noteValue) {
+            // Legacy format - migrate to blocks
+            const legacyNote = noteValue as Note;
+            const now = new Date().toISOString();
+            migrated[key] = {
+              verseKey: key,
+              blocks: textToBlocks(legacyNote.text),
+              updatedAt: legacyNote.updatedAt || now,
+              createdAt: legacyNote.updatedAt || now,
+            };
+          }
+        }
+        return migrated;
       } catch (e) {
         console.error("Failed to parse notes", e);
         return {};
@@ -87,6 +113,26 @@ const App: React.FC = () => {
   useEffect(() => {
     localStorage.setItem("luminaNotes", JSON.stringify(notes));
   }, [notes]);
+
+  // --- Surah Notes State ---
+  const [surahNotes, setSurahNotes] = useState<Record<number, SurahNote>>(() => {
+    const savedSurahNotes = localStorage.getItem("luminaSurahNotes");
+    if (savedSurahNotes) {
+      try {
+        return JSON.parse(savedSurahNotes);
+      } catch (e) {
+        console.error("Failed to parse surah notes", e);
+        return {};
+      }
+    }
+    return {};
+  });
+
+  const [surahNoteModalOpen, setSurahNoteModalOpen] = useState(false);
+
+  useEffect(() => {
+    localStorage.setItem("luminaSurahNotes", JSON.stringify(surahNotes));
+  }, [surahNotes]);
 
   // --- Settings State (Persisted) ---
   const [settings, setSettings] = useState<AppSettings>(() => {
@@ -625,13 +671,16 @@ const App: React.FC = () => {
     setNoteModalOpen(true);
   };
 
-  const handleSaveNote = (text: string) => {
+  const handleSaveNote = (blocks: PartialBlock[]) => {
     if (!editingNoteVerse) return;
+    const now = new Date().toISOString();
     setNotes((prev) => ({
       ...prev,
       [editingNoteVerse.verse_key]: {
-        text,
-        updatedAt: new Date().toISOString(),
+        verseKey: editingNoteVerse.verse_key,
+        blocks,
+        updatedAt: now,
+        createdAt: prev[editingNoteVerse.verse_key]?.createdAt || now,
       },
     }));
   };
@@ -645,17 +694,63 @@ const App: React.FC = () => {
     });
   };
 
+  // --- Surah Note Handlers ---
+  const handleSaveSurahNote = (blocks: PartialBlock[]) => {
+    if (!currentChapter) return;
+    const now = new Date().toISOString();
+    setSurahNotes((prev) => ({
+      ...prev,
+      [currentChapter.id]: {
+        surahId: currentChapter.id,
+        blocks,
+        updatedAt: now,
+        createdAt: prev[currentChapter.id]?.createdAt || now,
+      },
+    }));
+  };
+
+  const handleDeleteSurahNote = () => {
+    if (!currentChapter) return;
+    setSurahNotes((prev) => {
+      const copy = { ...prev };
+      delete copy[currentChapter.id];
+      return copy;
+    });
+  };
+
+  // Navigation handler for wikilinks in notes
+  const handleNavigateFromNote = (surahId: number, verseNumber?: number) => {
+    if (verseNumber) {
+      handleNavigateFromSearch(surahId, verseNumber);
+    } else {
+      handleChapterSelect(surahId);
+    }
+  };
+
   // --- Import/Export Handlers ---
   const handleExportNotes = () => {
+    // Export verse notes in v1 tuple format for backwards compatibility
     const notesArray: NoteExportTuple[] = Object.entries(notes).map(([key, value]) => {
-      const note = value as Note;
-      return [key, note.text, note.updatedAt];
+      const note = value as VerseNote;
+      // Convert blocks to plain text for v1 compatibility
+      const text = blocksToText(note.blocks);
+      return [key, text, note.updatedAt];
     });
 
-    const exportData: BackupData = {
+    // Export surah notes
+    const surahNotesArray = Object.values(surahNotes).map((note) => ({
+      surahId: note.surahId,
+      blocks: note.blocks,
+      updatedAt: note.updatedAt,
+      createdAt: note.createdAt,
+    }));
+
+    // Use v1 format with additional surahNotes field for compatibility
+    const exportData: BackupDataV1 & { surahNotes?: typeof surahNotesArray } = {
       v: 1,
       bookmarks: [],
       notes: notesArray,
+      surahNotes: surahNotesArray.length > 0 ? surahNotesArray : undefined,
       exportedAt: new Date().toISOString(),
     };
 
@@ -670,22 +765,55 @@ const App: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const handleImportNotes = (data: BackupData) => {
-    if (!data.notes || !Array.isArray(data.notes)) return;
-    const newNotes: Record<string, Note> = {};
-    data.notes.forEach((item) => {
-      if (Array.isArray(item) && item.length >= 2) {
-        const [key, text, date] = item;
-        newNotes[key] = {
-          text,
-          updatedAt: date || new Date().toISOString(),
-        };
-      }
-    });
-    setNotes((prev) => ({
-      ...prev,
-      ...newNotes,
-    }));
+  const handleImportNotes = (
+    data: BackupData & {
+      surahNotes?: {
+        surahId: number;
+        blocks: PartialBlock[];
+        updatedAt: string;
+        createdAt: string;
+      }[];
+    }
+  ) => {
+    // Import verse notes (v1 format - tuple array, convert to blocks)
+    if (data.notes && Array.isArray(data.notes)) {
+      const newNotes: Record<string, VerseNote> = {};
+      data.notes.forEach((item) => {
+        if (Array.isArray(item) && item.length >= 2) {
+          const [key, text, date] = item as NoteExportTuple;
+          const now = new Date().toISOString();
+          newNotes[key] = {
+            verseKey: key,
+            blocks: textToBlocks(text),
+            updatedAt: date || now,
+            createdAt: date || now,
+          };
+        }
+      });
+      setNotes((prev) => ({
+        ...prev,
+        ...newNotes,
+      }));
+    }
+
+    // Import surah notes if present
+    if (data.surahNotes && Array.isArray(data.surahNotes)) {
+      const newSurahNotes: Record<number, SurahNote> = {};
+      data.surahNotes.forEach((note) => {
+        if (note.surahId && note.blocks) {
+          newSurahNotes[note.surahId] = {
+            surahId: note.surahId,
+            blocks: note.blocks,
+            updatedAt: note.updatedAt || new Date().toISOString(),
+            createdAt: note.createdAt || new Date().toISOString(),
+          };
+        }
+      });
+      setSurahNotes((prev) => ({
+        ...prev,
+        ...newSurahNotes,
+      }));
+    }
   };
 
   // --- Language Selection Handler ---
@@ -720,6 +848,7 @@ const App: React.FC = () => {
         onExportNotes={handleExportNotes}
         onImportNotes={handleImportNotes}
         notes={notes}
+        surahNotes={surahNotes}
         onJumpToNote={handleNavigateByKey}
       />
 
@@ -760,7 +889,11 @@ const App: React.FC = () => {
                     isActive={currentVerseIndex === index}
                     fontSize={settings.fontSize}
                     showTranslation={settings.showTranslation}
-                    note={notes[verse.verse_key]?.text}
+                    note={
+                      notes[verse.verse_key]
+                        ? blocksToText(notes[verse.verse_key].blocks)
+                        : undefined
+                    }
                     scriptType={settings.scriptType}
                   />
                 ))}
@@ -792,6 +925,8 @@ const App: React.FC = () => {
           onClose={() => {}}
           autoPlayEnabled={settings.autoPlay}
           onToggleAutoPlay={() => setSettings((prev) => ({ ...prev, autoPlay: !prev.autoPlay }))}
+          hasSurahNotes={currentChapter ? !!surahNotes[currentChapter.id] : false}
+          onOpenSurahNotes={() => setSurahNoteModalOpen(true)}
         />
       )}
 
@@ -813,13 +948,28 @@ const App: React.FC = () => {
       <NoteModal
         isOpen={noteModalOpen}
         onClose={() => setNoteModalOpen(false)}
-        surahName={currentChapter?.name_simple || ""}
         verseKey={editingNoteVerse?.verse_key || ""}
-        initialText={editingNoteVerse ? notes[editingNoteVerse.verse_key]?.text || "" : ""}
+        initialNote={editingNoteVerse ? notes[editingNoteVerse.verse_key] : undefined}
         onSave={handleSaveNote}
         onDelete={handleDeleteNote}
-        fontSize={settings.fontSize}
+        theme={settings.theme}
+        onNavigateToVerse={handleNavigateFromNote}
       />
+
+      {/* Surah Note Modal */}
+      {currentChapter && (
+        <SurahNoteModal
+          isOpen={surahNoteModalOpen}
+          onClose={() => setSurahNoteModalOpen(false)}
+          surahId={currentChapter.id}
+          surahName={currentChapter.name_simple}
+          initialNote={surahNotes[currentChapter.id]}
+          onSave={handleSaveSurahNote}
+          onDelete={handleDeleteSurahNote}
+          theme={settings.theme}
+          onNavigateToVerse={handleNavigateFromNote}
+        />
+      )}
 
       {/* Smart Context Menu */}
       {selectionContext && (

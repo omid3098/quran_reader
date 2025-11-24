@@ -21,7 +21,11 @@
     "prepare": "husky"
   },
   "dependencies": {
+    "@blocknote/core": "^0.42.3",
+    "@blocknote/mantine": "^0.42.3",
+    "@blocknote/react": "^0.42.3",
     "@google/genai": "^1.30.0",
+    "@mantine/core": "^8.3.9",
     "lucide-react": "^0.554.0",
     "react": "^19.2.0",
     "react-dom": "^19.2.0"
