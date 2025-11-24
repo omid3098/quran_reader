@@ -174,9 +174,12 @@ export const loadLocalRootData = async (): Promise<LocalRootData | null> => {
 
   rootDataLoading = (async () => {
     try {
-      const response = await fetch("/quran-roots.json");
+      const url = `${import.meta.env.BASE_URL}quran-roots.json`;
+      const response = await fetch(url);
       if (!response.ok) {
-        console.error("Failed to load local root data");
+        console.error(
+          `Failed to load local root data from ${url}. Status: ${response.status} ${response.statusText}`
+        );
         return null;
       }
       const json = await response.json();
@@ -185,14 +188,16 @@ export const loadLocalRootData = async (): Promise<LocalRootData | null> => {
       if (json._meta && json.data) {
         rootDataMeta = json._meta;
         localRootData = json.data;
-        // Root data loaded successfully
       } else {
         // Legacy format support
         localRootData = json;
       }
       return localRootData;
     } catch (error) {
-      console.error("Error loading local root data:", error);
+      console.error(
+        `Error loading local root data from ${import.meta.env.BASE_URL}quran-roots.json:`,
+        error
+      );
       return null;
     }
   })();
