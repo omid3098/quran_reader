@@ -1,12 +1,11 @@
 import React from "react";
 import { Verse } from "../types";
-import { Sparkles, NotebookPen } from "lucide-react";
+import { NotebookPen } from "lucide-react";
 
 interface AyahCardProps {
   verse: Verse;
   chapterName: string;
   chapterId: number;
-  onExplain: (verse: Verse, e: React.MouseEvent) => void;
   onNote: (verse: Verse, e: React.MouseEvent) => void;
   onSelect: () => void;
   onWordClick?: (word: string, wordIndex: number, verseKey: string, rect: DOMRect) => void;
@@ -20,7 +19,6 @@ interface AyahCardProps {
 export const AyahCard: React.FC<AyahCardProps> = ({
   verse,
   chapterId,
-  onExplain,
   onNote,
   onSelect,
   onWordClick,
@@ -129,13 +127,6 @@ export const AyahCard: React.FC<AyahCardProps> = ({
             >
               <NotebookPen size={16} />
               {note && <span className="text-xs font-medium hidden sm:block">Edit Note</span>}
-            </button>
-            <button
-              onClick={(e) => onExplain(verse, e)}
-              className="p-2 rounded-full hover:bg-emerald-50 dark:hover:bg-emerald-900/30 text-emerald-600 dark:text-emerald-400 transition-colors"
-              title="AI Tafseer"
-            >
-              <Sparkles size={16} />
             </button>
           </div>
         </div>

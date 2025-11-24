@@ -24,7 +24,6 @@ describe("AyahCard", () => {
     verse: mockVerse,
     chapterName: "Al-Fatiha",
     chapterId: 1,
-    onExplain: vi.fn(),
     onNote: vi.fn(),
     onSelect: vi.fn(),
     isActive: false,
@@ -79,13 +78,6 @@ describe("AyahCard", () => {
       fireEvent.click(card);
       expect(defaultProps.onSelect).toHaveBeenCalled();
     }
-  });
-
-  it("should call onExplain when explain button is clicked", () => {
-    render(<AyahCard {...defaultProps} />);
-    const explainButton = screen.getByTitle("AI Tafseer");
-    fireEvent.click(explainButton);
-    expect(defaultProps.onExplain).toHaveBeenCalledWith(mockVerse, expect.any(Object));
   });
 
   it("should call onNote when note button is clicked", () => {

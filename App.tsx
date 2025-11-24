@@ -450,7 +450,8 @@ const App: React.FC = () => {
     handleNavigateFromSearch(surah, ayah);
   };
 
-  const handleTafseer = async (verse: Verse, e: React.MouseEvent) => {
+  // TODO: Re-enable with better UX
+  const _handleTafseer = async (verse: Verse, e: React.MouseEvent) => {
     e.stopPropagation();
     if (!currentChapter) return;
     setTafseerVerse(verse);
@@ -753,7 +754,6 @@ const App: React.FC = () => {
                     verse={verse}
                     chapterName={currentChapter?.name_simple || ""}
                     chapterId={currentChapter?.id || 0}
-                    onExplain={handleTafseer}
                     onNote={handleOpenNote}
                     onSelect={() => handleVerseSelect(index)}
                     onWordClick={handleWordClick}
