@@ -8,6 +8,7 @@
     "build": "vite build",
     "preview": "vite preview",
     "gates": "bun run typecheck && bun run lint && bun run format:check && bun run test:unit && bun run test:e2e",
+    "gates:ci": "bun run typecheck && bun run lint && bun run format:check && bun run test:unit",
     "test": "bun run test:unit && bun run test:e2e",
     "test:unit": "vitest run --coverage",
     "test:unit:watch": "vitest",
