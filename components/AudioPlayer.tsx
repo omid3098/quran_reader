@@ -20,7 +20,7 @@ export const AudioPlayer: React.FC<AudioPlayerProps> = ({
   onToggleAutoPlay,
 }) => {
   return (
-    <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-50 animate-in slide-in-from-bottom duration-300">
+    <div className="fixed bottom-8 left-1/2 transform -translate-x-1/2 z-30 animate-in slide-in-from-bottom duration-300">
       <div className="bg-white/95 dark:bg-slate-900/95 text-slate-900 dark:text-white rounded-full shadow-2xl dark:shadow-emerald-900/20 px-8 py-3 flex items-center gap-6 border border-slate-200 dark:border-slate-800/50 backdrop-blur-md">
         {/* Controls */}
         <div className="flex items-center gap-6">
