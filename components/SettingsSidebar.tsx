@@ -48,6 +48,7 @@ type Section =
   | "translations"
   | "reciters"
   | "notes"
+  | "annotations"
   | "data"
   | null;
 
@@ -605,6 +606,69 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                     </div>
                   )}
                 </div>
+              </div>
+            )}
+          </div>
+
+          {/* Annotation Tools Section */}
+          <div className="border-b border-slate-100 dark:border-slate-800">
+            <button
+              onClick={() => toggleSection("annotations")}
+              className="w-full flex items-center justify-between p-5 hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors"
+            >
+              <div className="flex items-center gap-3 text-slate-700 dark:text-slate-200">
+                <PenTool size={20} className="text-emerald-500" />
+                <h3 className="font-semibold">Annotation Tools</h3>
+              </div>
+              {expandedSection === "annotations" ? (
+                <ChevronUp size={18} />
+              ) : (
+                <ChevronDown size={18} />
+              )}
+            </button>
+
+            {expandedSection === "annotations" && (
+              <div className="px-5 pb-6 animate-in slide-in-from-top-2 duration-200 space-y-4">
+                <p className="text-sm text-slate-600 dark:text-slate-400">
+                  Drawing tools for streaming and study sessions. Draw on verses with pen, line,
+                  arrow, and rectangle tools.
+                </p>
+
+                <div className="flex items-center justify-between py-3 px-4 bg-slate-50 dark:bg-slate-800/50 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <span className="text-sm font-medium text-slate-700 dark:text-slate-200">
+                      Enable Annotation Tools
+                    </span>
+                  </div>
+                  <button
+                    onClick={() =>
+                      onUpdateSettings({ showAnnotationTools: !settings.showAnnotationTools })
+                    }
+                    className="focus:outline-none"
+                    aria-label="Toggle annotation tools"
+                  >
+                    {settings.showAnnotationTools ? (
+                      <ToggleRight size={28} className="text-emerald-600 dark:text-emerald-400" />
+                    ) : (
+                      <ToggleLeft size={28} className="text-slate-300 dark:text-slate-600" />
+                    )}
+                  </button>
+                </div>
+
+                {settings.showAnnotationTools && (
+                  <div className="text-xs text-slate-500 dark:text-slate-400 bg-emerald-50 dark:bg-emerald-900/20 border border-emerald-100 dark:border-emerald-800 rounded-lg p-3">
+                    <div className="font-semibold mb-1">Keyboard Shortcuts:</div>
+                    <div className="space-y-0.5 font-mono">
+                      <div>Ctrl/Cmd + P: Pen tool</div>
+                      <div>Ctrl/Cmd + E: Eraser tool</div>
+                      <div>Ctrl/Cmd + L: Line tool</div>
+                      <div>Ctrl/Cmd + Shift + A: Arrow tool</div>
+                      <div>Ctrl/Cmd + R: Rectangle tool</div>
+                      <div>Ctrl/Cmd + C: Clear all</div>
+                      <div>Ctrl/Cmd + D: Toggle tools on/off</div>
+                    </div>
+                  </div>
+                )}
               </div>
             )}
           </div>
