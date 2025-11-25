@@ -64,15 +64,6 @@ export interface TranslationResource {
 
 export type UserLanguage = "en" | "fa";
 
-export type AnnotationTool = "none" | "pen" | "eraser" | "line" | "arrow" | "rectangle";
-
-export interface AnnotationState {
-  isEnabled: boolean;
-  activeTool: AnnotationTool;
-  color: string;
-  lineWidth: number;
-}
-
 export interface AppSettings {
   fontSize: number;
   translationIds: string[];
@@ -82,7 +73,6 @@ export interface AppSettings {
   autoPlay: boolean;
   theme: "light" | "dark";
   userLanguage?: UserLanguage;
-  showAnnotationTools?: boolean;
 }
 
 // Internal Note Structure (Legacy - plain text)

@@ -37,13 +37,10 @@ import {
   RootAnalysis,
   UserLanguage,
   SurahNote,
-  AnnotationState,
 } from "./types";
 import { textToBlocks, blocksToText } from "./components/RichNoteEditor";
 import { PartialBlock } from "@blocknote/core";
 import { Spinner } from "./components/Spinner";
-import { AnnotationCanvas } from "./components/AnnotationCanvas";
-import { AnnotationToolbar } from "./components/AnnotationToolbar";
 
 const App: React.FC = () => {
   // --- Data State ---
@@ -57,14 +54,6 @@ const App: React.FC = () => {
   const [loadingVerses, setLoadingVerses] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [pendingScrollAyah, setPendingScrollAyah] = useState<string | null>(null);
-
-  // --- Annotation State ---
-  const [annotationState, setAnnotationState] = useState<AnnotationState>({
-    isEnabled: false,
-    activeTool: "none",
-    color: "#EF4444",
-    lineWidth: 3,
-  });
 
   // --- Analysis & Context Menu State ---
   const [selectionContext, setSelectionContext] = useState<SelectionContext | null>(null);
@@ -270,114 +259,6 @@ const App: React.FC = () => {
       document.removeEventListener("mousedown", handleMouseDown);
     };
   }, []);
-
-  // --- Annotation Keyboard Shortcuts ---
-  useEffect(() => {
-    const handleKeyDown = (e: KeyboardEvent) => {
-      // Disable hotkeys when input fields are focused
-      const isInputFocused =
-        document.activeElement?.tagName === "INPUT" ||
-        document.activeElement?.tagName === "TEXTAREA" ||
-        document.activeElement?.getAttribute("contenteditable") === "true";
-
-      if (isInputFocused) return;
-
-      // Disable hotkeys when modals are open
-      const isModalOpen =
-        searchModalOpen ||
-        noteModalOpen ||
-        surahNoteModalOpen ||
-        iframeData.isOpen ||
-        tafseerModalOpen ||
-        settingsOpen;
-
-      if (isModalOpen) return;
-
-      // Check for modifier key (Ctrl on Windows/Linux, Cmd on Mac)
-      const isMac = navigator.platform.toUpperCase().indexOf("MAC") >= 0;
-      const modKey = isMac ? e.metaKey : e.ctrlKey;
-
-      if (!modKey) return;
-
-      // Handle Cmd+D separately - this should work even when tools are disabled
-      if (e.key.toLowerCase() === "d") {
-        e.preventDefault();
-        // Toggle annotation system (sync with settings)
-        setSettings((prev) => ({
-          ...prev,
-          showAnnotationTools: !prev.showAnnotationTools,
-        }));
-        // Reset tool to none when toggling off
-        if (settings.showAnnotationTools) {
-          setAnnotationState((prev) => ({
-            ...prev,
-            activeTool: "none",
-          }));
-        }
-        return; // Exit early after handling Cmd+D
-      }
-
-      // Don't trigger other shortcuts if annotation tools are not enabled
-      if (!settings.showAnnotationTools) return;
-
-      // Handle other tool shortcuts
-      if (e.key.toLowerCase() === "p") {
-        e.preventDefault();
-        setAnnotationState((prev) => ({
-          ...prev,
-          isEnabled: true,
-          activeTool: prev.activeTool === "pen" ? "none" : "pen",
-        }));
-      } else if (e.key.toLowerCase() === "e") {
-        e.preventDefault();
-        setAnnotationState((prev) => ({
-          ...prev,
-          isEnabled: true,
-          activeTool: prev.activeTool === "eraser" ? "none" : "eraser",
-        }));
-      } else if (e.key.toLowerCase() === "l") {
-        e.preventDefault();
-        setAnnotationState((prev) => ({
-          ...prev,
-          isEnabled: true,
-          activeTool: prev.activeTool === "line" ? "none" : "line",
-        }));
-      } else if (e.key.toLowerCase() === "a" && e.shiftKey) {
-        e.preventDefault();
-        setAnnotationState((prev) => ({
-          ...prev,
-          isEnabled: true,
-          activeTool: prev.activeTool === "arrow" ? "none" : "arrow",
-        }));
-      } else if (e.key.toLowerCase() === "r") {
-        e.preventDefault();
-        setAnnotationState((prev) => ({
-          ...prev,
-          isEnabled: true,
-          activeTool: prev.activeTool === "rectangle" ? "none" : "rectangle",
-        }));
-      } else if (e.key.toLowerCase() === "c") {
-        e.preventDefault();
-        // Clear canvas
-        // eslint-disable-next-line @typescript-eslint/no-explicit-any
-        if ((window as any).clearAnnotationCanvas) {
-          // eslint-disable-next-line @typescript-eslint/no-explicit-any
-          (window as any).clearAnnotationCanvas();
-        }
-      }
-    };
-
-    document.addEventListener("keydown", handleKeyDown);
-    return () => document.removeEventListener("keydown", handleKeyDown);
-  }, [
-    settings.showAnnotationTools,
-    searchModalOpen,
-    noteModalOpen,
-    surahNoteModalOpen,
-    iframeData.isOpen,
-    tafseerModalOpen,
-    settingsOpen,
-  ]);
 
   // --- Initialization ---
   useEffect(() => {
@@ -980,20 +861,6 @@ const App: React.FC = () => {
             ${analysisSidebarOpen ? "md:mr-80 lg:mr-96" : ""}
          `}
         >
-          {/* Annotation Canvas */}
-          {settings.showAnnotationTools && (
-            <AnnotationCanvas
-              annotationState={annotationState}
-              _onClearRequest={() => {
-                // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                if ((window as any).clearAnnotationCanvas) {
-                  // eslint-disable-next-line @typescript-eslint/no-explicit-any
-                  (window as any).clearAnnotationCanvas();
-                }
-              }}
-            />
-          )}
-
           <div className="max-w-5xl mx-auto px-4 py-8 pb-40">
             {currentChapter && currentChapter.bismillah_pre && (
               <div className="mb-12 flex justify-center">
@@ -1060,25 +927,6 @@ const App: React.FC = () => {
           onToggleAutoPlay={() => setSettings((prev) => ({ ...prev, autoPlay: !prev.autoPlay }))}
           hasSurahNotes={currentChapter ? !!surahNotes[currentChapter.id] : false}
           onOpenSurahNotes={() => setSurahNoteModalOpen(true)}
-        />
-      )}
-
-      {/* Annotation Toolbar */}
-      {settings.showAnnotationTools && (
-        <AnnotationToolbar
-          annotationState={annotationState}
-          onToolChange={(tool) => setAnnotationState((prev) => ({ ...prev, activeTool: tool }))}
-          onColorChange={(color) => setAnnotationState((prev) => ({ ...prev, color }))}
-          onLineWidthChange={(width) =>
-            setAnnotationState((prev) => ({ ...prev, lineWidth: width }))
-          }
-          onClear={() => {
-            // eslint-disable-next-line @typescript-eslint/no-explicit-any
-            if ((window as any).clearAnnotationCanvas) {
-              // eslint-disable-next-line @typescript-eslint/no-explicit-any
-              (window as any).clearAnnotationCanvas();
-            }
-          }}
         />
       )}
 
