@@ -38,7 +38,10 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
 
     // Match the dimensions of the parent container (main element)
     const width = mainElement.scrollWidth;
-    const height = mainElement.scrollHeight;
+    const height = Math.max(mainElement.scrollHeight, mainElement.clientHeight);
+
+    // Only update if dimensions are valid
+    if (width === 0 || height === 0) return;
 
     // Update dimensions
     canvas.width = width * dpr;
@@ -332,13 +335,14 @@ export const AnnotationCanvas: React.FC<AnnotationCanvasProps> = ({
   return (
     <canvas
       ref={canvasRef}
-      className="absolute top-0 left-0 pointer-events-auto"
+      className="absolute top-0 left-0"
       style={{
         zIndex: 25,
         cursor: getCursorStyle(),
         pointerEvents: annotationState.activeTool === "none" ? "none" : "auto",
         maxWidth: "100%",
         maxHeight: "100%",
+        backgroundColor: "transparent",
       }}
       onMouseDown={handleMouseDown}
       onMouseMove={handleMouseMove}
