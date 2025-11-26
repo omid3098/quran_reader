@@ -22,6 +22,15 @@ export interface TranslationService {
  */
 export const TRANSLATION_SERVICES: TranslationService[] = [
   {
+    id: "abadis",
+    name: "Abadis",
+    supportedTargetLanguages: ["fa"], // Persian only
+    getUrl: (word: string) => {
+      return `https://abadis.ir/fatofa/${encodeURIComponent(word)}`;
+    },
+    supportsIframe: false, // Does not support iframe embedding
+  },
+  {
     id: "vajehyab",
     name: "Vajehyab",
     supportedTargetLanguages: ["fa"], // Persian only

@@ -52,6 +52,43 @@ describe("SmartContextMenu", () => {
   });
 
   describe("Translation buttons", () => {
+    it("should show Abadis only for Persian users", () => {
+      const { rerender } = render(<SmartContextMenu {...defaultProps} userLanguage="fa" />);
+      expect(screen.getByText("Abadis")).toBeInTheDocument();
+
+      rerender(<SmartContextMenu {...defaultProps} userLanguage="en" />);
+      expect(screen.queryByText("Abadis")).not.toBeInTheDocument();
+    });
+
+    it("should show Abadis as the first translation service for Persian users", () => {
+      render(<SmartContextMenu {...defaultProps} userLanguage="fa" />);
+
+      const allButtons = screen.getAllByRole("button");
+      const translationButtons = allButtons.filter((button) => {
+        const text = button.textContent || "";
+        return (
+          text.includes("Abadis") ||
+          text.includes("Vajehyab") ||
+          text.includes("Almaany") ||
+          text.includes("Google Translate")
+        );
+      });
+
+      expect(translationButtons[0]).toHaveTextContent("Abadis");
+    });
+
+    it("should call onTranslate with correct abadis service when clicked", () => {
+      render(<SmartContextMenu {...defaultProps} userLanguage="fa" />);
+
+      const abadisButton = screen.getByText("Abadis");
+      fireEvent.click(abadisButton);
+
+      expect(defaultProps.onTranslate).toHaveBeenCalledWith(
+        expect.objectContaining({ id: "abadis" }),
+        "كتاب"
+      );
+    });
+
     it("should show Google Translate for any language", () => {
       render(<SmartContextMenu {...defaultProps} userLanguage="en" />);
       expect(screen.getByText("Google Translate")).toBeInTheDocument();
