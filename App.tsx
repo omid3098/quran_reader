@@ -627,7 +627,8 @@ const App: React.FC = () => {
   // --- Translation Handler ---
   const handleTranslate = (service: TranslationService, word: string) => {
     const targetLanguage = settings.userLanguage || "en";
-    const url = service.getUrl(word, targetLanguage);
+    const verseKey = selectionContext?.verseKey;
+    const url = service.getUrl(word, targetLanguage, verseKey);
 
     if (service.supportsIframe) {
       // Open in iframe modal
