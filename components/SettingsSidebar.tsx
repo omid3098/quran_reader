@@ -62,7 +62,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   surahNotes,
   onJumpToNote,
 }) => {
-  const [expandedSection, setExpandedSection] = useState<Section>("font");
+  const [expandedSection, setExpandedSection] = useState<Section>(null);
   const [availableTranslations, setAvailableTranslations] = useState<TranslationResource[]>([]);
   const [loadingTranslations, setLoadingTranslations] = useState(false);
   const [translationSearch, setTranslationSearch] = useState("");

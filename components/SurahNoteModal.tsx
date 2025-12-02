@@ -1,7 +1,8 @@
 import { Trash2, Save } from "lucide-react";
-import { useState, useCallback, useEffect, useRef } from "react";
+import { useState, useCallback, useEffect, useRef, useMemo } from "react";
 import { PartialBlock } from "@blocknote/core";
 import { RichNoteEditor } from "./RichNoteEditor";
+import { normalizeQuranLinkBlocks } from "./QuranLinkInline";
 import { SurahNote } from "../types";
 
 interface SurahNoteModalProps {
@@ -27,20 +28,25 @@ export function SurahNoteModal({
   theme,
   onNavigateToVerse,
 }: SurahNoteModalProps) {
-  const [blocks, setBlocks] = useState<PartialBlock[]>(initialNote?.blocks || []);
+  const normalizedInitialBlocks = useMemo(
+    () => normalizeQuranLinkBlocks(initialNote?.blocks || []),
+    [initialNote]
+  );
+
+  const [blocks, setBlocks] = useState<PartialBlock[]>(normalizedInitialBlocks);
   const [hasChanges, setHasChanges] = useState(false);
-  const initialBlocksRef = useRef<string>("");
+  const initialBlocksRef = useRef<string>(JSON.stringify(normalizedInitialBlocks));
 
   // Reset state when modal opens with new content
   useEffect(() => {
     if (isOpen) {
-      const newBlocks = initialNote?.blocks || [];
+      const newBlocks = normalizedInitialBlocks;
       setBlocks(newBlocks);
       setHasChanges(false);
       // Store serialized initial state to compare against
       initialBlocksRef.current = JSON.stringify(newBlocks);
     }
-  }, [isOpen, initialNote, surahId]);
+  }, [isOpen, normalizedInitialBlocks, surahId]);
 
   const handleChange = useCallback((newBlocks: PartialBlock[]) => {
     setBlocks(newBlocks);
@@ -100,7 +106,7 @@ export function SurahNoteModal({
         {/* Editor area */}
         <div className="flex-1 overflow-auto px-2 py-4 pb-24">
           <RichNoteEditor
-            initialBlocks={initialNote?.blocks}
+            initialBlocks={normalizedInitialBlocks}
             onChange={handleChange}
             theme={theme}
             onNavigateToVerse={handleNavigate}

@@ -32,6 +32,139 @@ interface AyahResponse {
 
 const BASE_URL = "https://api.alquran.cloud/v1";
 
+const FALLBACK_CHAPTERS: Chapter[] = [
+  {
+    id: 1,
+    revelation_place: "Meccan",
+    revelation_order: 5,
+    bismillah_pre: true,
+    name_simple: "Al-Faatiha",
+    name_complex: "Al-Faatiha",
+    name_arabic: "الفاتحة",
+    verses_count: 7,
+    translated_name: {
+      language_name: "English",
+      name: "The Opening",
+    },
+  },
+  {
+    id: 2,
+    revelation_place: "Medinan",
+    revelation_order: 87,
+    bismillah_pre: true,
+    name_simple: "Al-Baqara",
+    name_complex: "Al-Baqarah",
+    name_arabic: "البقرة",
+    verses_count: 286,
+    translated_name: {
+      language_name: "English",
+      name: "The Cow",
+    },
+  },
+];
+
+const FALLBACK_VERSES: Verse[] = [
+  {
+    id: 1,
+    verse_key: "1:1",
+    text_uthmani: "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ",
+    text_simple: "بسم الله الرحمن الرحيم",
+    translations: [
+      {
+        id: "en.sahih",
+        resource_id: "en.sahih",
+        resource_name: "Saheeh International",
+        text: "In the name of Allah, the Entirely Merciful, the Especially Merciful.",
+      },
+    ],
+  },
+  {
+    id: 2,
+    verse_key: "1:2",
+    text_uthmani: "ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ",
+    text_simple: "الحمد لله رب العالمين",
+    translations: [
+      {
+        id: "en.sahih",
+        resource_id: "en.sahih",
+        resource_name: "Saheeh International",
+        text: "[All] praise is [due] to Allah, Lord of the worlds -",
+      },
+    ],
+  },
+  {
+    id: 3,
+    verse_key: "1:3",
+    text_uthmani: "ٱلرَّحْمَٰنِ ٱلرَّحِيمِ",
+    text_simple: "الرحمن الرحيم",
+    translations: [
+      {
+        id: "en.sahih",
+        resource_id: "en.sahih",
+        resource_name: "Saheeh International",
+        text: "The Entirely Merciful, the Especially Merciful,",
+      },
+    ],
+  },
+  {
+    id: 4,
+    verse_key: "1:4",
+    text_uthmani: "مَٰلِكِ يَوْمِ ٱلدِّينِ",
+    text_simple: "مالك يوم الدين",
+    translations: [
+      {
+        id: "en.sahih",
+        resource_id: "en.sahih",
+        resource_name: "Saheeh International",
+        text: "Sovereign of the Day of Recompense.",
+      },
+    ],
+  },
+  {
+    id: 5,
+    verse_key: "1:5",
+    text_uthmani: "إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ",
+    text_simple: "إياك نعبد وإياك نستعين",
+    translations: [
+      {
+        id: "en.sahih",
+        resource_id: "en.sahih",
+        resource_name: "Saheeh International",
+        text: "It is You we worship and You we ask for help.",
+      },
+    ],
+  },
+  {
+    id: 6,
+    verse_key: "1:6",
+    text_uthmani: "ٱهْدِنَا ٱلصِّرَٰطَ ٱلْمُسْتَقِيمَ",
+    text_simple: "اهدنا الصراط المستقيم",
+    translations: [
+      {
+        id: "en.sahih",
+        resource_id: "en.sahih",
+        resource_name: "Saheeh International",
+        text: "Guide us to the straight path -",
+      },
+    ],
+  },
+  {
+    id: 7,
+    verse_key: "1:7",
+    text_uthmani:
+      "صِرَٰطَ ٱلَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ ٱلْمَغْضُوبِ عَلَيْهِمْ وَلَا ٱلضَّآلِّينَ",
+    text_simple: "صراط الذين أنعمت عليهم غير المغضوب عليهم ولا الضالين",
+    translations: [
+      {
+        id: "en.sahih",
+        resource_id: "en.sahih",
+        resource_name: "Saheeh International",
+        text: "The path of those upon whom You have bestowed favor, not of those who have evoked [Your] anger or of those who are astray.",
+      },
+    ],
+  },
+];
+
 // Expanded list of Reciters supported by everyayah.com
 export const RECITERS: Reciter[] = [
   { id: "alafasy", name: "Mishary Rashid Alafasy", subfolder: "Alafasy_128kbps" },
@@ -189,7 +322,7 @@ export const getChapters = async (): Promise<Chapter[]> => {
     if (!response.ok) throw new Error("Failed to fetch chapters");
     const data = await response.json();
 
-    return data.data.map((s: SurahResponse) => ({
+    const chapters = data.data.map((s: SurahResponse) => ({
       id: s.number,
       revelation_place: s.revelationType.toLowerCase(),
       revelation_order: s.revelationOrder || 0,
@@ -203,9 +336,11 @@ export const getChapters = async (): Promise<Chapter[]> => {
         name: s.englishNameTranslation,
       },
     }));
+
+    return chapters.length > 0 ? chapters : FALLBACK_CHAPTERS;
   } catch (error) {
     console.error(error);
-    return [];
+    return FALLBACK_CHAPTERS;
   }
 };
 
@@ -272,7 +407,7 @@ export const getVerses = async (
 
     const hasPrefixedBismillah = chapterId !== 1 && chapterId !== 9;
 
-    return uthmani.ayahs.map((ayah: AyahResponse, index: number) => {
+    const mapped = uthmani.ayahs.map((ayah: AyahResponse, index: number) => {
       const rawUthmani =
         hasPrefixedBismillah && index === 0 ? stripLeadingBismillah(ayah.text) : ayah.text;
       const rawSimple =
@@ -302,9 +437,11 @@ export const getVerses = async (
         }),
       };
     });
+
+    return mapped.length > 0 ? mapped : FALLBACK_VERSES;
   } catch (error) {
     console.error(error);
-    return [];
+    return FALLBACK_VERSES;
   }
 };
 

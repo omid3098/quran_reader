@@ -10,7 +10,7 @@
     "gates": "bun run typecheck && bun run lint && bun run format:check && bun run test:unit && bun run test:e2e",
     "gates:ci": "bun run typecheck && bun run lint && bun run format:check && bun run test:unit",
     "test": "bun run test:unit && bun run test:e2e",
-    "test:unit": "vitest run --coverage",
+    "test:unit": "vitest run --coverage --pool=threads --fileParallelism=false --maxWorkers=1 --minWorkers=1",
     "test:unit:watch": "vitest",
     "test:e2e": "playwright test",
     "test:e2e:ui": "playwright test --ui",

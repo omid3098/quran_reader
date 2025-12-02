@@ -18,20 +18,29 @@ export default defineConfig({
     actionTimeout: 15000,
     navigationTimeout: 30000,
   },
-  projects: [
-    {
-      name: "chromium",
-      use: { ...devices["Desktop Chrome"] },
-    },
-    {
-      name: "firefox",
-      use: { ...devices["Desktop Firefox"] },
-    },
-    {
-      name: "webkit",
-      use: { ...devices["Desktop Safari"] },
-    },
-  ],
+  projects: (() => {
+    const projects = [
+      {
+        name: "chromium",
+        use: { ...devices["Desktop Chrome"] },
+      },
+    ];
+
+    if (process.env.PLAYWRIGHT_ALL_BROWSERS === "1") {
+      projects.push(
+        {
+          name: "firefox",
+          use: { ...devices["Desktop Firefox"] },
+        },
+        {
+          name: "webkit",
+          use: { ...devices["Desktop Safari"] },
+        }
+      );
+    }
+
+    return projects;
+  })(),
   webServer: {
     command: "bun run dev",
     url: "http://localhost:3000",

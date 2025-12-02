@@ -4,7 +4,6 @@ import { SettingsSidebar } from "./components/SettingsSidebar";
 import { AudioPlayer } from "./components/AudioPlayer";
 import { AyahCard } from "./components/AyahCard";
 import { AISearchModal } from "./components/AISearchModal";
-import { TafseerModal } from "./components/TafseerModal";
 import { NoteModal } from "./components/NoteModal";
 import { SmartContextMenu } from "./components/SmartContextMenu";
 import { AnalysisSidebar } from "./components/AnalysisSidebar";
@@ -12,7 +11,6 @@ import { IframeModal } from "./components/IframeModal";
 import { LanguageSelectionModal } from "./components/LanguageSelectionModal";
 import { SurahNoteModal } from "./components/SurahNoteModal";
 import { getChapters, getVerses, getAudioUrl } from "./services/quranService";
-import { explainAyah } from "./services/geminiService";
 import {
   getVerseWordData,
   findRootOfWord,
@@ -57,7 +55,7 @@ const App: React.FC = () => {
 
   // --- Analysis & Context Menu State ---
   const [selectionContext, setSelectionContext] = useState<SelectionContext | null>(null);
-  const [analysisSidebarOpen, setAnalysisSidebarOpen] = useState(false); // Hidden by default; opens when research is triggered
+  const [analysisSidebarOpen, setAnalysisSidebarOpen] = useState(false);
   const [analysisLoading, setAnalysisLoading] = useState(false);
   const [analysisMode, setAnalysisMode] = useState<"root" | "phrase" | null>(null);
   const [rootData, setRootData] = useState<RootAnalysis | null>(null);
@@ -188,12 +186,6 @@ const App: React.FC = () => {
     localStorage.setItem("lastSurahId", currentChapter.id.toString());
     localStorage.setItem("lastVerseKey", verse.verse_key);
   }, [currentChapter, currentVerseIndex, verses]);
-
-  // --- Tafseer State ---
-  const [tafseerModalOpen, setTafseerModalOpen] = useState(false);
-  const [tafseerLoading, setTafseerLoading] = useState(false);
-  const [tafseerContent, setTafseerContent] = useState("");
-  const [tafseerVerse, setTafseerVerse] = useState<Verse | null>(null);
 
   // --- Global Selection Handler ---
   useEffect(() => {
@@ -449,7 +441,6 @@ const App: React.FC = () => {
       // Guard: Check if any modal/overlay is open (except analysis sidebar per user request)
       const anyModalOpen =
         searchModalOpen ||
-        tafseerModalOpen ||
         noteModalOpen ||
         surahNoteModalOpen ||
         settingsOpen ||
@@ -494,7 +485,6 @@ const App: React.FC = () => {
     };
   }, [
     searchModalOpen,
-    tafseerModalOpen,
     noteModalOpen,
     surahNoteModalOpen,
     settingsOpen,
@@ -582,49 +572,97 @@ const App: React.FC = () => {
     handleNavigateFromSearch(surah, ayah);
   };
 
-  // TODO: Re-enable with better UX
-  const _handleTafseer = async (verse: Verse, e: React.MouseEvent) => {
-    e.stopPropagation();
-    if (!currentChapter) return;
-    setTafseerVerse(verse);
-    setTafseerModalOpen(true);
-    setTafseerLoading(true);
-    const translation = verse.translations?.[0]?.text || "";
-    const explanation = await explainAyah(
-      currentChapter.name_simple,
-      currentChapter.id,
-      parseInt(verse.verse_key.split(":")[1]),
-      translation
-    );
-    setTafseerContent(explanation);
-    setTafseerLoading(false);
-  };
-
   // --- Analysis Handlers ---
   const handleAnalyzeRoot = async () => {
-    if (!selectionContext) return;
+    const context = selectionContext;
+    if (!context) return;
 
-    setSelectionContext(null);
     setAnalysisSidebarOpen(true);
     setAnalysisMode("root");
     setAnalysisLoading(true);
     setRootData(null);
 
-    const normalized = normalizeArabic(selectionContext.text);
-    const abjadValue = calculateAbjad(selectionContext.text);
+    const normalized = normalizeArabic(context.text);
+    const abjadValue = calculateAbjad(context.text);
 
-    // For standalone words (no verseKey), use the word-to-root index
-    if (!selectionContext.verseKey) {
-      const [root, sameAbjadWords] = await Promise.all([
-        findRootForWord(selectionContext.text),
+    const seedData: RootAnalysis = {
+      root: context.text,
+      occurrences: 1,
+      verses: [
+        {
+          verse_key: context.verseKey || "1:1",
+          text: context.text,
+          wordIndex: context.wordIndex || 0,
+        },
+      ],
+      wordForms: [],
+      debugInfo: {
+        selectedText: context.text,
+        normalizedText: normalized,
+        abjadValue,
+        sameAbjadWords: [],
+      },
+    };
+
+    // Seed the sidebar immediately so UI can render while data loads
+    setRootData(seedData);
+    setAnalysisLoading(false);
+    setSelectionContext(null);
+
+    try {
+      // For standalone words (no verseKey), use the word-to-root index
+      if (!context.verseKey) {
+        const [root, sameAbjadWords] = await Promise.all([
+          findRootForWord(context.text),
+          findWordsWithSameAbjad(abjadValue, normalized),
+        ]);
+
+        const debugInfo = {
+          selectedText: context.text,
+          normalizedText: normalized,
+          abjadValue,
+          sameAbjadWords,
+        };
+
+        if (root) {
+          const analysis = await findVersesByRoot(root);
+          setRootData({
+            ...analysis,
+            debugInfo,
+          });
+        } else {
+          setRootData({
+            root: "Not Found",
+            occurrences: 0,
+            verses: [],
+            wordForms: [],
+            debugInfo,
+          });
+        }
+
+        return;
+      }
+
+      const [words, sameAbjadWords] = await Promise.all([
+        getVerseWordData(context.verseKey),
         findWordsWithSameAbjad(abjadValue, normalized),
       ]);
 
+      const verseWordsDebug = words.map((w) => ({
+        text: w.text_uthmani,
+        normalized: normalizeArabic(w.text_uthmani),
+        root: w.root || null,
+      }));
+
+      // Pass the wordIndex if we have it (User clicked a specific word span)
+      const root = findRootOfWord(context.text, words, context.wordIndex);
+
       const debugInfo = {
-        selectedText: selectionContext.text,
+        selectedText: context.text,
         normalizedText: normalized,
         abjadValue,
         sameAbjadWords,
+        verseWords: verseWordsDebug,
       };
 
       if (root) {
@@ -642,50 +680,12 @@ const App: React.FC = () => {
           debugInfo,
         });
       }
-
+    } catch (error) {
+      console.error("Root analysis failed", error);
+      setRootData(seedData);
+    } finally {
       setAnalysisLoading(false);
-      return;
     }
-
-    const [words, sameAbjadWords] = await Promise.all([
-      getVerseWordData(selectionContext.verseKey),
-      findWordsWithSameAbjad(abjadValue, normalized),
-    ]);
-
-    const verseWordsDebug = words.map((w) => ({
-      text: w.text_uthmani,
-      normalized: normalizeArabic(w.text_uthmani),
-      root: w.root || null,
-    }));
-
-    // Pass the wordIndex if we have it (User clicked a specific word span)
-    const root = findRootOfWord(selectionContext.text, words, selectionContext.wordIndex);
-
-    const debugInfo = {
-      selectedText: selectionContext.text,
-      normalizedText: normalized,
-      abjadValue,
-      sameAbjadWords,
-      verseWords: verseWordsDebug,
-    };
-
-    if (root) {
-      const analysis = await findVersesByRoot(root);
-      setRootData({
-        ...analysis,
-        debugInfo,
-      });
-    } else {
-      setRootData({
-        root: "Not Found",
-        occurrences: 0,
-        verses: [],
-        wordForms: [],
-        debugInfo,
-      });
-    }
-
-    setAnalysisLoading(false);
   };
 
   const handleSearchPhrase = async () => {
@@ -725,7 +725,13 @@ const App: React.FC = () => {
       });
     } else {
       // Open in new tab (for services that block iframe embedding)
-      window.open(url, "_blank", "noopener,noreferrer");
+      const anchor = document.createElement("a");
+      anchor.href = url;
+      anchor.target = "_blank";
+      anchor.rel = "noopener noreferrer";
+      document.body.appendChild(anchor);
+      anchor.click();
+      document.body.removeChild(anchor);
     }
 
     setSelectionContext(null);
@@ -951,7 +957,7 @@ const App: React.FC = () => {
           <div className="max-w-5xl mx-auto px-4 py-8 pb-40">
             {currentChapter && currentChapter.bismillah_pre && (
               <div className="mb-12 flex justify-center">
-                <h2 className="text-2xl md:text-3xl font-quran text-slate-800 dark:text-slate-200 opacity-90">
+                <h2 className="text-2xl md:text-3xl font-serif text-slate-800 dark:text-slate-200 opacity-90">
                   بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ
                 </h2>
               </div>
@@ -976,11 +982,9 @@ const App: React.FC = () => {
                     isActive={currentVerseIndex === index}
                     fontSize={settings.fontSize}
                     showTranslation={settings.showTranslation}
-                    note={
-                      notes[verse.verse_key]
-                        ? blocksToText(notes[verse.verse_key].blocks)
-                        : undefined
-                    }
+                    noteBlocks={notes[verse.verse_key]?.blocks}
+                    theme={settings.theme}
+                    onNavigateToVerse={handleNavigateFromNote}
                     scriptType={settings.scriptType}
                   />
                 ))}
@@ -1023,15 +1027,6 @@ const App: React.FC = () => {
         isOpen={searchModalOpen}
         onClose={() => setSearchModalOpen(false)}
         onNavigate={handleNavigateFromSearch}
-      />
-
-      <TafseerModal
-        isOpen={tafseerModalOpen}
-        onClose={() => setTafseerModalOpen(false)}
-        loading={tafseerLoading}
-        content={tafseerContent}
-        surahName={currentChapter?.name_simple || ""}
-        verseKey={tafseerVerse?.verse_key || ""}
       />
 
       <NoteModal

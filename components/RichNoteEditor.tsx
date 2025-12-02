@@ -11,7 +11,7 @@ import { useCreateBlockNote } from "@blocknote/react";
 import { BlockNoteView } from "@blocknote/mantine";
 import { MantineProvider } from "@mantine/core";
 import { useEffect, useMemo, useCallback, useRef } from "react";
-import { QuranLink, quranLinkSpec } from "./QuranLinkInline";
+import { QuranLink, normalizeQuranLinkBlocks, quranLinkSpec } from "./QuranLinkInline";
 
 interface RichNoteEditorProps {
   initialBlocks?: PartialBlock[];
@@ -37,42 +37,56 @@ export function RichNoteEditor({
   onNavigateToVerse,
   editable = true,
 }: RichNoteEditorProps) {
+  const normalizedInitialBlocks = useMemo(
+    () => normalizeQuranLinkBlocks(initialBlocks || []),
+    [initialBlocks]
+  );
+
   // Create editor with schema
   const editor = useCreateBlockNote({
     schema,
     initialContent:
-      initialBlocks && initialBlocks.length > 0
-        ? (initialBlocks as (typeof schema.PartialBlock)[])
+      normalizedInitialBlocks && normalizedInitialBlocks.length > 0
+        ? (normalizedInitialBlocks as (typeof schema.PartialBlock)[])
         : undefined,
   });
 
   // Track the serialized initial content to detect external changes
-  const lastInitialContentRef = useRef<string>("");
+  const lastInitialContentRef = useRef<string>(JSON.stringify(normalizedInitialBlocks || []));
 
   // Sync editor content only when initialBlocks changes externally (not from our own onChange)
   useEffect(() => {
-    const newContentSerialized = JSON.stringify(initialBlocks || []);
+    const newContent = normalizeQuranLinkBlocks(initialBlocks || []);
+    const newContentSerialized = JSON.stringify(newContent || []);
 
     // Only replace if the initial content is different from what we last received
     // This prevents the loop: onChange -> parent setState -> initialBlocks change -> replaceBlocks
     if (newContentSerialized !== lastInitialContentRef.current) {
       lastInitialContentRef.current = newContentSerialized;
 
-      const newContent =
-        initialBlocks && initialBlocks.length > 0
-          ? (initialBlocks as (typeof schema.PartialBlock)[])
+      const contentToApply =
+        newContent && newContent.length > 0
+          ? (newContent as (typeof schema.PartialBlock)[])
           : [{ type: "paragraph" as const, content: "" }];
 
       // Replace all blocks with new content
-      editor.replaceBlocks(editor.document, newContent);
+      editor.replaceBlocks(editor.document, contentToApply);
     }
   }, [editor, initialBlocks]);
 
   // Handle content changes
   const handleChange = useCallback(() => {
+    const blocks = editor.document as PartialBlock[];
+    const normalized = normalizeQuranLinkBlocks(blocks);
+
+    const needsUpdate = JSON.stringify(normalized) !== JSON.stringify(blocks);
+    if (needsUpdate) {
+      editor.replaceBlocks(editor.document, normalized as (typeof schema.PartialBlock)[]);
+      return;
+    }
+
     if (onChange) {
-      const blocks = editor.document as PartialBlock[];
-      onChange(blocks);
+      onChange(normalized);
     }
   }, [editor, onChange]);
 
@@ -124,10 +138,11 @@ export function textToBlocks(text: string): PartialBlock[] {
 
   // Split by newlines and create paragraph blocks
   const lines = text.split("\n");
-  return lines.map((line) => ({
+  const blocks = lines.map((line) => ({
     type: "paragraph" as const,
     content: line || "",
   }));
+  return normalizeQuranLinkBlocks(blocks);
 }
 
 // Helper to extract plain text from blocks (for preview)
@@ -136,21 +151,27 @@ export function blocksToText(blocks: PartialBlock[]): string {
     return "";
   }
 
+  const inlineToText = (inline: unknown): string => {
+    if (typeof inline === "string") return inline;
+    if (inline && typeof inline === "object") {
+      if ("text" in inline && typeof (inline as { text: unknown }).text === "string") {
+        return (inline as { text: string }).text;
+      }
+      if (
+        (inline as { type?: string }).type === "quranLink" &&
+        (inline as { props?: { reference?: unknown } }).props?.reference
+      ) {
+        return `[${(inline as { props: { reference: string } }).props.reference}]`;
+      }
+    }
+    return "";
+  };
+
   return blocks
     .map((block) => {
-      if (typeof block.content === "string") {
-        return block.content;
-      }
-      if (Array.isArray(block.content)) {
-        return block.content
-          .map((item) => {
-            if (typeof item === "string") return item;
-            if (item && typeof item === "object" && "text" in item) return item.text;
-            return "";
-          })
-          .join("");
-      }
-      return "";
+      if (!block.content) return "";
+      const contentArray = Array.isArray(block.content) ? block.content : [block.content];
+      return contentArray.map(inlineToText).join("");
     })
     .join("\n");
 }

@@ -9,6 +9,7 @@ describe("TranslationContextMenu", () => {
   const defaultProps = {
     position: { top: 100, left: 200 },
     word: "كتاب",
+    targetLanguage: "en",
     onClose: mockOnClose,
     onTranslate: mockOnTranslate,
   };
@@ -34,7 +35,7 @@ describe("TranslationContextMenu", () => {
   it("should display the word in the header", () => {
     render(<TranslationContextMenu {...defaultProps} />);
 
-    expect(screen.getByText("Translate")).toBeInTheDocument();
+    expect(screen.getByText("Translation Menu")).toBeInTheDocument();
     expect(screen.getByText("كتاب")).toBeInTheDocument();
   });
 
@@ -122,7 +123,7 @@ describe("TranslationContextMenu", () => {
     render(<TranslationContextMenu {...propsWithVerseKey} />);
 
     // Component should render successfully with verseKey
-    expect(screen.getByText("Translate")).toBeInTheDocument();
+    expect(screen.getByText("Translation Menu")).toBeInTheDocument();
   });
 
   it("should have correct styling classes", () => {

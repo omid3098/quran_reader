@@ -3,10 +3,13 @@ import { sanitizeQuranText } from "./textSanitizer";
 
 // API response types
 interface QuranApiWord {
+  id?: number;
+  position?: number;
   char_type_name: string;
   text_uthmani?: string;
   text_simple?: string;
   root?: { arabic?: string };
+  lemma?: { arabic?: string };
 }
 
 interface SearchResult {
@@ -173,33 +176,36 @@ export const loadLocalRootData = async (): Promise<LocalRootData | null> => {
   if (rootDataLoading) return rootDataLoading;
 
   rootDataLoading = (async () => {
-    try {
-      const url = `${import.meta.env.BASE_URL}quran-roots.json`;
-      const response = await fetch(url);
-      if (!response.ok) {
-        console.error(
-          `Failed to load local root data from ${url}. Status: ${response.status} ${response.statusText}`
-        );
-        return null;
-      }
-      const json = await response.json();
+    const baseUrl = import.meta.env.BASE_URL || "/";
+    // Try the configured base first, then fall back to common public paths
+    const candidateUrls = [`${baseUrl}quran-roots.json`, "/quran-roots.json", "quran-roots.json"];
 
-      // Handle both old format (flat data) and new format (with _meta)
-      if (json._meta && json.data) {
-        rootDataMeta = json._meta;
-        localRootData = json.data;
-      } else {
-        // Legacy format support
-        localRootData = json;
+    for (const url of candidateUrls) {
+      try {
+        const response = await fetch(url);
+        if (!response.ok) {
+          console.error(
+            `Failed to load local root data from ${url}. Status: ${response.status} ${response.statusText}`
+          );
+          continue;
+        }
+        const json = await response.json();
+
+        // Handle both old format (flat data) and new format (with _meta)
+        if (json._meta && json.data) {
+          rootDataMeta = json._meta;
+          localRootData = json.data;
+        } else {
+          // Legacy format support
+          localRootData = json;
+        }
+        return localRootData;
+      } catch (error) {
+        console.error(`Error loading local root data from ${url}:`, error);
       }
-      return localRootData;
-    } catch (error) {
-      console.error(
-        `Error loading local root data from ${import.meta.env.BASE_URL}quran-roots.json:`,
-        error
-      );
-      return null;
     }
+
+    return null;
   })();
 
   return rootDataLoading;
@@ -377,11 +383,20 @@ export const getVerseWordData = async (verseKey: string): Promise<QuranWord[]> =
 const getVerseWordDataFromAPI = async (verseKey: string): Promise<QuranWord[]> => {
   try {
     const response = await fetch(
-      `${API_V4_BASE}/verses/by_key/${verseKey}?words=true&word_fields=root,text_uthmani,text_simple`
+      `${API_V4_BASE}/verses/by_key/${verseKey}?words=true&word_fields=root,lemma,text_uthmani,text_simple`
     );
     if (!response.ok) return [];
     const data = await response.json();
-    return (data.verse?.words || []).filter((w: QuranApiWord) => w.char_type_name !== "end");
+    return (data.verse?.words || [])
+      .filter((w: QuranApiWord) => w.char_type_name !== "end")
+      .map((w: QuranApiWord, index: number) => ({
+        id: w.id ?? index,
+        position: w.position ?? index + 1,
+        text_uthmani: w.text_uthmani || "",
+        text_simple: w.text_simple || w.text_uthmani || "",
+        root: w.root?.arabic,
+        lemma: w.lemma?.arabic,
+      }));
   } catch (error) {
     console.error("Error fetching word data:", error);
     return [];

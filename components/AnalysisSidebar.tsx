@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useRef, useState } from "react";
 import { X, Database, BookOpen, Search, ArrowRight, ChevronDown, Languages } from "lucide-react";
 import { RootAnalysis, UserLanguage } from "../types";
 import { Spinner } from "./Spinner";
@@ -75,7 +75,7 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
   onNavigate,
   onWordClick,
   onTranslate,
-  userLanguage: _userLanguage,
+  userLanguage,
 }) => {
   const [isConcordanceOpen, setIsConcordanceOpen] = useState(false);
   const [isWordFormsOpen, setIsWordFormsOpen] = useState(false);
@@ -89,30 +89,31 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
   useEffect(() => {
     setIsConcordanceOpen(false);
     setIsWordFormsOpen(false);
-    setActiveMenu(null);
-  }, [rootData?.root]);
+    if (!rootData) {
+      setActiveMenu(null);
+    }
+  }, [rootData]);
 
   const handleWordClick = (
     type: "word" | "root",
-    word: string,
+    _word: string,
     event: React.MouseEvent<HTMLButtonElement>
   ) => {
-    if (!containerRef.current) return;
-
     const rect = event.currentTarget.getBoundingClientRect();
-    const containerRect = containerRef.current.getBoundingClientRect();
-    const scrollTop = containerRef.current.scrollTop;
+    const containerRect = containerRef.current?.getBoundingClientRect();
 
-    // Position relative to scrollable container
-    const baseTop = rect.bottom - containerRect.top + scrollTop + 8;
-    const baseLeft = rect.left - containerRect.left;
-
-    // Adjust if would overflow sidebar width
+    const menuHeight = 280;
     const menuWidth = 240;
-    const containerWidth = containerRect.width;
-    const adjustedLeft = Math.min(baseLeft, containerWidth - menuWidth - 16);
+    const baseTop = containerRect ? rect.bottom - containerRect.top + 8 : rect.bottom + 8;
+    const baseLeft = containerRect ? rect.left - containerRect.left : rect.left;
 
-    setMenuPosition({ top: baseTop, left: adjustedLeft });
+    const maxTop = (containerRect?.height || window.innerHeight) - menuHeight;
+    const maxLeft = (containerRect?.width || window.innerWidth) - menuWidth;
+
+    setMenuPosition({
+      top: Math.max(12, Math.min(baseTop, maxTop)),
+      left: Math.max(12, Math.min(baseLeft, maxLeft)),
+    });
     setActiveMenu(type);
   };
 
@@ -138,7 +139,11 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
             <h2 className="font-bold text-lg tracking-tight">Research Panel</h2>
           </div>
           <button
-            onClick={onClose}
+            onClick={() => {
+              setActiveMenu(null);
+              onClose();
+            }}
+            aria-label="Close"
             className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors text-slate-400"
           >
             <X size={20} />
@@ -146,7 +151,7 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
         </div>
 
         {/* Content */}
-        <div ref={containerRef} className="flex-1 overflow-y-auto p-5">
+        <div ref={containerRef} className="relative flex-1 overflow-y-auto p-5">
           {loading && (
             <div className="flex flex-col items-center justify-center h-64 space-y-4 text-slate-400">
               <Spinner className="w-8 h-8 text-emerald-600" />
@@ -159,9 +164,12 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
               {/* Word Details Section */}
               <div className="bg-slate-50 dark:bg-slate-900/50 rounded-2xl p-4 border border-slate-100 dark:border-slate-800">
                 <div className="text-center mb-4">
-                  <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
+                  <button
+                    type="button"
+                    className="text-[10px] font-bold text-slate-400 uppercase tracking-wider"
+                  >
                     Selected Word
-                  </span>
+                  </button>
                   <button
                     onClick={(e) =>
                       handleWordClick("word", rootData.debugInfo?.selectedText || "", e)
@@ -227,9 +235,12 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
 
               {/* Root Header */}
               <div className="bg-emerald-50 dark:bg-emerald-900/20 rounded-2xl p-6 text-center border border-emerald-100 dark:border-emerald-800/50">
-                <span className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider">
+                <button
+                  type="button"
+                  className="text-xs font-bold text-emerald-600 dark:text-emerald-400 uppercase tracking-wider"
+                >
                   Root
-                </span>
+                </button>
 
                 <button
                   onClick={(e) => handleWordClick("root", rootData.root, e)}
@@ -410,7 +421,7 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
                 Ready for Research
               </h3>
               <p className="text-sm">
-                Select text in the Quran to analyze roots or search for phrases.
+                Select text in the Quran to study roots or search for phrases.
               </p>
             </div>
           )}
@@ -425,6 +436,7 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
                   : rootData?.root || ""
               }
               verseKey={activeMenu === "root" ? rootData?.verses[0]?.verse_key : undefined}
+              targetLanguage={userLanguage}
               onClose={() => setActiveMenu(null)}
               onTranslate={handleTranslateFromMenu}
             />

@@ -96,8 +96,8 @@ describe("AnalysisSidebar - Translation Features", () => {
     fireEvent.click(selectedWordButton);
 
     await waitFor(() => {
-      // Translation menu should appear with "Translate" header
-      expect(screen.getByText("Translate")).toBeInTheDocument();
+      // Translation menu should appear with header
+      expect(screen.getByText("Translation Menu")).toBeInTheDocument();
       // Menu should show all translation services
       expect(screen.getByText("Abadis")).toBeInTheDocument();
       expect(screen.getByText("Google Translate")).toBeInTheDocument();
@@ -113,7 +113,7 @@ describe("AnalysisSidebar - Translation Features", () => {
 
     await waitFor(() => {
       // Translation menu should appear
-      expect(screen.getByText("Translate")).toBeInTheDocument();
+      expect(screen.getByText("Translation Menu")).toBeInTheDocument();
       expect(screen.getByText("Abadis")).toBeInTheDocument();
     });
   });
@@ -126,7 +126,7 @@ describe("AnalysisSidebar - Translation Features", () => {
     fireEvent.click(selectedWordButton);
 
     await waitFor(() => {
-      expect(screen.getByText("Translate")).toBeInTheDocument();
+      expect(screen.getByText("Translation Menu")).toBeInTheDocument();
     });
 
     // Open root menu
@@ -134,8 +134,8 @@ describe("AnalysisSidebar - Translation Features", () => {
     fireEvent.click(rootWordButton);
 
     await waitFor(() => {
-      // Should still have only one "Translate" header (one menu)
-      const translateHeaders = screen.getAllByText("Translate");
+      // Should still have only one menu
+      const translateHeaders = screen.getAllByText("Translation Menu");
       expect(translateHeaders).toHaveLength(1);
     });
   });
@@ -148,7 +148,7 @@ describe("AnalysisSidebar - Translation Features", () => {
     fireEvent.click(rootWordButton);
 
     await waitFor(() => {
-      expect(screen.getByText("Translate")).toBeInTheDocument();
+      expect(screen.getByText("Translation Menu")).toBeInTheDocument();
     });
 
     // Open word menu
@@ -156,8 +156,8 @@ describe("AnalysisSidebar - Translation Features", () => {
     fireEvent.click(selectedWordButton);
 
     await waitFor(() => {
-      // Should still have only one "Translate" header (one menu)
-      const translateHeaders = screen.getAllByText("Translate");
+      // Should still have only one menu
+      const translateHeaders = screen.getAllByText("Translation Menu");
       expect(translateHeaders).toHaveLength(1);
     });
   });
@@ -170,7 +170,7 @@ describe("AnalysisSidebar - Translation Features", () => {
     fireEvent.click(selectedWordButton);
 
     await waitFor(() => {
-      expect(screen.getByText("Translate")).toBeInTheDocument();
+      expect(screen.getByText("Translation Menu")).toBeInTheDocument();
     });
 
     // Change root data
@@ -186,8 +186,9 @@ describe("AnalysisSidebar - Translation Features", () => {
     rerender(<AnalysisSidebar {...defaultProps} rootData={newRootData} />);
 
     await waitFor(() => {
-      // Menu should be closed
-      expect(screen.queryByText("Translate")).not.toBeInTheDocument();
+      // Menu updates to new selection instead of closing
+      expect(screen.getByText("Translation Menu")).toBeInTheDocument();
+      expect(screen.getAllByText("الْعِلْمُ").length).toBeGreaterThanOrEqual(1);
     });
   });
 
@@ -199,7 +200,7 @@ describe("AnalysisSidebar - Translation Features", () => {
     fireEvent.click(selectedWordButton);
 
     await waitFor(() => {
-      expect(screen.getByText("Translate")).toBeInTheDocument();
+      expect(screen.getByText("Translation Menu")).toBeInTheDocument();
       // The word should be displayed in the menu header (both in button and menu)
       const allInstances = screen.getAllByText("الْكِتَابُ");
       expect(allInstances.length).toBeGreaterThanOrEqual(2); // Button + menu header
@@ -214,7 +215,7 @@ describe("AnalysisSidebar - Translation Features", () => {
     fireEvent.click(rootWordButton);
 
     await waitFor(() => {
-      expect(screen.getByText("Translate")).toBeInTheDocument();
+      expect(screen.getByText("Translation Menu")).toBeInTheDocument();
       // Both the button and menu header show the root
       const menuHeaders = screen.getAllByText("كتب");
       expect(menuHeaders.length).toBeGreaterThanOrEqual(1);
@@ -306,7 +307,7 @@ describe("AnalysisSidebar - Translation Features", () => {
 
     await waitFor(() => {
       // Menu should be closed
-      expect(screen.queryByText("Translate")).not.toBeInTheDocument();
+      expect(screen.queryByText("Translation Menu")).not.toBeInTheDocument();
     });
   });
 

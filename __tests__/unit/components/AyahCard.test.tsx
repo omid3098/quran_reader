@@ -29,6 +29,7 @@ describe("AyahCard", () => {
     isActive: false,
     fontSize: 28,
     showTranslation: true,
+    theme: "light" as const,
     scriptType: "uthmani" as const,
   };
 
@@ -88,24 +89,33 @@ describe("AyahCard", () => {
   });
 
   it("should display note when provided", () => {
-    const noteText = "This is my personal note";
-    render(<AyahCard {...defaultProps} note={noteText} />);
-    expect(screen.getByText(noteText)).toBeDefined();
+    const noteBlocks = [
+      {
+        type: "paragraph" as const,
+        content: "This is my personal note",
+      },
+    ];
+    render(<AyahCard {...defaultProps} noteBlocks={noteBlocks} />);
     expect(screen.getByText("Personal Note")).toBeDefined();
   });
 
-  it("should apply RTL direction for Arabic notes", () => {
-    const arabicNote = "هذه ملاحظتي الشخصية";
-    const { container } = render(<AyahCard {...defaultProps} note={arabicNote} />);
-    const noteDiv = container.querySelector('[dir="rtl"]');
-    expect(noteDiv).not.toBeNull();
+  it("should render note with BlockNote editor", () => {
+    const noteBlocks = [
+      {
+        type: "paragraph" as const,
+        content: "Test note content",
+      },
+    ];
+    const { container } = render(<AyahCard {...defaultProps} noteBlocks={noteBlocks} />);
+    // Check that the note container exists with yellow styling
+    const noteContainer = container.querySelector(".bg-yellow-50");
+    expect(noteContainer).not.toBeNull();
   });
 
-  it("should apply LTR direction for English notes", () => {
-    const englishNote = "This is my note";
-    const { container } = render(<AyahCard {...defaultProps} note={englishNote} />);
-    // The note container should exist
-    expect(screen.getByText(englishNote)).toBeDefined();
+  it("should not display note when noteBlocks is empty", () => {
+    const { container } = render(<AyahCard {...defaultProps} noteBlocks={[]} />);
+    const noteContainer = container.querySelector(".bg-yellow-50");
+    expect(noteContainer).toBeNull();
   });
 
   it("should have active styling when isActive is true", () => {

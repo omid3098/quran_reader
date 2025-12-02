@@ -1,6 +1,8 @@
 import React from "react";
 import { Verse } from "../types";
 import { NotebookPen } from "lucide-react";
+import { RichNoteEditor } from "./RichNoteEditor";
+import { PartialBlock } from "@blocknote/core";
 
 interface AyahCardProps {
   verse: Verse;
@@ -12,7 +14,9 @@ interface AyahCardProps {
   isActive: boolean;
   fontSize: number;
   showTranslation: boolean;
-  note?: string; // Current note text if exists
+  noteBlocks?: PartialBlock[]; // Current note blocks if exists
+  theme: "light" | "dark";
+  onNavigateToVerse?: (surahId: number, verseNumber?: number) => void;
   scriptType: "uthmani" | "simple";
 }
 
@@ -25,16 +29,15 @@ export const AyahCard: React.FC<AyahCardProps> = ({
   isActive,
   fontSize,
   showTranslation,
-  note,
+  noteBlocks,
+  theme,
+  onNavigateToVerse,
   scriptType,
 }) => {
   const verseNum = verse.verse_key.split(":")[1];
 
   // Calculate translation font size relative to Arabic font size
   const translationFontSize = Math.max(14, Math.round(fontSize * 0.55));
-
-  // Check if note contains Arabic/Persian characters to apply RTL and Vazir font
-  const isRtlNote = note ? /[\u0600-\u06FF]/.test(note) : false;
 
   // Select correct text based on setting
   const displayText = scriptType === "simple" ? verse.text_simple : verse.text_uthmani;
@@ -71,6 +74,24 @@ export const AyahCard: React.FC<AyahCardProps> = ({
         {i < arr.length - 1 && " "}
       </React.Fragment>
     ));
+  };
+
+  const handleParagraphClick = (e: React.MouseEvent<HTMLParagraphElement>) => {
+    const selection = window.getSelection();
+    if (selection && selection.toString().length > 0) {
+      return;
+    }
+
+    // If a word span handled the click, skip the fallback handler
+    const targetSpan = (e.target as HTMLElement).closest("[data-word-index]");
+    if (targetSpan) return;
+
+    if (onWordClick && displayText) {
+      const firstWord = displayText.split(" ").filter(Boolean)[0];
+      if (!firstWord) return;
+      const rect = e.currentTarget.getBoundingClientRect();
+      onWordClick(firstWord, 0, verse.verse_key, rect);
+    }
   };
 
   return (
@@ -110,15 +131,17 @@ export const AyahCard: React.FC<AyahCardProps> = ({
               {chapterId}:{verseNum}
             </span>
             {/* Small indicator if note exists */}
-            {note && <span className="block md:hidden w-2 h-2 rounded-full bg-yellow-400"></span>}
+            {noteBlocks && noteBlocks.length > 0 && (
+              <span className="block md:hidden w-2 h-2 rounded-full bg-yellow-400"></span>
+            )}
           </div>
-          <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity duration-300">
+          <div className="flex gap-1 opacity-100 transition-opacity duration-300">
             <button
               onClick={(e) => onNote(verse, e)}
               className={`
                 p-2 rounded-full transition-colors flex items-center gap-2
                 ${
-                  note
+                  noteBlocks && noteBlocks.length > 0
                     ? "bg-yellow-100 text-yellow-600 dark:bg-yellow-500/10 dark:text-yellow-400"
                     : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
                 }
@@ -126,7 +149,9 @@ export const AyahCard: React.FC<AyahCardProps> = ({
               title="Personal Note"
             >
               <NotebookPen size={16} />
-              {note && <span className="text-xs font-medium hidden sm:block">Edit Note</span>}
+              {noteBlocks && noteBlocks.length > 0 && (
+                <span className="text-xs font-medium hidden sm:block">Edit Note</span>
+              )}
             </button>
           </div>
         </div>
@@ -136,6 +161,7 @@ export const AyahCard: React.FC<AyahCardProps> = ({
           <p
             className="font-quran leading-[2.5] text-slate-800 dark:text-slate-100 mb-2 transition-all duration-300 selection:bg-emerald-200/50 dark:selection:bg-emerald-700/50"
             style={{ fontSize: `${fontSize}px` }}
+            onClick={handleParagraphClick}
           >
             {renderArabicText()}
           </p>
@@ -181,33 +207,26 @@ export const AyahCard: React.FC<AyahCardProps> = ({
         )}
 
         {/* Display Note if exists */}
-        {note && (
+        {noteBlocks && noteBlocks.length > 0 && (
           <div
-            dir={isRtlNote ? "rtl" : "ltr"}
-            className={`
-              mt-4 p-4 bg-yellow-50 dark:bg-yellow-500/5 border border-yellow-100 dark:border-yellow-500/20 rounded-lg relative group/note
-              ${isRtlNote ? "font-vazir" : ""}
-            `}
+            className="mt-4 p-4 bg-yellow-50 dark:bg-yellow-500/5 border border-yellow-100 dark:border-yellow-500/20 rounded-lg relative cursor-pointer"
             onClick={(e) => {
               e.stopPropagation();
               onNote(verse, e);
             }}
           >
-            <div className={`absolute top-3 opacity-50 ${isRtlNote ? "right-3" : "left-3"}`}>
+            <div className="absolute top-3 left-3 opacity-50">
               <NotebookPen size={14} className="text-yellow-500" />
             </div>
-            <p
-              className={`
-                 text-slate-700 dark:text-slate-300 whitespace-pre-wrap leading-relaxed cursor-text
-                 ${isRtlNote ? "pr-6" : "pl-6"}
-               `}
-              style={{ fontSize: `${translationFontSize}px` }}
-            >
-              {note}
-            </p>
-            <div
-              className={`text-[10px] text-yellow-600/70 dark:text-yellow-500/70 mt-2 font-medium ${isRtlNote ? "text-left" : "text-right"}`}
-            >
+            <div className="pl-6">
+              <RichNoteEditor
+                initialBlocks={noteBlocks}
+                theme={theme}
+                onNavigateToVerse={onNavigateToVerse}
+                editable={false}
+              />
+            </div>
+            <div className="text-[10px] text-yellow-600/70 dark:text-yellow-500/70 mt-2 font-medium text-right">
               Personal Note
             </div>
           </div>

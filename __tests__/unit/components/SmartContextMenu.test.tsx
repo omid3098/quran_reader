@@ -51,89 +51,12 @@ describe("SmartContextMenu", () => {
     expect(screen.getByText("Search Phrase")).toBeInTheDocument();
   });
 
-  describe("Translation buttons", () => {
-    it("should show Abadis only for Persian users", () => {
-      const { rerender } = render(<SmartContextMenu {...defaultProps} userLanguage="fa" />);
-      expect(screen.getByText("Abadis")).toBeInTheDocument();
+  it("should not render translation shortcuts (handled in analysis sidebar)", () => {
+    render(<SmartContextMenu {...defaultProps} />);
 
-      rerender(<SmartContextMenu {...defaultProps} userLanguage="en" />);
-      expect(screen.queryByText("Abadis")).not.toBeInTheDocument();
-    });
-
-    it("should show Abadis as the first translation service for Persian users", () => {
-      render(<SmartContextMenu {...defaultProps} userLanguage="fa" />);
-
-      const allButtons = screen.getAllByRole("button");
-      const translationButtons = allButtons.filter((button) => {
-        const text = button.textContent || "";
-        return (
-          text.includes("Abadis") ||
-          text.includes("Vajehyab") ||
-          text.includes("Almaany") ||
-          text.includes("Google Translate")
-        );
-      });
-
-      expect(translationButtons[0]).toHaveTextContent("Abadis");
-    });
-
-    it("should call onTranslate with correct abadis service when clicked", () => {
-      render(<SmartContextMenu {...defaultProps} userLanguage="fa" />);
-
-      const abadisButton = screen.getByText("Abadis");
-      fireEvent.click(abadisButton);
-
-      expect(defaultProps.onTranslate).toHaveBeenCalledWith(
-        expect.objectContaining({ id: "abadis" }),
-        "كتاب"
-      );
-    });
-
-    it("should show Google Translate for any language", () => {
-      render(<SmartContextMenu {...defaultProps} userLanguage="en" />);
-      expect(screen.getByText("Google Translate")).toBeInTheDocument();
-    });
-
-    it("should show Vajehyab only for Persian users", () => {
-      const { rerender } = render(<SmartContextMenu {...defaultProps} userLanguage="fa" />);
-      expect(screen.getByText("Vajehyab")).toBeInTheDocument();
-
-      rerender(<SmartContextMenu {...defaultProps} userLanguage="en" />);
-      expect(screen.queryByText("Vajehyab")).not.toBeInTheDocument();
-    });
-
-    it("should show Almaany for supported languages", () => {
-      const { rerender } = render(<SmartContextMenu {...defaultProps} userLanguage="en" />);
-      expect(screen.getByText("Almaany")).toBeInTheDocument();
-
-      rerender(<SmartContextMenu {...defaultProps} userLanguage="fa" />);
-      expect(screen.getByText("Almaany")).toBeInTheDocument();
-    });
-
-    it("should call onTranslate with correct service when translation button clicked", () => {
-      render(<SmartContextMenu {...defaultProps} userLanguage="en" />);
-
-      const googleButton = screen.getByText("Google Translate");
-      fireEvent.click(googleButton);
-
-      expect(defaultProps.onTranslate).toHaveBeenCalledWith(
-        expect.objectContaining({ id: "google" }),
-        "كتاب"
-      );
-    });
-
-    it("should NOT show translation buttons for phrase selection", () => {
-      const phraseContext: SelectionContext = {
-        ...mockContext,
-        type: "phrase",
-        text: "بسم الله",
-      };
-      render(<SmartContextMenu {...defaultProps} context={phraseContext} />);
-
-      // Translation buttons should not appear for phrases
-      expect(screen.queryByText("Google Translate")).not.toBeInTheDocument();
-      expect(screen.queryByText("Vajehyab")).not.toBeInTheDocument();
-    });
+    expect(screen.queryByText("Google Translate")).not.toBeInTheDocument();
+    expect(screen.queryByText("Abadis")).not.toBeInTheDocument();
+    expect(screen.queryByText("Almaany")).not.toBeInTheDocument();
   });
 
   it("should call onCopy when Copy button is clicked", () => {

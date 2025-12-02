@@ -73,19 +73,6 @@ test.describe("Reading Experience", () => {
     await expect(firstVerse).toHaveClass(/bg-emerald/);
   });
 
-  test("should show action buttons on verse hover", async ({ page }) => {
-    const firstVerse = page.locator('[id^="ayah-"]').first();
-    const count = await page.locator('[id^="ayah-"]').count();
-    if (count === 0) {
-      test.skip(true, "Verses did not load - external API may be unavailable");
-      return;
-    }
-    await firstVerse.hover();
-    await page.waitForTimeout(500);
-    const aiButton = page.getByTitle("AI Tafseer");
-    await expect(aiButton.first()).toBeVisible();
-  });
-
   test("should open note modal when note button is clicked", async ({ page }) => {
     const firstVerse = page.locator('[id^="ayah-"]').first();
     const count = await page.locator('[id^="ayah-"]').count();

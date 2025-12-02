@@ -1,3 +1,5 @@
+/* eslint-disable @typescript-eslint/no-explicit-any */
+import { PartialBlock } from "@blocknote/core";
 import { createReactInlineContentSpec } from "@blocknote/react";
 import { createContext, useContext } from "react";
 import { BookOpen } from "lucide-react";
@@ -139,6 +141,12 @@ interface QuranLinkContextType {
 
 const QuranLinkContext = createContext<QuranLinkContextType>({});
 
+// Matches Quran references inside square brackets, e.g. [2:255] or [Al-Baqarah:255]
+const QURAN_LINK_PATTERN = /\[\s*((?:[A-Za-z\s-]+|\d{1,3})(?::\d{1,3})?)\s*\]/g;
+
+type InlineContentNode = any;
+const QURAN_LINK_TEST = /\[\s*((?:[A-Za-z\s-]+|\d{1,3})(?::\d{1,3})?)\s*\]/;
+
 // Parse a quran reference like "2:255", "Al-Baqarah:255", "2", or "Al-Baqarah"
 export function parseQuranReference(ref: string): {
   surahId: number | null;
@@ -231,3 +239,109 @@ export const QuranLink = {
   Provider: QuranLinkContext.Provider,
   parse: parseQuranReference,
 };
+
+// Convert inline text segments like "[2:3]" into Quran link inline nodes
+function splitTextWithQuranLinks(
+  text: string,
+  base?: Extract<InlineContentNode, { styles?: unknown }>
+) {
+  if (!text) return [];
+
+  // Fast path: nothing to convert, keep original shape
+  if (!QURAN_LINK_TEST.test(text)) {
+    const textNode: InlineContentNode =
+      base && typeof base === "object" && "styles" in base && base.styles
+        ? { type: "text", text, styles: base.styles }
+        : { type: "text", text };
+    return [textNode];
+  }
+
+  const parts: InlineContentNode[] = [];
+  let lastIndex = 0;
+
+  const pushText = (segment: string) => {
+    if (!segment) return;
+    const textNode: InlineContentNode =
+      base && typeof base === "object" && "styles" in base && base.styles
+        ? { type: "text", text: segment, styles: base.styles }
+        : { type: "text", text: segment };
+    parts.push(textNode);
+  };
+
+  text.replace(QURAN_LINK_PATTERN, (match, reference, offset) => {
+    if (offset > lastIndex) {
+      pushText(text.slice(lastIndex, offset));
+    }
+
+    parts.push({
+      type: "quranLink" as const,
+      props: { reference: reference.trim() },
+    });
+
+    lastIndex = offset + match.length;
+    return match;
+  });
+
+  if (lastIndex < text.length) {
+    pushText(text.slice(lastIndex));
+  }
+
+  return parts;
+}
+
+// Normalize blocks to ensure Quran references are rendered as inline quranLink nodes
+export function normalizeQuranLinkBlocks(blocks: PartialBlock[]): PartialBlock[] {
+  return blocks.map((block) => {
+    const normalizedBlock: PartialBlock = { ...block };
+
+    if (block.content !== undefined) {
+      const contentArray = Array.isArray(block.content) ? block.content : [block.content];
+      const normalizedContent: InlineContentNode[] = [];
+      let needsProcessing = false;
+
+      contentArray.forEach((item) => {
+        if (typeof item === "string") {
+          const segments = splitTextWithQuranLinks(item);
+          if (segments.length === 1 && segments[0]?.text === item) {
+            normalizedContent.push(item);
+            return;
+          }
+          needsProcessing = true;
+          normalizedContent.push(...segments);
+          return;
+        }
+
+        if (item?.type === "quranLink") {
+          normalizedContent.push(item);
+          needsProcessing = true;
+          return;
+        }
+
+        if (typeof item === "object" && "text" in item && typeof item.text === "string") {
+          const segments = splitTextWithQuranLinks(item.text, item);
+          if (segments.length === 1 && "text" in segments[0] && segments[0]?.text === item.text) {
+            normalizedContent.push(item);
+            return;
+          }
+          needsProcessing = true;
+          normalizedContent.push(...segments);
+          return;
+        }
+
+        normalizedContent.push(item);
+      });
+
+      if (needsProcessing) {
+        normalizedBlock.content = normalizedContent as PartialBlock["content"];
+      } else {
+        normalizedBlock.content = block.content;
+      }
+    }
+
+    if (block.children) {
+      normalizedBlock.children = normalizeQuranLinkBlocks(block.children);
+    }
+
+    return normalizedBlock;
+  });
+}

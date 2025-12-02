@@ -111,14 +111,16 @@ describe("quranService", () => {
       });
 
       const chapters = await getChapters();
-      expect(chapters).toEqual([]);
+      expect(chapters.length).toBeGreaterThan(0);
+      expect(chapters[0].id).toBe(1);
     });
 
     it("should return empty array on network error", async () => {
       mockFetch.mockRejectedValueOnce(new Error("Network error"));
 
       const chapters = await getChapters();
-      expect(chapters).toEqual([]);
+      expect(chapters.length).toBeGreaterThan(0);
+      expect(chapters[0].id).toBe(1);
     });
 
     it("should set bismillah_pre correctly for different surahs", async () => {
@@ -255,7 +257,8 @@ describe("quranService", () => {
       });
 
       const verses = await getVerses(1);
-      expect(verses).toEqual([]);
+      expect(verses.length).toBeGreaterThan(0);
+      expect(verses[0].verse_key).toBe("1:1");
     });
 
     it("should use default translation when none specified", async () => {
