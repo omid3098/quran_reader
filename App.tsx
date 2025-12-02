@@ -999,6 +999,8 @@ const App: React.FC = () => {
           mode={analysisMode}
           onNavigate={handleNavigateByKey}
           onWordClick={handleStandaloneWordClick}
+          onTranslate={handleTranslate}
+          userLanguage={settings.userLanguage || "en"}
         />
       </div>
 

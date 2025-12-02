@@ -1,7 +1,9 @@
-import React, { useEffect, useState } from "react";
-import { X, Database, BookOpen, Search, ArrowRight, ChevronDown } from "lucide-react";
-import { RootAnalysis } from "../types";
+import React, { useEffect, useState, useRef } from "react";
+import { X, Database, BookOpen, Search, ArrowRight, ChevronDown, Languages } from "lucide-react";
+import { RootAnalysis, UserLanguage } from "../types";
 import { Spinner } from "./Spinner";
+import { TranslationService } from "../services/translationServices";
+import { TranslationContextMenu } from "./TranslationContextMenu";
 
 // Truncate verse text to ~6-7 words around the matched word position and wrap with ellipses when truncated
 const truncateAroundWord = (text: string, wordIndex?: number): string => {
@@ -59,6 +61,8 @@ interface AnalysisSidebarProps {
   mode: "root" | "phrase" | null;
   onNavigate: (verseKey: string) => void;
   onWordClick?: (word: string, rect: DOMRect) => void;
+  onTranslate: (service: TranslationService, word: string, verseKey?: string) => void;
+  userLanguage: UserLanguage;
 }
 
 export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
@@ -70,14 +74,54 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
   mode,
   onNavigate,
   onWordClick,
+  onTranslate,
+  userLanguage: _userLanguage,
 }) => {
   const [isConcordanceOpen, setIsConcordanceOpen] = useState(false);
   const [isWordFormsOpen, setIsWordFormsOpen] = useState(false);
+  const [activeMenu, setActiveMenu] = useState<"word" | "root" | null>(null);
+  const [menuPosition, setMenuPosition] = useState<{ top: number; left: number }>({
+    top: 0,
+    left: 0,
+  });
+  const containerRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     setIsConcordanceOpen(false);
     setIsWordFormsOpen(false);
+    setActiveMenu(null);
   }, [rootData?.root]);
+
+  const handleWordClick = (
+    type: "word" | "root",
+    word: string,
+    event: React.MouseEvent<HTMLButtonElement>
+  ) => {
+    if (!containerRef.current) return;
+
+    const rect = event.currentTarget.getBoundingClientRect();
+    const containerRect = containerRef.current.getBoundingClientRect();
+    const scrollTop = containerRef.current.scrollTop;
+
+    // Position relative to scrollable container
+    const baseTop = rect.bottom - containerRect.top + scrollTop + 8;
+    const baseLeft = rect.left - containerRect.left;
+
+    // Adjust if would overflow sidebar width
+    const menuWidth = 240;
+    const containerWidth = containerRect.width;
+    const adjustedLeft = Math.min(baseLeft, containerWidth - menuWidth - 16);
+
+    setMenuPosition({ top: baseTop, left: adjustedLeft });
+    setActiveMenu(type);
+  };
+
+  const handleTranslateFromMenu = (service: TranslationService, word: string) => {
+    const verseKey = activeMenu === "root" ? rootData?.verses[0]?.verse_key : undefined;
+
+    onTranslate(service, word, verseKey);
+    setActiveMenu(null);
+  };
 
   return (
     <div
@@ -102,7 +146,7 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
         </div>
 
         {/* Content */}
-        <div className="flex-1 overflow-y-auto p-5">
+        <div ref={containerRef} className="flex-1 overflow-y-auto p-5">
           {loading && (
             <div className="flex flex-col items-center justify-center h-64 space-y-4 text-slate-400">
               <Spinner className="w-8 h-8 text-emerald-600" />
@@ -118,9 +162,18 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
                   <span className="text-[10px] font-bold text-slate-400 uppercase tracking-wider">
                     Selected Word
                   </span>
-                  <div className="font-quran text-3xl text-slate-800 dark:text-slate-100 mt-1 dir-rtl">
+                  <button
+                    onClick={(e) =>
+                      handleWordClick("word", rootData.debugInfo?.selectedText || "", e)
+                    }
+                    className="w-full font-quran text-3xl text-slate-800 dark:text-slate-100 mt-1 dir-rtl hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer flex items-center justify-center gap-2 group py-1"
+                  >
                     {rootData.debugInfo?.selectedText}
-                  </div>
+                    <Languages
+                      size={20}
+                      className="opacity-0 group-hover:opacity-100 text-emerald-600 dark:text-emerald-400 transition-opacity"
+                    />
+                  </button>
                 </div>
 
                 <div className="grid grid-cols-2 gap-3">
@@ -178,9 +231,16 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
                   Root
                 </span>
 
-                <div className="font-quran text-5xl text-emerald-800 dark:text-emerald-200 mt-2 mb-4 dir-rtl">
+                <button
+                  onClick={(e) => handleWordClick("root", rootData.root, e)}
+                  className="w-full font-quran text-5xl text-emerald-800 dark:text-emerald-200 mt-2 mb-4 dir-rtl hover:text-emerald-600 dark:hover:text-emerald-400 transition-colors cursor-pointer flex items-center justify-center gap-3 group py-2"
+                >
                   {rootData.root}
-                </div>
+                  <Languages
+                    size={24}
+                    className="opacity-0 group-hover:opacity-100 text-emerald-600 dark:text-emerald-400 transition-opacity"
+                  />
+                </button>
 
                 {rootData.root !== "Not Found" && (
                   <div className="inline-flex items-center gap-2 bg-white dark:bg-slate-900 px-3 py-1 rounded-full shadow-sm text-sm text-slate-600 dark:text-slate-400 border border-emerald-100 dark:border-emerald-900">
@@ -353,6 +413,21 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
                 Select text in the Quran to analyze roots or search for phrases.
               </p>
             </div>
+          )}
+
+          {/* Translation Context Menu */}
+          {activeMenu && (
+            <TranslationContextMenu
+              position={menuPosition}
+              word={
+                activeMenu === "word"
+                  ? rootData?.debugInfo?.selectedText || ""
+                  : rootData?.root || ""
+              }
+              verseKey={activeMenu === "root" ? rootData?.verses[0]?.verse_key : undefined}
+              onClose={() => setActiveMenu(null)}
+              onTranslate={handleTranslateFromMenu}
+            />
           )}
         </div>
       </div>
