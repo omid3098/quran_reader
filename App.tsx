@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef } from "react";
+import React, { useEffect, useState, useRef, useCallback } from "react";
 import { Header } from "./components/Header";
 import { SettingsSidebar } from "./components/SettingsSidebar";
 import { AudioPlayer } from "./components/AudioPlayer";
@@ -344,7 +344,10 @@ const App: React.FC = () => {
   };
 
   const nextAyahRef = useRef(() => {});
-  const handleNextAyah = () => {
+  const highlightTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+  const highlightedElementRef = useRef<HTMLElement | null>(null);
+
+  const handleNextAyah = useCallback(() => {
     const wasPlaying = isPlaying;
     if (currentVerseIndex < verses.length - 1) {
       setCurrentVerseIndex((prev) => prev + 1);
@@ -357,7 +360,8 @@ const App: React.FC = () => {
     } else {
       setIsPlaying(false);
     }
-  };
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentVerseIndex, verses, currentChapter, settings.autoPlay, isPlaying]);
 
   useEffect(() => {
     nextAyahRef.current = handleNextAyah;
@@ -385,24 +389,43 @@ const App: React.FC = () => {
     }
   }, [loadingVerses, verses, pendingPlayFirst]);
 
-  const handlePrevAyah = () => {
+  const handlePrevAyah = useCallback(() => {
     if (currentVerseIndex > 0) {
       setCurrentVerseIndex(currentVerseIndex - 1);
     }
-  };
+  }, [currentVerseIndex]);
 
   // --- Scrolling Logic ---
   useEffect(() => {
     if (!loadingVerses && pendingScrollAyah) {
       const element = document.getElementById(pendingScrollAyah);
       if (element) {
+        // Clear any existing highlight timeout
+        if (highlightTimeoutRef.current) {
+          clearTimeout(highlightTimeoutRef.current);
+          highlightTimeoutRef.current = null;
+        }
+
+        // Remove highlight from previously highlighted element
+        if (highlightedElementRef.current) {
+          highlightedElementRef.current.classList.remove(
+            "bg-emerald-50/50",
+            "dark:bg-emerald-900/30"
+          );
+          highlightedElementRef.current = null;
+        }
+
         setTimeout(() => {
           element.scrollIntoView({ behavior: "smooth", block: "center" });
           element.classList.add("bg-emerald-50/50", "dark:bg-emerald-900/30");
-          setTimeout(
-            () => element.classList.remove("bg-emerald-50/50", "dark:bg-emerald-900/30"),
-            2000
-          );
+          highlightedElementRef.current = element;
+
+          // Set new timeout and store reference
+          highlightTimeoutRef.current = setTimeout(() => {
+            element.classList.remove("bg-emerald-50/50", "dark:bg-emerald-900/30");
+            highlightedElementRef.current = null;
+            highlightTimeoutRef.current = null;
+          }, 2000);
         }, 100);
         setPendingScrollAyah(null);
       }
@@ -419,6 +442,69 @@ const App: React.FC = () => {
       }
     }
   }, [currentVerseIndex, currentChapter, verses]);
+
+  // Keyboard navigation
+  useEffect(() => {
+    const handleKeyDown = (e: KeyboardEvent) => {
+      // Guard: Check if any modal/overlay is open (except analysis sidebar per user request)
+      const anyModalOpen =
+        searchModalOpen ||
+        tafseerModalOpen ||
+        noteModalOpen ||
+        surahNoteModalOpen ||
+        settingsOpen ||
+        iframeData.isOpen ||
+        selectionContext !== null ||
+        !settings.userLanguage; // Language selection modal (first-time user)
+
+      if (anyModalOpen) return;
+
+      // Guard: Ignore if user is typing in input/textarea
+      const activeElement = document.activeElement;
+      const isTyping =
+        activeElement?.tagName === "INPUT" ||
+        activeElement?.tagName === "TEXTAREA" ||
+        activeElement?.getAttribute("contenteditable") === "true";
+
+      if (isTyping) return;
+
+      // Guard: Ignore if no verses loaded
+      if (verses.length === 0) return;
+
+      // Map keys to navigation actions
+      switch (e.key) {
+        case "ArrowUp":
+        case "ArrowLeft":
+          e.preventDefault(); // Prevent page scroll
+          handlePrevAyah();
+          break;
+
+        case "ArrowDown":
+        case "ArrowRight":
+          e.preventDefault();
+          handleNextAyah();
+          break;
+      }
+    };
+
+    document.addEventListener("keydown", handleKeyDown);
+
+    return () => {
+      document.removeEventListener("keydown", handleKeyDown);
+    };
+  }, [
+    searchModalOpen,
+    tafseerModalOpen,
+    noteModalOpen,
+    surahNoteModalOpen,
+    settingsOpen,
+    iframeData.isOpen,
+    selectionContext,
+    settings.userLanguage,
+    verses.length,
+    handleNextAyah,
+    handlePrevAyah,
+  ]);
 
   // --- Handlers ---
   const handleChapterSelect = async (
