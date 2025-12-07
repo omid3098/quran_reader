@@ -39,6 +39,7 @@ import {
 import { textToBlocks, blocksToText } from "./components/RichNoteEditor";
 import { PartialBlock } from "@blocknote/core";
 import { Spinner } from "./components/Spinner";
+import { useHideOnScroll } from "./hooks/useHideOnScroll";
 
 const App: React.FC = () => {
   // --- Data State ---
@@ -52,6 +53,8 @@ const App: React.FC = () => {
   const [loadingVerses, setLoadingVerses] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [pendingScrollAyah, setPendingScrollAyah] = useState<string | null>(null);
+  const [scrollContainer, setScrollContainer] = useState<HTMLElement | null>(null);
+  const isHeaderHidden = useHideOnScroll(scrollContainer);
 
   // --- Analysis & Context Menu State ---
   const [selectionContext, setSelectionContext] = useState<SelectionContext | null>(null);
@@ -931,6 +934,7 @@ const App: React.FC = () => {
         onToggleTheme={() =>
           setSettings((prev) => ({ ...prev, theme: prev.theme === "light" ? "dark" : "light" }))
         }
+        isHidden={isHeaderHidden}
       />
 
       <SettingsSidebar
@@ -946,11 +950,12 @@ const App: React.FC = () => {
       />
 
       {/* Main Layout Container */}
-      <div className="flex flex-1 h-[calc(100vh-64px)]">
+      <div className="flex flex-1 min-h-screen">
         {/* Main Content Area */}
         <main
+          ref={setScrollContainer}
           className={`
-            flex-1 overflow-y-auto h-full relative transition-all duration-300
+            flex-1 overflow-y-auto h-screen pt-16 relative transition-all duration-300
             ${analysisSidebarOpen ? "md:mr-80 lg:mr-96" : ""}
          `}
         >

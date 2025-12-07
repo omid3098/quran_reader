@@ -10,6 +10,7 @@ interface HeaderProps {
   onToggleSettings: () => void;
   theme: "light" | "dark";
   onToggleTheme: () => void;
+  isHidden?: boolean;
 }
 
 export const Header: React.FC<HeaderProps> = ({
@@ -20,6 +21,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleSettings,
   theme,
   onToggleTheme,
+  isHidden = false,
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
   const [filter, setFilter] = useState("");
@@ -58,7 +60,11 @@ export const Header: React.FC<HeaderProps> = ({
   );
 
   return (
-    <header className="bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 h-16 sticky top-0 z-30 shadow-sm transition-colors duration-300">
+    <header
+      className={`bg-white dark:bg-slate-950 border-b border-slate-200 dark:border-slate-800 h-16 fixed top-0 inset-x-0 z-30 shadow-sm transition-colors duration-300 transform-gpu transition-transform ${
+        isHidden ? "-translate-y-full" : "translate-y-0"
+      }`}
+    >
       <div className="max-w-6xl mx-auto h-full px-4 relative flex items-center justify-between">
         {/* Left: Menu & Brand */}
         <div className="flex items-center gap-3 z-10">

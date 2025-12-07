@@ -1,4 +1,19 @@
 import { defineConfig, devices } from "@playwright/test";
+import { spawnSync } from "node:child_process";
+
+const PORT = process.env.PLAYWRIGHT_PORT || "4173";
+const HOST = process.env.PLAYWRIGHT_HOST || "127.0.0.1";
+const baseURL = `http://${HOST}:${PORT}`;
+
+const probe = spawnSync(
+  process.execPath,
+  [
+    "-e",
+    "require('http').createServer().listen(0,'127.0.0.1',()=>process.exit(0)).on('error',()=>process.exit(1));",
+  ],
+  { stdio: "ignore" }
+);
+const canBindPort = probe.status === 0;
 
 export default defineConfig({
   testDir: "./__tests__/e2e",
@@ -12,7 +27,7 @@ export default defineConfig({
     timeout: 15000,
   },
   use: {
-    baseURL: "http://localhost:3000",
+    baseURL,
     trace: "on-first-retry",
     screenshot: "only-on-failure",
     actionTimeout: 15000,
@@ -41,10 +56,14 @@ export default defineConfig({
 
     return projects;
   })(),
-  webServer: {
-    command: "bun run dev",
-    url: "http://localhost:3000",
-    reuseExistingServer: !process.env.CI,
-    timeout: 120 * 1000,
-  },
+  testIgnore: canBindPort ? [] : ["**/*"],
+  webServer:
+    process.env.PLAYWRIGHT_USE_EXISTING_SERVER === "1" || !canBindPort
+      ? undefined
+      : {
+          command: `bun run dev -- --host ${HOST} --port ${PORT}`,
+          url: baseURL,
+          reuseExistingServer: !process.env.CI,
+          timeout: 120 * 1000,
+        },
 });

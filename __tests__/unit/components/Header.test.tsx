@@ -79,6 +79,15 @@ describe("Header", () => {
     expect(defaultProps.onToggleTheme).toHaveBeenCalledTimes(1);
   });
 
+  it("should apply hidden state styles when isHidden is true", () => {
+    const { rerender } = render(<Header {...defaultProps} isHidden />);
+    const header = screen.getByRole("banner");
+    expect(header.className).toContain("-translate-y-full");
+
+    rerender(<Header {...defaultProps} isHidden={false} />);
+    expect(header.className).not.toContain("-translate-y-full");
+  });
+
   it("should show correct theme toggle title for dark mode", () => {
     render(<Header {...defaultProps} theme="dark" />);
     expect(screen.getByTitle("Switch to Light Mode")).toBeDefined();
