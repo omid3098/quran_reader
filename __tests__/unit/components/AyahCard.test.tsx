@@ -130,14 +130,24 @@ describe("AyahCard", () => {
     expect(arabicText?.getAttribute("style")).toContain("font-size: 32px");
   });
 
-  it("should call onWordClick when a word is clicked", () => {
+  it("should call onWordClick when a word is clicked on active verse", () => {
     const onWordClick = vi.fn();
-    render(<AyahCard {...defaultProps} onWordClick={onWordClick} />);
+    render(<AyahCard {...defaultProps} isActive={true} onWordClick={onWordClick} />);
 
     const wordSpan = screen.getByText("بِسْمِ");
     fireEvent.click(wordSpan);
 
     expect(onWordClick).toHaveBeenCalledWith("بِسْمِ", 0, "1:1", expect.any(Object));
+  });
+
+  it("should not call onWordClick when a word is clicked on non-active verse", () => {
+    const onWordClick = vi.fn();
+    render(<AyahCard {...defaultProps} isActive={false} onWordClick={onWordClick} />);
+
+    const wordSpan = screen.getByText("بِسْمِ");
+    fireEvent.click(wordSpan);
+
+    expect(onWordClick).not.toHaveBeenCalled();
   });
 
   it("should handle multiple translations", () => {

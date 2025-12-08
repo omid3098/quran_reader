@@ -195,8 +195,11 @@ test.describe("Analysis Panel Translation", () => {
     const closeButton = page.locator('button[aria-label="Close"], button:has-text("×")').first();
     await closeButton.click();
 
-    // Click on a different word to analyze
+    // Click on a different verse to analyze
+    // First click selects the verse (makes it active)
     arabicWord = page.locator(".font-quran").nth(5);
+    await arabicWord.click();
+    // Second click on the now-active verse triggers the context menu
     await arabicWord.click();
     await page.waitForSelector("text=Analyze", { timeout: 5000 });
     await page.click("text=Analyze");

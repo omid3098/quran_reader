@@ -67,6 +67,8 @@ const AyahCardComponent: React.FC<AyahCardProps> = ({
     wordIndex: number
   ) => {
     e.stopPropagation();
+    // Only show context menu on active or bookmarked verse
+    if (!isActive && !isBookmarked) return;
     // Only trigger if there's no text selection (user is not dragging to select)
     const selection = window.getSelection();
     if (selection && selection.toString().length > 0) {
@@ -96,6 +98,8 @@ const AyahCardComponent: React.FC<AyahCardProps> = ({
   };
 
   const handleParagraphClick = (e: React.MouseEvent<HTMLParagraphElement>) => {
+    // Only show context menu on active or bookmarked verse
+    if (!isActive && !isBookmarked) return;
     const selection = window.getSelection();
     if (selection && selection.toString().length > 0) {
       return;
