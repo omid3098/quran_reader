@@ -1,16 +1,28 @@
-import React, { useEffect, useState, useRef, useCallback } from "react";
+import React, { useEffect, useState, useRef, useCallback, Suspense } from "react";
 import { Header } from "./components/Header";
-import { SettingsSidebar } from "./components/SettingsSidebar";
 import { AudioPlayer } from "./components/AudioPlayer";
 import { AyahCard } from "./components/AyahCard";
 import { BreadcrumbPanel } from "./components/BreadcrumbPanel";
-import { AISearchModal } from "./components/AISearchModal";
-import { NoteModal } from "./components/NoteModal";
 import { SmartContextMenu } from "./components/SmartContextMenu";
-import { AnalysisSidebar } from "./components/AnalysisSidebar";
 import { IframeModal } from "./components/IframeModal";
 import { LanguageSelectionModal } from "./components/LanguageSelectionModal";
-import { SurahNoteModal } from "./components/SurahNoteModal";
+
+// Lazy load heavy components to reduce initial bundle size
+const SettingsSidebar = React.lazy(() =>
+  import("./components/SettingsSidebar").then((m) => ({ default: m.SettingsSidebar }))
+);
+const AISearchModal = React.lazy(() =>
+  import("./components/AISearchModal").then((m) => ({ default: m.AISearchModal }))
+);
+const NoteModal = React.lazy(() =>
+  import("./components/NoteModal").then((m) => ({ default: m.NoteModal }))
+);
+const AnalysisSidebar = React.lazy(() =>
+  import("./components/AnalysisSidebar").then((m) => ({ default: m.AnalysisSidebar }))
+);
+const SurahNoteModal = React.lazy(() =>
+  import("./components/SurahNoteModal").then((m) => ({ default: m.SurahNoteModal }))
+);
 import { getChapters, getVerses, getAudioUrl } from "./services/quranService";
 import {
   getVerseWordData,
@@ -1120,17 +1132,19 @@ const App: React.FC = () => {
         isHidden={isHeaderHidden}
       />
 
-      <SettingsSidebar
-        isOpen={settingsOpen}
-        onClose={() => setSettingsOpen(false)}
-        settings={settings}
-        onUpdateSettings={(newSettings) => setSettings({ ...settings, ...newSettings })}
-        onExportNotes={handleExportNotes}
-        onImportNotes={handleImportNotes}
-        notes={notes}
-        surahNotes={surahNotes}
-        onJumpToNote={handleNavigateByKey}
-      />
+      <Suspense fallback={null}>
+        <SettingsSidebar
+          isOpen={settingsOpen}
+          onClose={() => setSettingsOpen(false)}
+          settings={settings}
+          onUpdateSettings={(newSettings) => setSettings({ ...settings, ...newSettings })}
+          onExportNotes={handleExportNotes}
+          onImportNotes={handleImportNotes}
+          notes={notes}
+          surahNotes={surahNotes}
+          onJumpToNote={handleNavigateByKey}
+        />
+      </Suspense>
 
       {/* Main Layout Container */}
       <div className="flex flex-1 min-h-screen">
@@ -1190,18 +1204,20 @@ const App: React.FC = () => {
         </main>
 
         {/* Right Sidebar (Analysis) */}
-        <AnalysisSidebar
-          isOpen={analysisSidebarOpen}
-          onClose={() => setAnalysisSidebarOpen(false)}
-          loading={analysisLoading}
-          rootData={rootData}
-          phraseData={phraseData}
-          mode={analysisMode}
-          onNavigate={handleNavigateByKey}
-          onWordClick={handleStandaloneWordClick}
-          onTranslate={handleTranslate}
-          userLanguage={settings.userLanguage || "en"}
-        />
+        <Suspense fallback={null}>
+          <AnalysisSidebar
+            isOpen={analysisSidebarOpen}
+            onClose={() => setAnalysisSidebarOpen(false)}
+            loading={analysisLoading}
+            rootData={rootData}
+            phraseData={phraseData}
+            mode={analysisMode}
+            onNavigate={handleNavigateByKey}
+            onWordClick={handleStandaloneWordClick}
+            onTranslate={handleTranslate}
+            userLanguage={settings.userLanguage || "en"}
+          />
+        </Suspense>
       </div>
 
       {/* Breadcrumb Navigation Panel */}
@@ -1228,36 +1244,42 @@ const App: React.FC = () => {
         />
       )}
 
-      <AISearchModal
-        isOpen={searchModalOpen}
-        onClose={() => setSearchModalOpen(false)}
-        onNavigate={handleNavigateFromSearch}
-      />
+      <Suspense fallback={null}>
+        <AISearchModal
+          isOpen={searchModalOpen}
+          onClose={() => setSearchModalOpen(false)}
+          onNavigate={handleNavigateFromSearch}
+        />
+      </Suspense>
 
-      <NoteModal
-        isOpen={noteModalOpen}
-        onClose={() => setNoteModalOpen(false)}
-        verseKey={editingNoteVerse?.verse_key || ""}
-        initialNote={editingNoteVerse ? notes[editingNoteVerse.verse_key] : undefined}
-        onSave={handleSaveNote}
-        onDelete={handleDeleteNote}
-        theme={settings.theme}
-        onNavigateToVerse={handleNavigateFromNote}
-      />
-
-      {/* Surah Note Modal */}
-      {currentChapter && (
-        <SurahNoteModal
-          isOpen={surahNoteModalOpen}
-          onClose={() => setSurahNoteModalOpen(false)}
-          surahId={currentChapter.id}
-          surahName={currentChapter.name_simple}
-          initialNote={surahNotes[currentChapter.id]}
-          onSave={handleSaveSurahNote}
-          onDelete={handleDeleteSurahNote}
+      <Suspense fallback={null}>
+        <NoteModal
+          isOpen={noteModalOpen}
+          onClose={() => setNoteModalOpen(false)}
+          verseKey={editingNoteVerse?.verse_key || ""}
+          initialNote={editingNoteVerse ? notes[editingNoteVerse.verse_key] : undefined}
+          onSave={handleSaveNote}
+          onDelete={handleDeleteNote}
           theme={settings.theme}
           onNavigateToVerse={handleNavigateFromNote}
         />
+      </Suspense>
+
+      {/* Surah Note Modal */}
+      {currentChapter && (
+        <Suspense fallback={null}>
+          <SurahNoteModal
+            isOpen={surahNoteModalOpen}
+            onClose={() => setSurahNoteModalOpen(false)}
+            surahId={currentChapter.id}
+            surahName={currentChapter.name_simple}
+            initialNote={surahNotes[currentChapter.id]}
+            onSave={handleSaveSurahNote}
+            onDelete={handleDeleteSurahNote}
+            theme={settings.theme}
+            onNavigateToVerse={handleNavigateFromNote}
+          />
+        </Suspense>
       )}
 
       {/* Smart Context Menu */}

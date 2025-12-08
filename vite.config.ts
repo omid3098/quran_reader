@@ -20,5 +20,24 @@ export default defineConfig(({ mode }) => {
         "@": path.resolve(__dirname, "."),
       },
     },
+    build: {
+      rollupOptions: {
+        output: {
+          manualChunks: {
+            // Core React - loaded immediately
+            "vendor-react": ["react", "react-dom"],
+            // BlockNote + Mantine - lazy loaded with note modals
+            "vendor-blocknote": [
+              "@blocknote/core",
+              "@blocknote/react",
+              "@blocknote/mantine",
+              "@mantine/core",
+            ],
+            // Icons - can be deferred
+            "vendor-icons": ["lucide-react"],
+          },
+        },
+      },
+    },
   };
 });

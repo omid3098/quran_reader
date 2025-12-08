@@ -1,4 +1,4 @@
-import React from "react";
+import React, { useMemo } from "react";
 import { Verse } from "../types";
 import { NotebookPen, Bookmark } from "lucide-react";
 import { RichNoteEditor } from "./RichNoteEditor";
@@ -22,7 +22,7 @@ interface AyahCardProps {
   scriptType: "uthmani" | "simple";
 }
 
-export const AyahCard: React.FC<AyahCardProps> = ({
+const AyahCardComponent: React.FC<AyahCardProps> = ({
   verse,
   chapterId,
   onNote,
@@ -46,6 +46,21 @@ export const AyahCard: React.FC<AyahCardProps> = ({
   // Select correct text based on setting
   const displayText = scriptType === "simple" ? verse.text_simple : verse.text_uthmani;
 
+  // Memoize word splitting to avoid re-computation on every render
+  const words = useMemo(() => (displayText ? displayText.split(" ") : []), [displayText]);
+
+  // Memoize cleaned translations to avoid regex processing on every render
+  const cleanedTranslations = useMemo(
+    () =>
+      verse.translations?.map((t) => ({
+        ...t,
+        cleanText: t.text.replace(/<[^>]*>/g, ""),
+        isRtl: t.direction === "rtl",
+        isResourceNameRtl: t.resource_name ? /[\u0600-\u06FF]/.test(t.resource_name) : false,
+      })) ?? [],
+    [verse.translations]
+  );
+
   const handleWordSpanClick = (
     e: React.MouseEvent<HTMLSpanElement>,
     word: string,
@@ -64,9 +79,9 @@ export const AyahCard: React.FC<AyahCardProps> = ({
   };
 
   const renderArabicText = () => {
-    if (!displayText) return null;
-    // Split by space to render individual words
-    return displayText.split(" ").map((word, i, arr) => (
+    if (words.length === 0) return null;
+    // Use memoized words array
+    return words.map((word, i) => (
       <React.Fragment key={i}>
         <span
           data-word-index={i}
@@ -75,7 +90,7 @@ export const AyahCard: React.FC<AyahCardProps> = ({
         >
           {word}
         </span>
-        {i < arr.length - 1 && " "}
+        {i < words.length - 1 && " "}
       </React.Fragment>
     ));
   };
@@ -190,41 +205,35 @@ export const AyahCard: React.FC<AyahCardProps> = ({
         </div>
 
         {/* Translations */}
-        {showTranslation && verse.translations && verse.translations.length > 0 && (
+        {showTranslation && cleanedTranslations.length > 0 && (
           <div className="max-w-5xl space-y-4 mt-2 w-full">
-            {verse.translations.map((t, idx) => {
-              const cleanText = t.text.replace(/<[^>]*>/g, "");
-              const isRtl = t.direction === "rtl";
-              const isResourceNameRtl = t.resource_name && /[\u0600-\u06FF]/.test(t.resource_name);
-
-              return (
-                <div
-                  key={t.id || idx}
-                  dir={isRtl ? "rtl" : "ltr"}
-                  style={{ fontSize: `${translationFontSize}px` }}
-                  className={`
-                      text-slate-600 dark:text-slate-400 leading-relaxed font-light transition-all duration-300
-                      ${
-                        isRtl
-                          ? "text-right border-r-2 border-slate-100 dark:border-slate-800 pr-4 font-vazir"
-                          : "text-left border-l-2 border-slate-100 dark:border-slate-800 pl-4 font-sans"
-                      }
-                    `}
-                >
-                  <p>
-                    <span
-                      className={`
-                       inline-block text-[0.75em] font-bold text-emerald-600 dark:text-emerald-500 opacity-90 me-2
-                       ${isResourceNameRtl ? "font-vazir" : "font-sans"}
-                     `}
-                    >
-                      {t.resource_name}
-                    </span>
-                    <span>{cleanText}</span>
-                  </p>
-                </div>
-              );
-            })}
+            {cleanedTranslations.map((t, idx) => (
+              <div
+                key={t.id || idx}
+                dir={t.isRtl ? "rtl" : "ltr"}
+                style={{ fontSize: `${translationFontSize}px` }}
+                className={`
+                    text-slate-600 dark:text-slate-400 leading-relaxed font-light transition-all duration-300
+                    ${
+                      t.isRtl
+                        ? "text-right border-r-2 border-slate-100 dark:border-slate-800 pr-4 font-vazir"
+                        : "text-left border-l-2 border-slate-100 dark:border-slate-800 pl-4 font-sans"
+                    }
+                  `}
+              >
+                <p>
+                  <span
+                    className={`
+                     inline-block text-[0.75em] font-bold text-emerald-600 dark:text-emerald-500 opacity-90 me-2
+                     ${t.isResourceNameRtl ? "font-vazir" : "font-sans"}
+                   `}
+                  >
+                    {t.resource_name}
+                  </span>
+                  <span>{t.cleanText}</span>
+                </p>
+              </div>
+            ))}
           </div>
         )}
 
@@ -257,3 +266,6 @@ export const AyahCard: React.FC<AyahCardProps> = ({
     </div>
   );
 };
+
+// Memoize the component to prevent re-renders when props haven't changed
+export const AyahCard = React.memo(AyahCardComponent);
