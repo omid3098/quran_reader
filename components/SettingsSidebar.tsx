@@ -39,6 +39,9 @@ interface SettingsSidebarProps {
   notes: Record<string, VerseNote>;
   surahNotes?: Record<number, SurahNote>;
   onJumpToNote: (verseKey: string) => void;
+  onSyncOmidNotes: () => void;
+  syncingOmidNotes?: boolean;
+  lastOmidSyncAt?: string | null;
 }
 
 type Section =
@@ -61,6 +64,9 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   notes,
   surahNotes,
   onJumpToNote,
+  onSyncOmidNotes,
+  syncingOmidNotes,
+  lastOmidSyncAt,
 }) => {
   const [expandedSection, setExpandedSection] = useState<Section>(null);
   const [availableTranslations, setAvailableTranslations] = useState<TranslationResource[]>([]);
@@ -132,8 +138,13 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
 
         // Basic validation
         if (data && Array.isArray(data.notes)) {
-          onImportNotes(data as BackupData);
-          alert("Notes imported successfully!");
+          try {
+            onImportNotes(data as BackupData);
+            alert("Notes imported successfully!");
+          } catch (err) {
+            console.error(err);
+            alert("Invalid backup file. Please try again with a valid export.");
+          }
         } else {
           alert("Invalid file format.");
         }
@@ -633,6 +644,15 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                 </button>
 
                 <button
+                  onClick={onSyncOmidNotes}
+                  disabled={syncingOmidNotes}
+                  className="w-full flex items-center justify-center gap-2 bg-amber-50 dark:bg-amber-900/20 hover:bg-amber-100 dark:hover:bg-amber-900/30 text-amber-700 dark:text-amber-300 py-3 rounded-xl font-medium transition-colors disabled:opacity-60 disabled:cursor-not-allowed"
+                >
+                  {syncingOmidNotes ? <Spinner className="w-4 h-4" /> : <NotebookPen size={18} />}
+                  {syncingOmidNotes ? "Syncing Omid notes..." : "Sync Omid notes"}
+                </button>
+
+                <button
                   onClick={() => fileInputRef.current?.click()}
                   className="w-full flex items-center justify-center gap-2 bg-slate-100 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-200 py-3 rounded-xl font-medium transition-colors"
                 >
@@ -650,6 +670,15 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                 <p className="text-xs text-slate-400 text-center mt-2">
                   Backup your personal notes to a JSON file or restore them from a previous backup.
                 </p>
+                <p className="text-xs text-slate-400 text-center">
+                  “Sync Omid notes” merges Omid&apos;s public notes into yours. Export your notes
+                  first.
+                </p>
+                {lastOmidSyncAt && (
+                  <p className="text-xs text-slate-400 text-center">
+                    Last synced: {new Date(lastOmidSyncAt).toLocaleString()}
+                  </p>
+                )}
               </div>
             )}
           </div>

@@ -19,7 +19,8 @@
     "format": "prettier --write .",
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
-    "prepare": "husky"
+    "prepare": "husky",
+    "sync": "bun run scripts/sync.ts"
   },
   "dependencies": {
     "@blocknote/core": "^0.42.3",

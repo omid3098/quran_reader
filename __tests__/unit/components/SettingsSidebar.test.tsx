@@ -47,6 +47,9 @@ describe("SettingsSidebar", () => {
     onImportNotes: vi.fn(),
     notes: mockNotes,
     onJumpToNote: vi.fn(),
+    onSyncOmidNotes: vi.fn(),
+    syncingOmidNotes: false,
+    lastOmidSyncAt: null,
   };
 
   beforeEach(() => {
@@ -198,5 +201,17 @@ describe("SettingsSidebar", () => {
       // Should be sorted by surah:verse (1:1, 1:7, 2:1, 2:45, 3:10)
       expect(verseKeys).toEqual(["1:1", "1:7", "2:1", "2:45", "3:10"]);
     });
+  });
+
+  it("should trigger Omid sync action from Data Management", async () => {
+    render(<SettingsSidebar {...defaultProps} />);
+
+    const dataButton = await screen.findByText("Data Management");
+    fireEvent.click(dataButton);
+
+    const syncButton = await screen.findByText("Sync Omid notes");
+    fireEvent.click(syncButton);
+
+    expect(defaultProps.onSyncOmidNotes).toHaveBeenCalled();
   });
 });

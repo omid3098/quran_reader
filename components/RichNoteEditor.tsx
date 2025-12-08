@@ -130,48 +130,5 @@ export function RichNoteEditor({
   );
 }
 
-// Helper to convert plain text to blocks
-export function textToBlocks(text: string): PartialBlock[] {
-  if (!text || text.trim() === "") {
-    return [];
-  }
-
-  // Split by newlines and create paragraph blocks
-  const lines = text.split("\n");
-  const blocks = lines.map((line) => ({
-    type: "paragraph" as const,
-    content: line || "",
-  }));
-  return normalizeQuranLinkBlocks(blocks);
-}
-
-// Helper to extract plain text from blocks (for preview)
-export function blocksToText(blocks: PartialBlock[]): string {
-  if (!blocks || blocks.length === 0) {
-    return "";
-  }
-
-  const inlineToText = (inline: unknown): string => {
-    if (typeof inline === "string") return inline;
-    if (inline && typeof inline === "object") {
-      if ("text" in inline && typeof (inline as { text: unknown }).text === "string") {
-        return (inline as { text: string }).text;
-      }
-      if (
-        (inline as { type?: string }).type === "quranLink" &&
-        (inline as { props?: { reference?: unknown } }).props?.reference
-      ) {
-        return `[${(inline as { props: { reference: string } }).props.reference}]`;
-      }
-    }
-    return "";
-  };
-
-  return blocks
-    .map((block) => {
-      if (!block.content) return "";
-      const contentArray = Array.isArray(block.content) ? block.content : [block.content];
-      return contentArray.map(inlineToText).join("");
-    })
-    .join("\n");
-}
+// Re-export note helpers for convenience
+export { textToBlocks, blocksToText } from "../services/noteContent";

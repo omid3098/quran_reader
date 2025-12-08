@@ -51,6 +51,7 @@ import {
   VerseRef,
   BreadcrumbEntry,
 } from "./types";
+import { parseBackupData, mergeParsedBackupData } from "./services/backupService";
 import { textToBlocks, blocksToText } from "./components/RichNoteEditor";
 import { PartialBlock } from "@blocknote/core";
 import { Spinner } from "./components/Spinner";
@@ -87,6 +88,12 @@ const App: React.FC = () => {
     isOpen: false,
     url: "",
     title: "",
+  });
+
+  // --- Sync State ---
+  const [syncingOmidNotes, setSyncingOmidNotes] = useState(false);
+  const [lastOmidSyncAt, setLastOmidSyncAt] = useState<string | null>(() => {
+    return localStorage.getItem("luminaOmidSyncAt");
   });
 
   // --- Notes State (with migration from legacy plain text to blocks) ---
@@ -627,42 +634,41 @@ const App: React.FC = () => {
   ]);
 
   // --- Handlers ---
-  const handleChapterSelect = async (
-    id: number,
-    chaptersList = chapters,
-    targetVerseKey?: string
-  ) => {
-    const chapter = chaptersList.find((c) => c.id === id);
-    if (!chapter) return;
+  const handleChapterSelect = useCallback(
+    async (id: number, chaptersList = chapters, targetVerseKey?: string) => {
+      const chapter = chaptersList.find((c) => c.id === id);
+      if (!chapter) return;
 
-    localStorage.setItem("lastSurahId", id.toString());
+      localStorage.setItem("lastSurahId", id.toString());
 
-    setCurrentChapter(chapter);
-    setLoadingVerses(true);
-    setIsPlaying(false);
+      setCurrentChapter(chapter);
+      setLoadingVerses(true);
+      setIsPlaying(false);
 
-    const versesData = await getVerses(id, settings.translationIds);
-    setVerses(versesData);
+      const versesData = await getVerses(id, settings.translationIds);
+      setVerses(versesData);
 
-    if (targetVerseKey) {
-      const targetIndex = versesData.findIndex((v) => v.verse_key === targetVerseKey);
-      if (targetIndex !== -1) {
-        setCurrentVerseIndex(targetIndex);
-        const [, ayahStr] = targetVerseKey.split(":");
-        setPendingScrollAyah(`ayah-${id}-${ayahStr}`);
+      if (targetVerseKey) {
+        const targetIndex = versesData.findIndex((v) => v.verse_key === targetVerseKey);
+        if (targetIndex !== -1) {
+          setCurrentVerseIndex(targetIndex);
+          const [, ayahStr] = targetVerseKey.split(":");
+          setPendingScrollAyah(`ayah-${id}-${ayahStr}`);
+        } else {
+          setCurrentVerseIndex(0);
+        }
       } else {
         setCurrentVerseIndex(0);
       }
-    } else {
-      setCurrentVerseIndex(0);
-    }
 
-    setLoadingVerses(false);
+      setLoadingVerses(false);
 
-    if (!targetVerseKey && !pendingScrollAyah) {
-      window.scrollTo({ top: 0, behavior: "smooth" });
-    }
-  };
+      if (!targetVerseKey && !pendingScrollAyah) {
+        window.scrollTo({ top: 0, behavior: "smooth" });
+      }
+    },
+    [chapters, pendingScrollAyah, settings.translationIds]
+  );
 
   useEffect(() => {
     if (currentChapter) {
@@ -995,7 +1001,7 @@ const App: React.FC = () => {
         }
       }
     },
-    [breadcrumbs, currentChapter, chapters, verses]
+    [breadcrumbs, currentChapter, chapters, verses, handleChapterSelect]
   );
 
   const handleNavigateToBookmark = useCallback(() => {
@@ -1016,7 +1022,7 @@ const App: React.FC = () => {
         setPendingScrollAyah(targetId);
       }
     }
-  }, [bookmarkedVerse, currentChapter, chapters, verses]);
+  }, [bookmarkedVerse, currentChapter, chapters, verses, handleChapterSelect]);
 
   // --- Import/Export Handlers ---
   const handleExportNotes = () => {
@@ -1066,44 +1072,54 @@ const App: React.FC = () => {
       }[];
     }
   ) => {
-    // Import verse notes (v1 format - tuple array, convert to blocks)
-    if (data.notes && Array.isArray(data.notes)) {
-      const newNotes: Record<string, VerseNote> = {};
-      data.notes.forEach((item) => {
-        if (Array.isArray(item) && item.length >= 2) {
-          const [key, text, date] = item as NoteExportTuple;
-          const now = new Date().toISOString();
-          newNotes[key] = {
-            verseKey: key,
-            blocks: textToBlocks(text),
-            updatedAt: date || now,
-            createdAt: date || now,
-          };
-        }
-      });
-      setNotes((prev) => ({
-        ...prev,
-        ...newNotes,
-      }));
-    }
+    const parsed = parseBackupData(data);
+    const merged = mergeParsedBackupData({ notes, surahNotes, bookmark: bookmarkedVerse }, parsed);
 
-    // Import surah notes if present
-    if (data.surahNotes && Array.isArray(data.surahNotes)) {
-      const newSurahNotes: Record<number, SurahNote> = {};
-      data.surahNotes.forEach((note) => {
-        if (note.surahId && note.blocks) {
-          newSurahNotes[note.surahId] = {
-            surahId: note.surahId,
-            blocks: note.blocks,
-            updatedAt: note.updatedAt || new Date().toISOString(),
-            createdAt: note.createdAt || new Date().toISOString(),
-          };
-        }
-      });
-      setSurahNotes((prev) => ({
-        ...prev,
-        ...newSurahNotes,
-      }));
+    setNotes(merged.notes);
+    setSurahNotes(merged.surahNotes);
+    if (merged.bookmark) {
+      setBookmarkedVerse(merged.bookmark);
+    }
+  };
+
+  const handleSyncOmidNotes = async () => {
+    const proceed = window.confirm(
+      "This will merge Omid's public notes from GitHub into your notes. Please export your notes first so you have a backup. Continue?"
+    );
+    if (!proceed) return;
+
+    setSyncingOmidNotes(true);
+    try {
+      const response = await fetch(
+        "https://raw.githubusercontent.com/omid3098/quran_notes/main/quran_notes_backup.json"
+      );
+      if (!response.ok) {
+        throw new Error(`Failed to fetch backup (status ${response.status})`);
+      }
+
+      const json = await response.json();
+      const parsed = parseBackupData(json as BackupData);
+      const merged = mergeParsedBackupData(
+        { notes, surahNotes, bookmark: bookmarkedVerse },
+        parsed
+      );
+
+      setNotes(merged.notes);
+      setSurahNotes(merged.surahNotes);
+      if (merged.bookmark) {
+        setBookmarkedVerse(merged.bookmark);
+      }
+
+      const now = new Date().toISOString();
+      setLastOmidSyncAt(now);
+      localStorage.setItem("luminaOmidSyncAt", now);
+      localStorage.setItem("luminaOmidCachedBackup", JSON.stringify(json));
+      alert("Omid's notes have been merged into your notes.");
+    } catch (error) {
+      console.error("Failed to sync Omid notes", error);
+      alert("Failed to sync Omid notes. Please try again later.");
+    } finally {
+      setSyncingOmidNotes(false);
     }
   };
 
@@ -1143,6 +1159,9 @@ const App: React.FC = () => {
           notes={notes}
           surahNotes={surahNotes}
           onJumpToNote={handleNavigateByKey}
+          onSyncOmidNotes={handleSyncOmidNotes}
+          syncingOmidNotes={syncingOmidNotes}
+          lastOmidSyncAt={lastOmidSyncAt}
         />
       </Suspense>
 

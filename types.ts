@@ -124,6 +124,7 @@ export interface BackupDataV1 {
   v: 1;
   bookmarks: string[];
   notes: NoteExportTuple[];
+  surahNotes?: SurahNoteExport[];
   exportedAt: string;
 }
 
