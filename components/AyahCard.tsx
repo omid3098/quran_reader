@@ -190,9 +190,6 @@ const AyahCardComponent: React.FC<AyahCardProps> = ({
               title="Personal Note"
             >
               <NotebookPen size={16} />
-              {noteBlocks && noteBlocks.length > 0 && (
-                <span className="text-xs font-medium hidden sm:block">Edit Note</span>
-              )}
             </button>
           </div>
         </div>
