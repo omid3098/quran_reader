@@ -3,6 +3,7 @@ import { Header } from "./components/Header";
 import { SettingsSidebar } from "./components/SettingsSidebar";
 import { AudioPlayer } from "./components/AudioPlayer";
 import { AyahCard } from "./components/AyahCard";
+import { BreadcrumbPanel } from "./components/BreadcrumbPanel";
 import { AISearchModal } from "./components/AISearchModal";
 import { NoteModal } from "./components/NoteModal";
 import { SmartContextMenu } from "./components/SmartContextMenu";
@@ -35,6 +36,8 @@ import {
   RootAnalysis,
   UserLanguage,
   SurahNote,
+  VerseRef,
+  BreadcrumbEntry,
 } from "./types";
 import { textToBlocks, blocksToText } from "./components/RichNoteEditor";
 import { PartialBlock } from "@blocknote/core";
@@ -180,6 +183,56 @@ const App: React.FC = () => {
   const [currentVerseIndex, setCurrentVerseIndex] = useState<number>(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
+  // --- Bookmark & Breadcrumb State ---
+  const [bookmarkedVerse, setBookmarkedVerse] = useState<VerseRef | null>(() => {
+    const saved = localStorage.getItem("luminaBookmark");
+    if (saved) {
+      try {
+        return JSON.parse(saved);
+      } catch {
+        return null;
+      }
+    }
+    return null;
+  });
+  const [breadcrumbs, setBreadcrumbs] = useState<BreadcrumbEntry[]>([]);
+
+  // Persist bookmark to localStorage
+  useEffect(() => {
+    if (bookmarkedVerse) {
+      localStorage.setItem("luminaBookmark", JSON.stringify(bookmarkedVerse));
+    }
+  }, [bookmarkedVerse]);
+
+  // Helper: Get current selected verse as VerseRef
+  const getSelectedVerseRef = useCallback((): VerseRef | null => {
+    if (!currentChapter || !verses[currentVerseIndex]) return null;
+    const verse = verses[currentVerseIndex];
+    return {
+      surahId: currentChapter.id,
+      verseNumber: parseInt(verse.verse_key.split(":")[1]),
+      verseKey: verse.verse_key,
+    };
+  }, [currentChapter, verses, currentVerseIndex]);
+
+  // Helper: Add breadcrumb with deduplication
+  const addBreadcrumb = useCallback(
+    (verseRef: VerseRef) => {
+      setBreadcrumbs((prev) => {
+        // Don't add if same as last entry
+        if (prev.length > 0 && prev[prev.length - 1].verseRef.verseKey === verseRef.verseKey) {
+          return prev;
+        }
+        // Don't add if it's the bookmarked verse
+        if (bookmarkedVerse && verseRef.verseKey === bookmarkedVerse.verseKey) {
+          return prev;
+        }
+        return [...prev.slice(-9), { verseRef, timestamp: Date.now() }];
+      });
+    },
+    [bookmarkedVerse]
+  );
+
   // Persist last read position so we can restore it on reload
   useEffect(() => {
     if (!currentChapter) return;
@@ -265,9 +318,25 @@ const App: React.FC = () => {
       if (chaptersData.length > 0) {
         const savedVerseKey = localStorage.getItem("lastVerseKey");
         const savedSurahId = localStorage.getItem("lastSurahId");
+        const savedBookmark = localStorage.getItem("luminaBookmark");
 
         let targetVerseKey: string | null = null;
         let initialId = 1;
+
+        // Migrate: If no bookmark exists but lastVerseKey does, create bookmark
+        if (!savedBookmark && savedVerseKey) {
+          const [surahStr, ayahStr] = savedVerseKey.split(":");
+          const surahId = parseInt(surahStr, 10);
+          const ayahNum = parseInt(ayahStr, 10);
+          if (!isNaN(surahId) && !isNaN(ayahNum)) {
+            const migratedBookmark: VerseRef = {
+              surahId,
+              verseNumber: ayahNum,
+              verseKey: savedVerseKey,
+            };
+            setBookmarkedVerse(migratedBookmark);
+          }
+        }
 
         if (savedVerseKey) {
           const [surahStr, ayahStr] = savedVerseKey.split(":");
@@ -344,19 +413,48 @@ const App: React.FC = () => {
 
   const handleNextAyah = useCallback(() => {
     const wasPlaying = isPlaying;
+    const currentVerse = verses[currentVerseIndex];
+    const isOnBookmark =
+      bookmarkedVerse && currentVerse && currentVerse.verse_key === bookmarkedVerse.verseKey;
+
     if (currentVerseIndex < verses.length - 1) {
-      setCurrentVerseIndex((prev) => prev + 1);
+      const newIndex = currentVerseIndex + 1;
+      setCurrentVerseIndex(newIndex);
+
+      // Update bookmark only if we were on the bookmarked verse
+      if (isOnBookmark && currentChapter) {
+        const nextVerse = verses[newIndex];
+        const newBookmark: VerseRef = {
+          surahId: currentChapter.id,
+          verseNumber: parseInt(nextVerse.verse_key.split(":")[1]),
+          verseKey: nextVerse.verse_key,
+        };
+        setBookmarkedVerse(newBookmark);
+        setBreadcrumbs([]); // Clear breadcrumbs when bookmark moves
+      }
     } else if (settings.autoPlay && currentChapter && currentChapter.id < 114) {
+      // Moving to next chapter - update bookmark if on bookmark
+      const willUpdateBookmark = isOnBookmark;
       handleChapterSelect(currentChapter.id + 1).then(() => {
         if (wasPlaying) {
           setPendingPlayFirst(true);
+        }
+        // Set bookmark to first verse of new chapter if we were on bookmark
+        if (willUpdateBookmark) {
+          const newChapterId = currentChapter.id + 1;
+          setBookmarkedVerse({
+            surahId: newChapterId,
+            verseNumber: 1,
+            verseKey: `${newChapterId}:1`,
+          });
+          setBreadcrumbs([]);
         }
       });
     } else {
       setIsPlaying(false);
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [currentVerseIndex, verses, currentChapter, settings.autoPlay, isPlaying]);
+  }, [currentVerseIndex, verses, currentChapter, settings.autoPlay, isPlaying, bookmarkedVerse]);
 
   useEffect(() => {
     nextAyahRef.current = handleNextAyah;
@@ -386,9 +484,26 @@ const App: React.FC = () => {
 
   const handlePrevAyah = useCallback(() => {
     if (currentVerseIndex > 0) {
-      setCurrentVerseIndex(currentVerseIndex - 1);
+      const currentVerse = verses[currentVerseIndex];
+      const isOnBookmark =
+        bookmarkedVerse && currentVerse && currentVerse.verse_key === bookmarkedVerse.verseKey;
+
+      const newIndex = currentVerseIndex - 1;
+      setCurrentVerseIndex(newIndex);
+
+      // Update bookmark only if we were on the bookmarked verse
+      if (isOnBookmark && currentChapter) {
+        const prevVerse = verses[newIndex];
+        const newBookmark: VerseRef = {
+          surahId: currentChapter.id,
+          verseNumber: parseInt(prevVerse.verse_key.split(":")[1]),
+          verseKey: prevVerse.verse_key,
+        };
+        setBookmarkedVerse(newBookmark);
+        setBreadcrumbs([]); // Clear breadcrumbs when bookmark moves
+      }
     }
-  }, [currentVerseIndex]);
+  }, [currentVerseIndex, verses, currentChapter, bookmarkedVerse]);
 
   // --- Scrolling Logic ---
   useEffect(() => {
@@ -549,6 +664,16 @@ const App: React.FC = () => {
   }, [settings.translationIds]);
 
   const handleVerseSelect = (index: number) => {
+    // Add current position to breadcrumbs before navigating
+    const currentRef = getSelectedVerseRef();
+    if (currentRef) {
+      const targetVerse = verses[index];
+      // Only add breadcrumb if navigating to a different verse
+      if (targetVerse && targetVerse.verse_key !== currentRef.verseKey) {
+        addBreadcrumb(currentRef);
+      }
+    }
+
     setCurrentVerseIndex(index);
     setIsPlaying(false);
   };
@@ -556,6 +681,13 @@ const App: React.FC = () => {
   const handleNavigateFromSearch = (surahId: number, ayahNum: number) => {
     const verseKey = `${surahId}:${ayahNum}`;
     const targetId = `ayah-${surahId}-${ayahNum}`;
+
+    // Add current position to breadcrumbs before navigating
+    const currentRef = getSelectedVerseRef();
+    if (currentRef && currentRef.verseKey !== verseKey) {
+      addBreadcrumb(currentRef);
+    }
+
     setPendingScrollAyah(targetId);
 
     if (currentChapter?.id !== surahId) {
@@ -823,6 +955,57 @@ const App: React.FC = () => {
     }
   };
 
+  // --- Bookmark & Breadcrumb Handlers ---
+  const handleBookmarkVerse = useCallback((verseRef: VerseRef) => {
+    setBookmarkedVerse(verseRef);
+    setBreadcrumbs([]); // Clear breadcrumbs when bookmark moves
+  }, []);
+
+  const handleBreadcrumbClick = useCallback(
+    (index: number) => {
+      const entry = breadcrumbs[index];
+      if (!entry) return;
+
+      // Trim breadcrumbs after clicked position
+      setBreadcrumbs((prev) => prev.slice(0, index));
+
+      // Navigate to the breadcrumb
+      const { surahId, verseNumber, verseKey } = entry.verseRef;
+
+      if (currentChapter?.id !== surahId) {
+        handleChapterSelect(surahId, chapters, verseKey);
+      } else {
+        const targetIndex = verses.findIndex((v) => v.verse_key === verseKey);
+        if (targetIndex !== -1) {
+          setCurrentVerseIndex(targetIndex);
+          const targetId = `ayah-${surahId}-${verseNumber}`;
+          setPendingScrollAyah(targetId);
+        }
+      }
+    },
+    [breadcrumbs, currentChapter, chapters, verses]
+  );
+
+  const handleNavigateToBookmark = useCallback(() => {
+    if (!bookmarkedVerse) return;
+
+    // Clear all breadcrumbs when returning to bookmark
+    setBreadcrumbs([]);
+
+    const { surahId, verseNumber, verseKey } = bookmarkedVerse;
+
+    if (currentChapter?.id !== surahId) {
+      handleChapterSelect(surahId, chapters, verseKey);
+    } else {
+      const targetIndex = verses.findIndex((v) => v.verse_key === verseKey);
+      if (targetIndex !== -1) {
+        setCurrentVerseIndex(targetIndex);
+        const targetId = `ayah-${surahId}-${verseNumber}`;
+        setPendingScrollAyah(targetId);
+      }
+    }
+  }, [bookmarkedVerse, currentChapter, chapters, verses]);
+
   // --- Import/Export Handlers ---
   const handleExportNotes = () => {
     // Export verse notes in v1 tuple format for backwards compatibility
@@ -985,6 +1168,14 @@ const App: React.FC = () => {
                     onSelect={() => handleVerseSelect(index)}
                     onWordClick={handleWordClick}
                     isActive={currentVerseIndex === index}
+                    isBookmarked={bookmarkedVerse?.verseKey === verse.verse_key}
+                    onBookmark={() =>
+                      handleBookmarkVerse({
+                        surahId: currentChapter?.id || 0,
+                        verseNumber: parseInt(verse.verse_key.split(":")[1]),
+                        verseKey: verse.verse_key,
+                      })
+                    }
                     fontSize={settings.fontSize}
                     showTranslation={settings.showTranslation}
                     noteBlocks={notes[verse.verse_key]?.blocks}
@@ -1012,6 +1203,15 @@ const App: React.FC = () => {
           userLanguage={settings.userLanguage || "en"}
         />
       </div>
+
+      {/* Breadcrumb Navigation Panel */}
+      <BreadcrumbPanel
+        bookmarkedVerse={bookmarkedVerse}
+        breadcrumbs={breadcrumbs}
+        currentVerseKey={verses[currentVerseIndex]?.verse_key || null}
+        onNavigateToBookmark={handleNavigateToBookmark}
+        onBreadcrumbClick={handleBreadcrumbClick}
+      />
 
       {/* Floating Player */}
       {verses.length > 0 && (

@@ -1,6 +1,6 @@
 import React from "react";
 import { Verse } from "../types";
-import { NotebookPen } from "lucide-react";
+import { NotebookPen, Bookmark } from "lucide-react";
 import { RichNoteEditor } from "./RichNoteEditor";
 import { PartialBlock } from "@blocknote/core";
 
@@ -12,6 +12,8 @@ interface AyahCardProps {
   onSelect: () => void;
   onWordClick?: (word: string, wordIndex: number, verseKey: string, rect: DOMRect) => void;
   isActive: boolean;
+  isBookmarked?: boolean;
+  onBookmark?: () => void;
   fontSize: number;
   showTranslation: boolean;
   noteBlocks?: PartialBlock[]; // Current note blocks if exists
@@ -27,6 +29,8 @@ export const AyahCard: React.FC<AyahCardProps> = ({
   onSelect,
   onWordClick,
   isActive,
+  isBookmarked,
+  onBookmark,
   fontSize,
   showTranslation,
   noteBlocks,
@@ -112,6 +116,7 @@ export const AyahCard: React.FC<AyahCardProps> = ({
             ? "bg-emerald-50/60 dark:bg-emerald-900/20 ring-1 ring-emerald-100 dark:ring-emerald-900/50 shadow-sm"
             : "hover:bg-slate-50/50 dark:hover:bg-slate-900/50"
         }
+        ${isBookmarked ? "ring-2 ring-amber-400 dark:ring-amber-500/70" : ""}
       `}
     >
       <div className="flex flex-col gap-6">
@@ -136,6 +141,23 @@ export const AyahCard: React.FC<AyahCardProps> = ({
             )}
           </div>
           <div className="flex gap-1 opacity-100 transition-opacity duration-300">
+            <button
+              onClick={(e) => {
+                e.stopPropagation();
+                onBookmark?.();
+              }}
+              className={`
+                p-2 rounded-full transition-colors
+                ${
+                  isBookmarked
+                    ? "bg-amber-100 text-amber-600 dark:bg-amber-500/10 dark:text-amber-400"
+                    : "hover:bg-slate-100 dark:hover:bg-slate-800 text-slate-400 hover:text-slate-600 dark:hover:text-slate-300"
+                }
+              `}
+              title={isBookmarked ? "Reading Position" : "Set Bookmark"}
+            >
+              <Bookmark size={16} fill={isBookmarked ? "currentColor" : "none"} />
+            </button>
             <button
               onClick={(e) => onNote(verse, e)}
               className={`

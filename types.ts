@@ -187,3 +187,16 @@ export interface SelectionContext {
   type: "single" | "phrase";
   wordIndex?: number; // The 0-based index of the word in the verse
 }
+
+// --- Bookmark & Navigation Types ---
+
+export interface VerseRef {
+  surahId: number;
+  verseNumber: number;
+  verseKey: string; // "2:255"
+}
+
+export interface BreadcrumbEntry {
+  verseRef: VerseRef;
+  timestamp: number;
+}
