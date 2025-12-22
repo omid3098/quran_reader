@@ -20,6 +20,7 @@ interface AyahCardProps {
   theme: "light" | "dark";
   onNavigateToVerse?: (surahId: number, verseNumber?: number) => void;
   scriptType: "uthmani" | "simple";
+  getSurahName?: (surahId: number) => string | undefined;
 }
 
 const AyahCardComponent: React.FC<AyahCardProps> = ({
@@ -37,6 +38,7 @@ const AyahCardComponent: React.FC<AyahCardProps> = ({
   theme,
   onNavigateToVerse,
   scriptType,
+  getSurahName,
 }) => {
   const verseNum = verse.verse_key.split(":")[1];
 
@@ -255,6 +257,7 @@ const AyahCardComponent: React.FC<AyahCardProps> = ({
                 initialBlocks={noteBlocks}
                 theme={theme}
                 onNavigateToVerse={onNavigateToVerse}
+                getSurahName={getSurahName}
                 editable={false}
               />
             </div>

@@ -15,6 +15,7 @@ interface SurahNoteModalProps {
   onDelete: () => void;
   theme: "light" | "dark";
   onNavigateToVerse?: (surahId: number, verseNumber?: number) => void;
+  getSurahName?: (surahId: number) => string | undefined;
 }
 
 export function SurahNoteModal({
@@ -27,6 +28,7 @@ export function SurahNoteModal({
   onDelete,
   theme,
   onNavigateToVerse,
+  getSurahName,
 }: SurahNoteModalProps) {
   const normalizedInitialBlocks = useMemo(
     () => normalizeQuranLinkBlocks(initialNote?.blocks || []),
@@ -110,6 +112,7 @@ export function SurahNoteModal({
             onChange={handleChange}
             theme={theme}
             onNavigateToVerse={handleNavigate}
+            getSurahName={getSurahName}
             editable={true}
           />
         </div>

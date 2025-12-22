@@ -1,6 +1,6 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import { PartialBlock } from "@blocknote/core";
-import { normalizeQuranLinkBlocks } from "@/components/QuranLinkInline";
+import { getQuranLinkTooltip, normalizeQuranLinkBlocks } from "@/components/QuranLinkInline";
 import { blocksToText, textToBlocks } from "@/components/RichNoteEditor";
 
 describe("normalizeQuranLinkBlocks", () => {
@@ -51,5 +51,30 @@ describe("block/text helpers", () => {
 
     const normalized = normalizeQuranLinkBlocks(blocks);
     expect(JSON.stringify(normalized)).toBe(JSON.stringify(blocks));
+  });
+});
+
+describe("getQuranLinkTooltip", () => {
+  it("shows surah name and verse number for valid references", () => {
+    const tooltip = getQuranLinkTooltip(2, 255, "2:255");
+    expect(tooltip).toBe("Go to Al-Baqarah, verse 255");
+  });
+
+  it("falls back to surah-only label when no verse is present", () => {
+    const tooltip = getQuranLinkTooltip(1, null, "1");
+    expect(tooltip).toBe("Go to Al-Fatiha");
+  });
+
+  it("uses custom surah name lookup when provided", () => {
+    const lookup = vi.fn().mockReturnValue("Custom Surah");
+    const tooltip = getQuranLinkTooltip(5, 12, "5:12", lookup);
+
+    expect(tooltip).toBe("Go to Custom Surah, verse 12");
+    expect(lookup).toHaveBeenCalledWith(5);
+  });
+
+  it("returns invalid tooltip when reference cannot be parsed", () => {
+    const tooltip = getQuranLinkTooltip(null, null, "not-a-verse");
+    expect(tooltip).toBe("Invalid reference: not-a-verse");
   });
 });

@@ -134,9 +134,34 @@ const SURAH_NAMES: Record<string, number> = {
   "an-nas": 114,
 };
 
+// Build a human-friendly Surah name from a slug (e.g., "al-baqarah" -> "Al-Baqarah")
+function formatSurahName(slug: string): string {
+  return slug
+    .split(/(\s|-)/)
+    .map((part) => {
+      if (part === " " || part === "-") return part;
+      if (!part) return "";
+      return part.charAt(0).toUpperCase() + part.slice(1);
+    })
+    .join("")
+    .trim();
+}
+
+// Fallback map of surahId -> display name for tooltips
+const SURAH_ID_TO_NAME: Record<number, string> = Object.entries(SURAH_NAMES).reduce(
+  (acc, [name, id]) => {
+    if (!acc[id]) {
+      acc[id] = formatSurahName(name);
+    }
+    return acc;
+  },
+  {} as Record<number, string>
+);
+
 // Context for navigation handler
 interface QuranLinkContextType {
   onNavigate?: (surahId: number, verseNumber?: number) => void;
+  getSurahName?: (surahId: number) => string | undefined;
 }
 
 const QuranLinkContext = createContext<QuranLinkContextType>({});
@@ -187,9 +212,29 @@ export function parseQuranReference(ref: string): {
   return { surahId: null, verseNumber: null, displayText: trimmed };
 }
 
+// Build tooltip text for Quran links with best-known surah name and verse number
+export function getQuranLinkTooltip(
+  surahId: number | null,
+  verseNumber: number | null,
+  reference: string,
+  customLookup?: (surahId: number) => string | undefined
+): string {
+  if (!surahId) {
+    return `Invalid reference: ${reference}`;
+  }
+
+  const surahName = customLookup?.(surahId) ?? SURAH_ID_TO_NAME[surahId] ?? `Surah ${surahId}`;
+
+  if (verseNumber) {
+    return `Go to ${surahName}, verse ${verseNumber}`;
+  }
+
+  return `Go to ${surahName}`;
+}
+
 // Component for rendering Quran links
 function QuranLinkComponent({ reference }: { reference: string }) {
-  const { onNavigate } = useContext(QuranLinkContext);
+  const { onNavigate, getSurahName } = useContext(QuranLinkContext);
   const parsed = parseQuranReference(reference);
 
   const handleClick = (e: React.MouseEvent) => {
@@ -201,6 +246,7 @@ function QuranLinkComponent({ reference }: { reference: string }) {
   };
 
   const isValid = parsed.surahId !== null;
+  const tooltip = getQuranLinkTooltip(parsed.surahId, parsed.verseNumber, reference, getSurahName);
 
   return (
     <span
@@ -210,7 +256,7 @@ function QuranLinkComponent({ reference }: { reference: string }) {
           : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
       }`}
       onClick={handleClick}
-      title={isValid ? `Go to ${parsed.displayText}` : `Invalid reference: ${reference}`}
+      title={tooltip}
     >
       <BookOpen size={12} />
       <span>{parsed.displayText}</span>

@@ -14,6 +14,7 @@ interface NoteModalProps {
   onDelete: () => void;
   theme: "light" | "dark";
   onNavigateToVerse?: (surahId: number, verseNumber?: number) => void;
+  getSurahName?: (surahId: number) => string | undefined;
 }
 
 export const NoteModal: React.FC<NoteModalProps> = ({
@@ -25,6 +26,7 @@ export const NoteModal: React.FC<NoteModalProps> = ({
   onDelete,
   theme,
   onNavigateToVerse,
+  getSurahName,
 }) => {
   const normalizedInitialBlocks = useMemo(
     () => normalizeQuranLinkBlocks(initialNote?.blocks || []),
@@ -108,6 +110,7 @@ export const NoteModal: React.FC<NoteModalProps> = ({
             onChange={handleChange}
             theme={theme}
             onNavigateToVerse={handleNavigate}
+            getSurahName={getSurahName}
             editable={true}
           />
         </div>

@@ -18,6 +18,7 @@ interface RichNoteEditorProps {
   onChange?: (blocks: PartialBlock[]) => void;
   theme?: "light" | "dark";
   onNavigateToVerse?: (surahId: number, verseNumber?: number) => void;
+  getSurahName?: (surahId: number) => string | undefined;
   editable?: boolean;
 }
 
@@ -35,6 +36,7 @@ export function RichNoteEditor({
   onChange,
   theme = "light",
   onNavigateToVerse,
+  getSurahName,
   editable = true,
 }: RichNoteEditorProps) {
   const normalizedInitialBlocks = useMemo(
@@ -107,8 +109,9 @@ export function RichNoteEditor({
   const navigationContext = useMemo(
     () => ({
       onNavigate: onNavigateToVerse,
+      getSurahName,
     }),
-    [onNavigateToVerse]
+    [getSurahName, onNavigateToVerse]
   );
 
   return (

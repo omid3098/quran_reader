@@ -1,4 +1,4 @@
-import React, { useEffect, useState, useRef, useCallback, Suspense } from "react";
+import React, { useEffect, useState, useRef, useCallback, Suspense, useMemo } from "react";
 import { Header } from "./components/Header";
 import { AudioPlayer } from "./components/AudioPlayer";
 import { AyahCard } from "./components/AyahCard";
@@ -61,6 +61,17 @@ const App: React.FC = () => {
   const [chapters, setChapters] = useState<Chapter[]>([]);
   const [verses, setVerses] = useState<Verse[]>([]);
   const [currentChapter, setCurrentChapter] = useState<Chapter | null>(null);
+  const surahNameLookup = useMemo(() => {
+    const lookup: Record<number, string> = {};
+    chapters.forEach((chapter) => {
+      lookup[chapter.id] = chapter.name_simple;
+    });
+    return lookup;
+  }, [chapters]);
+  const getSurahName = useCallback(
+    (surahId: number) => surahNameLookup[surahId],
+    [surahNameLookup]
+  );
 
   // --- UI State ---
   const [settingsOpen, setSettingsOpen] = useState(false);
@@ -1221,6 +1232,7 @@ const App: React.FC = () => {
                     theme={settings.theme}
                     onNavigateToVerse={handleNavigateFromNote}
                     scriptType={settings.scriptType}
+                    getSurahName={getSurahName}
                   />
                 ))}
               </div>
@@ -1287,6 +1299,7 @@ const App: React.FC = () => {
           onDelete={handleDeleteNote}
           theme={settings.theme}
           onNavigateToVerse={handleNavigateFromNote}
+          getSurahName={getSurahName}
         />
       </Suspense>
 
@@ -1303,6 +1316,7 @@ const App: React.FC = () => {
             onDelete={handleDeleteSurahNote}
             theme={settings.theme}
             onNavigateToVerse={handleNavigateFromNote}
+            getSurahName={getSurahName}
           />
         </Suspense>
       )}
