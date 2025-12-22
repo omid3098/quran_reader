@@ -24,6 +24,7 @@ const SurahNoteModal = React.lazy(() =>
   import("./components/SurahNoteModal").then((m) => ({ default: m.SurahNoteModal }))
 );
 import { getChapters, getVerses, getAudioUrl } from "./services/quranService";
+import { parseUrlPath, buildVersePath } from "./services/urlService";
 import {
   getVerseWordData,
   findRootOfWord,
@@ -272,6 +273,47 @@ const App: React.FC = () => {
     localStorage.setItem("lastVerseKey", verse.verse_key);
   }, [currentChapter, currentVerseIndex, verses]);
 
+  // Sync URL with current verse position
+  useEffect(() => {
+    if (!currentChapter || !verses[currentVerseIndex] || loadingVerses) return;
+
+    const verse = verses[currentVerseIndex];
+    const verseNumber = parseInt(verse.verse_key.split(":")[1]);
+    const newPath = buildVersePath(currentChapter.id, verseNumber);
+
+    // Only update if path changed to avoid unnecessary history entries
+    if (window.location.pathname !== newPath) {
+      window.history.pushState(null, "", newPath);
+    }
+  }, [currentChapter, currentVerseIndex, verses, loadingVerses]);
+
+  // Handle browser back/forward navigation
+  useEffect(() => {
+    const handlePopState = () => {
+      const urlParams = parseUrlPath(window.location.pathname);
+      if (urlParams.isValid && urlParams.surahId) {
+        if (currentChapter?.id !== urlParams.surahId) {
+          handleChapterSelect(
+            urlParams.surahId,
+            chapters,
+            urlParams.verseNumber ? `${urlParams.surahId}:${urlParams.verseNumber}` : undefined
+          );
+        } else if (urlParams.verseNumber) {
+          const targetIndex = verses.findIndex(
+            (v) => v.verse_key === `${urlParams.surahId}:${urlParams.verseNumber}`
+          );
+          if (targetIndex !== -1) {
+            setCurrentVerseIndex(targetIndex);
+          }
+        }
+      }
+    };
+
+    window.addEventListener("popstate", handlePopState);
+    return () => window.removeEventListener("popstate", handlePopState);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [currentChapter, chapters, verses]);
+
   // --- Global Selection Handler ---
   useEffect(() => {
     const handleSelection = (_e: MouseEvent) => {
@@ -345,43 +387,57 @@ const App: React.FC = () => {
       setLoadingChapters(false);
 
       if (chaptersData.length > 0) {
-        const savedVerseKey = localStorage.getItem("lastVerseKey");
-        const savedSurahId = localStorage.getItem("lastSurahId");
-        const savedBookmark = localStorage.getItem("luminaBookmark");
+        // PRIORITY 1: Check URL path
+        const urlParams = parseUrlPath(window.location.pathname);
 
         let targetVerseKey: string | null = null;
         let initialId = 1;
 
-        // Migrate: If no bookmark exists but lastVerseKey does, create bookmark
-        if (!savedBookmark && savedVerseKey) {
-          const [surahStr, ayahStr] = savedVerseKey.split(":");
-          const surahId = parseInt(surahStr, 10);
-          const ayahNum = parseInt(ayahStr, 10);
-          if (!isNaN(surahId) && !isNaN(ayahNum)) {
-            const migratedBookmark: VerseRef = {
-              surahId,
-              verseNumber: ayahNum,
-              verseKey: savedVerseKey,
-            };
-            setBookmarkedVerse(migratedBookmark);
+        if (urlParams.isValid && urlParams.surahId) {
+          const surahExists = chaptersData.some((c) => c.id === urlParams.surahId);
+          if (surahExists) {
+            initialId = urlParams.surahId;
+            if (urlParams.verseNumber) {
+              targetVerseKey = `${urlParams.surahId}:${urlParams.verseNumber}`;
+            }
           }
-        }
+        } else {
+          // PRIORITY 2: Check localStorage (existing logic)
+          const savedVerseKey = localStorage.getItem("lastVerseKey");
+          const savedSurahId = localStorage.getItem("lastSurahId");
+          const savedBookmark = localStorage.getItem("luminaBookmark");
 
-        if (savedVerseKey) {
-          const [surahStr, ayahStr] = savedVerseKey.split(":");
-          const surahId = parseInt(surahStr, 10);
-          const ayahNum = parseInt(ayahStr, 10);
-          const surahExists = chaptersData.some((c) => c.id === surahId);
-
-          if (!isNaN(surahId) && !isNaN(ayahNum) && surahExists) {
-            initialId = surahId;
-            targetVerseKey = `${surahId}:${ayahNum}`;
+          // Migrate: If no bookmark exists but lastVerseKey does, create bookmark
+          if (!savedBookmark && savedVerseKey) {
+            const [surahStr, ayahStr] = savedVerseKey.split(":");
+            const surahId = parseInt(surahStr, 10);
+            const ayahNum = parseInt(ayahStr, 10);
+            if (!isNaN(surahId) && !isNaN(ayahNum)) {
+              const migratedBookmark: VerseRef = {
+                surahId,
+                verseNumber: ayahNum,
+                verseKey: savedVerseKey,
+              };
+              setBookmarkedVerse(migratedBookmark);
+            }
           }
-        }
 
-        if (!targetVerseKey && savedSurahId) {
-          const surahId = parseInt(savedSurahId, 10);
-          initialId = chaptersData.some((c) => c.id === surahId) ? surahId : 1;
+          if (savedVerseKey) {
+            const [surahStr, ayahStr] = savedVerseKey.split(":");
+            const surahId = parseInt(surahStr, 10);
+            const ayahNum = parseInt(ayahStr, 10);
+            const surahExists = chaptersData.some((c) => c.id === surahId);
+
+            if (!isNaN(surahId) && !isNaN(ayahNum) && surahExists) {
+              initialId = surahId;
+              targetVerseKey = `${surahId}:${ayahNum}`;
+            }
+          }
+
+          if (!targetVerseKey && savedSurahId) {
+            const surahId = parseInt(savedSurahId, 10);
+            initialId = chaptersData.some((c) => c.id === surahId) ? surahId : 1;
+          }
         }
 
         handleChapterSelect(initialId, chaptersData, targetVerseKey || undefined);

@@ -1,0 +1,8 @@
+{
+  "rewrites": [
+    {
+      "source": "/quran_reader/:path*",
+      "destination": "/quran_reader/index.html"
+    }
+  ]
+}

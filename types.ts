@@ -205,3 +205,17 @@ export interface BreadcrumbEntry {
   verseRef: VerseRef;
   timestamp: number;
 }
+
+// --- URL Sharing Types ---
+
+export interface UrlVerseParams {
+  surahId: number | null;
+  verseNumber: number | null;
+  isValid: boolean;
+}
+
+export interface ShareButtonProps {
+  surahId: number;
+  verseNumber: number;
+  className?: string;
+}

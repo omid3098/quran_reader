@@ -2,6 +2,7 @@ import React, { useMemo } from "react";
 import { Verse } from "../types";
 import { NotebookPen, Bookmark } from "lucide-react";
 import { RichNoteEditor } from "./RichNoteEditor";
+import { ShareButton } from "./ShareButton";
 import { PartialBlock } from "@blocknote/core";
 
 interface AyahCardProps {
@@ -193,6 +194,16 @@ const AyahCardComponent: React.FC<AyahCardProps> = ({
             >
               <NotebookPen size={16} />
             </button>
+            <ShareButton
+              surahId={chapterId}
+              verseNumber={parseInt(verse.verse_key.split(":")[1])}
+              className={`
+                p-2 rounded-full transition-colors
+                hover:bg-slate-100 dark:hover:bg-slate-800
+                text-slate-400 hover:text-slate-600
+                dark:hover:text-slate-300
+              `}
+            />
           </div>
         </div>
 
