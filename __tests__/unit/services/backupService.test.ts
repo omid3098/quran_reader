@@ -60,6 +60,61 @@ describe("backupService", () => {
     expect(parsed.bookmark?.verseKey).toBe("3:5");
   });
 
+  it("keeps inline styles and custom props when parsing v2 rich blocks", () => {
+    const backup: BackupDataV2 = {
+      v: 2,
+      bookmarks: [],
+      notes: [
+        {
+          key: "1:2",
+          blocks: [
+            {
+              type: "paragraph",
+              content: [
+                {
+                  type: "text",
+                  text: "Styled",
+                  styles: { color: "#ff0000", backgroundColor: "#ffff00", custom: "note" },
+                },
+              ],
+            } as unknown as PartialBlock,
+          ],
+          updatedAt: "2024-04-01T00:00:00Z",
+          createdAt: "2024-04-01T00:00:00Z",
+        },
+      ],
+      surahNotes: [],
+      exportedAt: "2024-04-02T00:00:00Z",
+    };
+
+    const parsed = parseBackupData(backup);
+    const blocks = parsed.notes["1:2"].blocks;
+    const textNode = (blocks[0].content as { styles?: Record<string, string> }[])[0];
+    expect(textNode.styles?.color).toBe("#ff0000");
+    expect(textNode.styles?.backgroundColor).toBe("#ffff00");
+  });
+
+  it("drops malformed blocks without a type when parsing v2", () => {
+    const backup: BackupDataV2 = {
+      v: 2,
+      bookmarks: [],
+      notes: [
+        {
+          key: "1:3",
+          // Missing type should be ignored
+          blocks: [{ content: "oops" } as PartialBlock],
+          updatedAt: "2024-05-01T00:00:00Z",
+          createdAt: "2024-05-01T00:00:00Z",
+        },
+      ],
+      surahNotes: [],
+      exportedAt: "2024-05-02T00:00:00Z",
+    };
+
+    const parsed = parseBackupData(backup);
+    expect(parsed.notes["1:3"]).toBeUndefined();
+  });
+
   it("merges incoming data over existing notes while keeping user-only entries", () => {
     const current = {
       notes: {

@@ -135,6 +135,10 @@ export interface BackupDataV2 {
   notes: RichNoteExport[]; // Rich verse notes
   surahNotes: SurahNoteExport[]; // Surah-level notes
   legacyNotes?: NoteExportTuple[]; // For migration support
+  meta?: {
+    editor?: string;
+    schemaVersion?: string;
+  };
   exportedAt: string;
 }
 

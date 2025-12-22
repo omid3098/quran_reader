@@ -42,7 +42,6 @@ import {
   Note,
   VerseNote,
   BackupData,
-  BackupDataV1,
   NoteExportTuple,
   SelectionContext,
   RootAnalysis,
@@ -1026,15 +1025,18 @@ const App: React.FC = () => {
 
   // --- Import/Export Handlers ---
   const handleExportNotes = () => {
-    // Export verse notes in v1 tuple format for backwards compatibility
-    const notesArray: NoteExportTuple[] = Object.entries(notes).map(([key, value]) => {
-      const note = value as VerseNote;
-      // Convert blocks to plain text for v1 compatibility
+    const richNotes = Object.values(notes).map((note) => ({
+      key: note.verseKey,
+      blocks: note.blocks,
+      updatedAt: note.updatedAt,
+      createdAt: note.createdAt,
+    }));
+
+    const legacyNotes = Object.values(notes).map((note) => {
       const text = blocksToText(note.blocks);
-      return [key, text, note.updatedAt];
+      return [note.verseKey, text, note.updatedAt] as NoteExportTuple;
     });
 
-    // Export surah notes
     const surahNotesArray = Object.values(surahNotes).map((note) => ({
       surahId: note.surahId,
       blocks: note.blocks,
@@ -1042,12 +1044,16 @@ const App: React.FC = () => {
       createdAt: note.createdAt,
     }));
 
-    // Use v1 format with additional surahNotes field for compatibility
-    const exportData: BackupDataV1 & { surahNotes?: typeof surahNotesArray } = {
-      v: 1,
+    const exportData: BackupData = {
+      v: 2,
       bookmarks: [],
-      notes: notesArray,
-      surahNotes: surahNotesArray.length > 0 ? surahNotesArray : undefined,
+      notes: richNotes,
+      surahNotes: surahNotesArray,
+      legacyNotes,
+      meta: {
+        editor: "blocknote",
+        schemaVersion: "1",
+      },
       exportedAt: new Date().toISOString(),
     };
 

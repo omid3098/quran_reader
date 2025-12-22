@@ -9,12 +9,44 @@ import {
   VerseNote,
   VerseRef,
 } from "../types";
+import type { PartialBlock } from "@blocknote/core";
 
 export interface ParsedBackupData {
   notes: Record<string, VerseNote>;
   surahNotes: Record<number, SurahNote>;
   bookmark?: VerseRef;
 }
+
+// Defensive clone to strip functions/undefined while keeping JSON-serializable data
+const safeClone = <T>(value: unknown): T | undefined => {
+  try {
+    return JSON.parse(JSON.stringify(value)) as T;
+  } catch {
+    return undefined;
+  }
+};
+
+const sanitizeBlocks = (blocks: unknown) => {
+  if (!Array.isArray(blocks)) return [];
+  const cloned = safeClone<PartialBlock[]>(blocks);
+  if (!Array.isArray(cloned)) return [];
+
+  // Ensure each block has a type; drop anything malformed
+  return cloned
+    .map((block) => {
+      if (!block || typeof block !== "object" || typeof block.type !== "string") {
+        return null;
+      }
+
+      // Recursively sanitize children if present
+      if (block.children) {
+        block.children = sanitizeBlocks(block.children);
+      }
+
+      return block;
+    })
+    .filter(Boolean) as PartialBlock[];
+};
 
 const parseVerseKey = (verseKey: string | undefined): VerseRef | undefined => {
   if (!verseKey || typeof verseKey !== "string") return undefined;
@@ -38,9 +70,10 @@ const normalizeSurahNotes = (surahNotes: SurahNoteExport[] | undefined, fallback
   const normalized: Record<number, SurahNote> = {};
   (surahNotes || []).forEach((note) => {
     if (!note || typeof note.surahId !== "number" || !note.blocks) return;
+    const blocks = sanitizeBlocks(note.blocks);
     normalized[note.surahId] = {
       surahId: note.surahId,
-      blocks: note.blocks,
+      blocks,
       updatedAt: note.updatedAt || fallbackDate,
       createdAt: note.createdAt || fallbackDate,
     };
@@ -74,10 +107,12 @@ const parseV2 = (data: BackupDataV2): ParsedBackupData => {
   if (Array.isArray(data.notes)) {
     data.notes.forEach((note) => {
       if (!note?.key || !note.blocks) return;
+      const blocks = sanitizeBlocks(note.blocks);
+      if (blocks.length === 0) return;
       const timestamp = note.updatedAt || now;
       notes[note.key] = {
         verseKey: note.key,
-        blocks: note.blocks,
+        blocks,
         updatedAt: timestamp,
         createdAt: note.createdAt || timestamp,
       };
