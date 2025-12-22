@@ -49,7 +49,8 @@ describe("TranslationContextMenu", () => {
     expect(mockOnTranslate).toHaveBeenCalledTimes(1);
     expect(mockOnTranslate).toHaveBeenCalledWith(
       expect.objectContaining({ id: "abadis", name: "Abadis" }),
-      "كتاب"
+      "كتاب",
+      undefined
     );
   });
 
@@ -122,8 +123,16 @@ describe("TranslationContextMenu", () => {
 
     render(<TranslationContextMenu {...propsWithVerseKey} />);
 
+    const abadisButton = screen.getByText("Abadis");
+    fireEvent.click(abadisButton);
+
     // Component should render successfully with verseKey
     expect(screen.getByText("Translation Menu")).toBeInTheDocument();
+    expect(mockOnTranslate).toHaveBeenCalledWith(
+      expect.objectContaining({ id: "abadis", name: "Abadis" }),
+      "كتاب",
+      "2:255"
+    );
   });
 
   it("should have correct styling classes", () => {
@@ -149,7 +158,8 @@ describe("TranslationContextMenu", () => {
       expect(mockOnTranslate).toHaveBeenNthCalledWith(
         index + 1,
         expect.objectContaining({ id: service.id }),
-        "كتاب"
+        "كتاب",
+        undefined
       );
     });
 

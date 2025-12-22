@@ -8,13 +8,13 @@ interface TranslationContextMenuProps {
   verseKey?: string;
   targetLanguage: string;
   onClose: () => void;
-  onTranslate: (service: TranslationService, word: string) => void;
+  onTranslate: (service: TranslationService, word: string, verseKey?: string) => void;
 }
 
 export const TranslationContextMenu: React.FC<TranslationContextMenuProps> = ({
   position,
   word,
-  verseKey: _verseKey,
+  verseKey,
   targetLanguage: _targetLanguage,
   onClose,
   onTranslate,
@@ -60,7 +60,7 @@ export const TranslationContextMenu: React.FC<TranslationContextMenuProps> = ({
             <button
               key={service.id}
               type="button"
-              onClick={() => onTranslate(service, word)}
+              onClick={() => onTranslate(service, word, verseKey)}
               className="w-full flex items-center gap-3 px-3 py-2.5 text-sm rounded-lg hover:bg-blue-50 dark:hover:bg-blue-900/20 text-slate-700 dark:text-slate-200 transition-colors group text-left"
             >
               <div className="p-1.5 rounded-md bg-slate-100 dark:bg-slate-800 group-hover:bg-blue-100 dark:group-hover:bg-blue-900/50 text-slate-500 dark:text-slate-400 group-hover:text-blue-600 dark:group-hover:text-blue-400 transition-colors">

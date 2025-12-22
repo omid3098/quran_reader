@@ -181,6 +181,7 @@ export interface RootAnalysis {
       normalized: string;
       root: string | null;
     }[];
+    selectedVerseKey?: string;
   };
   wordForms: RootWordForm[];
 }

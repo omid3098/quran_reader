@@ -820,6 +820,7 @@ const App: React.FC = () => {
         normalizedText: normalized,
         abjadValue,
         sameAbjadWords: [],
+        selectedVerseKey: context.verseKey,
       },
     };
 
@@ -841,6 +842,7 @@ const App: React.FC = () => {
           normalizedText: normalized,
           abjadValue,
           sameAbjadWords,
+          selectedVerseKey: context.verseKey,
         };
 
         if (root) {
@@ -882,6 +884,7 @@ const App: React.FC = () => {
         abjadValue,
         sameAbjadWords,
         verseWords: verseWordsDebug,
+        selectedVerseKey: context.verseKey,
       };
 
       if (root) {
@@ -930,9 +933,13 @@ const App: React.FC = () => {
   };
 
   // --- Translation Handler ---
-  const handleTranslate = (service: TranslationService, word: string) => {
+  const handleTranslate = (
+    service: TranslationService,
+    word: string,
+    explicitVerseKey?: string
+  ) => {
     const targetLanguage = settings.userLanguage || "en";
-    const verseKey = selectionContext?.verseKey;
+    const verseKey = explicitVerseKey ?? selectionContext?.verseKey;
     const url = service.getUrl(word, targetLanguage, verseKey);
 
     if (service.supportsIframe) {

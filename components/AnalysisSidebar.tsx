@@ -85,6 +85,8 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
     left: 0,
   });
   const containerRef = useRef<HTMLDivElement>(null);
+  const verseKeyForTranslation =
+    rootData?.debugInfo?.selectedVerseKey ?? rootData?.verses[0]?.verse_key;
 
   useEffect(() => {
     setIsConcordanceOpen(false);
@@ -117,9 +119,12 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
     setActiveMenu(type);
   };
 
-  const handleTranslateFromMenu = (service: TranslationService, word: string) => {
-    const verseKey = activeMenu === "root" ? rootData?.verses[0]?.verse_key : undefined;
-
+  const handleTranslateFromMenu = (
+    service: TranslationService,
+    word: string,
+    verseKeyFromMenu?: string
+  ) => {
+    const verseKey = verseKeyFromMenu ?? verseKeyForTranslation;
     onTranslate(service, word, verseKey);
     setActiveMenu(null);
   };
@@ -435,7 +440,7 @@ export const AnalysisSidebar: React.FC<AnalysisSidebarProps> = ({
                   ? rootData?.debugInfo?.selectedText || ""
                   : rootData?.root || ""
               }
-              verseKey={activeMenu === "root" ? rootData?.verses[0]?.verse_key : undefined}
+              verseKey={verseKeyForTranslation}
               targetLanguage={userLanguage}
               onClose={() => setActiveMenu(null)}
               onTranslate={handleTranslateFromMenu}

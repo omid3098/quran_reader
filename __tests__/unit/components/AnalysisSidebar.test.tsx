@@ -37,6 +37,7 @@ describe("AnalysisSidebar - Translation Features", () => {
       normalizedText: "الكتاب",
       abjadValue: 463,
       sameAbjadWords: ["الكتاب", "النبي"],
+      selectedVerseKey: "2:2",
     },
   };
 
@@ -241,7 +242,7 @@ describe("AnalysisSidebar - Translation Features", () => {
     expect(mockOnTranslate).toHaveBeenCalledWith(
       expect.objectContaining({ id: "abadis" }),
       "الْكِتَابُ",
-      undefined // verseKey should be undefined for selected word
+      "2:2" // verseKey should match selected verse
     );
   });
 
