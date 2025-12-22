@@ -90,6 +90,22 @@
         background: transparent !important;
         background-color: transparent !important;
       }
+      /* Style links in BlockNote editor */
+      .rich-note-editor a {
+        color: #2563eb; /* blue-600 */
+        text-decoration: underline;
+        text-underline-offset: 2px;
+        transition: color 0.15s;
+      }
+      .rich-note-editor a:hover {
+        color: #1d4ed8; /* blue-700 */
+      }
+      .dark .rich-note-editor a {
+        color: #60a5fa; /* blue-400 */
+      }
+      .dark .rich-note-editor a:hover {
+        color: #93c5fd; /* blue-300 */
+      }
     </style>
     <script type="importmap">
       {
