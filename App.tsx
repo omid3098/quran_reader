@@ -387,8 +387,18 @@ const App: React.FC = () => {
       setLoadingChapters(false);
 
       if (chaptersData.length > 0) {
-        // PRIORITY 1: Check URL path
-        const urlParams = parseUrlPath(window.location.pathname);
+        // PRIORITY 0: Check sessionStorage for 404 redirect path
+        const redirectPath = sessionStorage.getItem("redirect");
+        let urlParams;
+
+        if (redirectPath) {
+          // Parse the redirect path and clear it
+          urlParams = parseUrlPath(redirectPath);
+          sessionStorage.removeItem("redirect");
+        } else {
+          // PRIORITY 1: Check current URL path
+          urlParams = parseUrlPath(window.location.pathname);
+        }
 
         let targetVerseKey: string | null = null;
         let initialId = 1;

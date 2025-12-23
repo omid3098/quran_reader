@@ -1,0 +1,29 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Redirecting...</title>
+    <script>
+      // GitHub Pages SPA redirect handler
+      // When GitHub Pages serves this 404.html, we redirect to index.html
+      // and preserve the original path so the React app can handle routing
+
+      (function() {
+        var path = window.location.pathname;
+
+        // Store the path we were trying to access
+        // The React app will read this and navigate to the correct route
+        sessionStorage.setItem('redirect', path);
+
+        // Redirect to the base path (index.html)
+        // GitHub Pages will serve index.html, and the React app will handle the routing
+        var baseUrl = window.location.origin + '/quran_reader/';
+        window.location.replace(baseUrl);
+      })();
+    </script>
+  </head>
+  <body>
+    <p>Redirecting...</p>
+  </body>
+</html>
