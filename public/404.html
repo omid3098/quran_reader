@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <html lang="en">
   <head>
     <meta charset="UTF-8" />
@@ -9,16 +9,16 @@
       // When GitHub Pages serves this 404.html, we redirect to index.html
       // and preserve the original path so the React app can handle routing
 
-      (function() {
+      (function () {
         var path = window.location.pathname;
 
         // Store the path we were trying to access
         // The React app will read this and navigate to the correct route
-        sessionStorage.setItem('redirect', path);
+        sessionStorage.setItem("redirect", path);
 
         // Redirect to the base path (index.html)
         // GitHub Pages will serve index.html, and the React app will handle the routing
-        var baseUrl = window.location.origin + '/quran_reader/';
+        var baseUrl = window.location.origin + "/quran_reader/";
         window.location.replace(baseUrl);
       })();
     </script>
