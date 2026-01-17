@@ -40,22 +40,20 @@ import {
   Chapter,
   Verse,
   AppSettings,
-  Note,
-  VerseNote,
   BackupData,
   NoteExportTuple,
   SelectionContext,
   RootAnalysis,
   UserLanguage,
-  SurahNote,
   VerseRef,
   BreadcrumbEntry,
 } from "./types";
 import { parseBackupData, mergeParsedBackupData } from "./services/backupService";
-import { textToBlocks, blocksToText } from "./components/RichNoteEditor";
+import { blocksToText } from "./components/RichNoteEditor";
 import { PartialBlock } from "@blocknote/core";
 import { Spinner } from "./components/Spinner";
 import { useHideOnScroll } from "./hooks/useHideOnScroll";
+import { useNotes } from "./hooks/useNotes";
 
 const App: React.FC = () => {
   // --- Data State ---
@@ -107,66 +105,23 @@ const App: React.FC = () => {
     return localStorage.getItem("luminaOmidSyncAt");
   });
 
-  // --- Notes State (with migration from legacy plain text to blocks) ---
-  const [notes, setNotes] = useState<Record<string, VerseNote>>(() => {
-    const savedNotes = localStorage.getItem("luminaNotes");
-    if (savedNotes) {
-      try {
-        const parsed = JSON.parse(savedNotes);
-        // Migrate legacy plain text notes to block format
-        const migrated: Record<string, VerseNote> = {};
-        for (const [key, value] of Object.entries(parsed)) {
-          const noteValue = value as Note | VerseNote;
-          if ("blocks" in noteValue) {
-            // Already in new format
-            migrated[key] = noteValue as VerseNote;
-          } else if ("text" in noteValue) {
-            // Legacy format - migrate to blocks
-            const legacyNote = noteValue as Note;
-            const now = new Date().toISOString();
-            migrated[key] = {
-              verseKey: key,
-              blocks: textToBlocks(legacyNote.text),
-              updatedAt: legacyNote.updatedAt || now,
-              createdAt: legacyNote.updatedAt || now,
-            };
-          }
-        }
-        return migrated;
-      } catch (e) {
-        console.error("Failed to parse notes", e);
-        return {};
-      }
-    }
-    return {};
-  });
+  // --- Notes State (with debounced persistence via useNotes hook) ---
+  const {
+    notes,
+    surahNotes,
+    saveVerseNote,
+    deleteVerseNote,
+    saveSurahNote,
+    deleteSurahNote,
+    getNoteForSurah,
+    hasNoteForSurah,
+    setAllNotes,
+    setAllSurahNotes,
+  } = useNotes();
 
   const [noteModalOpen, setNoteModalOpen] = useState(false);
   const [editingNoteVerse, setEditingNoteVerse] = useState<Verse | null>(null);
-
-  useEffect(() => {
-    localStorage.setItem("luminaNotes", JSON.stringify(notes));
-  }, [notes]);
-
-  // --- Surah Notes State ---
-  const [surahNotes, setSurahNotes] = useState<Record<number, SurahNote>>(() => {
-    const savedSurahNotes = localStorage.getItem("luminaSurahNotes");
-    if (savedSurahNotes) {
-      try {
-        return JSON.parse(savedSurahNotes);
-      } catch (e) {
-        console.error("Failed to parse surah notes", e);
-        return {};
-      }
-    }
-    return {};
-  });
-
   const [surahNoteModalOpen, setSurahNoteModalOpen] = useState(false);
-
-  useEffect(() => {
-    localStorage.setItem("luminaSurahNotes", JSON.stringify(surahNotes));
-  }, [surahNotes]);
 
   // --- Settings State (Persisted) ---
   const [settings, setSettings] = useState<AppSettings>(() => {
@@ -648,18 +603,64 @@ const App: React.FC = () => {
     }
   }, [currentVerseIndex, currentChapter, verses]);
 
-  // Keyboard navigation
+  // Refs for keyboard navigation to avoid re-attaching listener on modal changes
+  const keyboardStateRef = useRef({
+    searchModalOpen,
+    noteModalOpen,
+    surahNoteModalOpen,
+    settingsOpen,
+    iframeDataIsOpen: iframeData.isOpen,
+    selectionContext,
+    userLanguage: settings.userLanguage,
+    versesLength: verses.length,
+  });
+
+  // Keep refs in sync with state
+  useEffect(() => {
+    keyboardStateRef.current = {
+      searchModalOpen,
+      noteModalOpen,
+      surahNoteModalOpen,
+      settingsOpen,
+      iframeDataIsOpen: iframeData.isOpen,
+      selectionContext,
+      userLanguage: settings.userLanguage,
+      versesLength: verses.length,
+    };
+  }, [
+    searchModalOpen,
+    noteModalOpen,
+    surahNoteModalOpen,
+    settingsOpen,
+    iframeData.isOpen,
+    selectionContext,
+    settings.userLanguage,
+    verses.length,
+  ]);
+
+  // Refs for navigation handlers
+  const handleNextAyahRef = useRef(handleNextAyah);
+  const handlePrevAyahRef = useRef(handlePrevAyah);
+
+  useEffect(() => {
+    handleNextAyahRef.current = handleNextAyah;
+    handlePrevAyahRef.current = handlePrevAyah;
+  }, [handleNextAyah, handlePrevAyah]);
+
+  // Keyboard navigation - single listener, reads from refs
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const state = keyboardStateRef.current;
+
       // Guard: Check if any modal/overlay is open (except analysis sidebar per user request)
       const anyModalOpen =
-        searchModalOpen ||
-        noteModalOpen ||
-        surahNoteModalOpen ||
-        settingsOpen ||
-        iframeData.isOpen ||
-        selectionContext !== null ||
-        !settings.userLanguage; // Language selection modal (first-time user)
+        state.searchModalOpen ||
+        state.noteModalOpen ||
+        state.surahNoteModalOpen ||
+        state.settingsOpen ||
+        state.iframeDataIsOpen ||
+        state.selectionContext !== null ||
+        !state.userLanguage; // Language selection modal (first-time user)
 
       if (anyModalOpen) return;
 
@@ -673,20 +674,20 @@ const App: React.FC = () => {
       if (isTyping) return;
 
       // Guard: Ignore if no verses loaded
-      if (verses.length === 0) return;
+      if (state.versesLength === 0) return;
 
       // Map keys to navigation actions
       switch (e.key) {
         case "ArrowUp":
         case "ArrowLeft":
           e.preventDefault(); // Prevent page scroll
-          handlePrevAyah();
+          handlePrevAyahRef.current();
           break;
 
         case "ArrowDown":
         case "ArrowRight":
           e.preventDefault();
-          handleNextAyah();
+          handleNextAyahRef.current();
           break;
       }
     };
@@ -696,18 +697,7 @@ const App: React.FC = () => {
     return () => {
       document.removeEventListener("keydown", handleKeyDown);
     };
-  }, [
-    searchModalOpen,
-    noteModalOpen,
-    surahNoteModalOpen,
-    settingsOpen,
-    iframeData.isOpen,
-    selectionContext,
-    settings.userLanguage,
-    verses.length,
-    handleNextAyah,
-    handlePrevAyah,
-  ]);
+  }, []); // Empty deps - listener never re-attaches
 
   // --- Handlers ---
   const handleChapterSelect = useCallback(
@@ -757,20 +747,23 @@ const App: React.FC = () => {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [settings.translationIds]);
 
-  const handleVerseSelect = (index: number) => {
-    // Add current position to breadcrumbs before navigating
-    const currentRef = getSelectedVerseRef();
-    if (currentRef) {
-      const targetVerse = verses[index];
-      // Only add breadcrumb if navigating to a different verse
-      if (targetVerse && targetVerse.verse_key !== currentRef.verseKey) {
+  // Stable callback that accepts verseKey (for React.memo optimization)
+  const handleVerseSelectByKey = useCallback(
+    (verseKey: string) => {
+      const index = verses.findIndex((v) => v.verse_key === verseKey);
+      if (index === -1) return;
+
+      // Add current position to breadcrumbs before navigating
+      const currentRef = getSelectedVerseRef();
+      if (currentRef && currentRef.verseKey !== verseKey) {
         addBreadcrumb(currentRef);
       }
-    }
 
-    setCurrentVerseIndex(index);
-    setIsPlaying(false);
-  };
+      setCurrentVerseIndex(index);
+      setIsPlaying(false);
+    },
+    [verses, getSelectedVerseRef, addBreadcrumb]
+  );
 
   const handleNavigateFromSearch = (surahId: number, ayahNum: number) => {
     const verseKey = `${surahId}:${ayahNum}`;
@@ -974,15 +967,18 @@ const App: React.FC = () => {
   };
 
   // --- Single-Click Word Handler ---
-  const handleWordClick = (word: string, wordIndex: number, verseKey: string, rect: DOMRect) => {
-    setSelectionContext({
-      text: word,
-      verseKey,
-      rect,
-      type: "single",
-      wordIndex,
-    });
-  };
+  const handleWordClick = useCallback(
+    (word: string, wordIndex: number, verseKey: string, rect: DOMRect) => {
+      setSelectionContext({
+        text: word,
+        verseKey,
+        rect,
+        type: "single",
+        wordIndex,
+      });
+    },
+    []
+  );
 
   // --- Standalone Word Click (from same abjad list) ---
   const handleStandaloneWordClick = (word: string, rect: DOMRect) => {
@@ -994,73 +990,65 @@ const App: React.FC = () => {
   };
 
   // --- Note Handlers ---
-  const handleOpenNote = (verse: Verse, e: React.MouseEvent) => {
+  const handleOpenNote = useCallback((verse: Verse, e: React.MouseEvent) => {
     e.stopPropagation();
     setEditingNoteVerse(verse);
     setNoteModalOpen(true);
-  };
+  }, []);
 
   const handleSaveNote = (blocks: PartialBlock[]) => {
     if (!editingNoteVerse) return;
-    const now = new Date().toISOString();
-    setNotes((prev) => ({
-      ...prev,
-      [editingNoteVerse.verse_key]: {
-        verseKey: editingNoteVerse.verse_key,
-        blocks,
-        updatedAt: now,
-        createdAt: prev[editingNoteVerse.verse_key]?.createdAt || now,
-      },
-    }));
+    saveVerseNote(editingNoteVerse.verse_key, blocks);
   };
 
   const handleDeleteNote = () => {
     if (!editingNoteVerse) return;
-    setNotes((prev) => {
-      const copy = { ...prev };
-      delete copy[editingNoteVerse.verse_key];
-      return copy;
-    });
+    deleteVerseNote(editingNoteVerse.verse_key);
   };
 
   // --- Surah Note Handlers ---
   const handleSaveSurahNote = (blocks: PartialBlock[]) => {
     if (!currentChapter) return;
-    const now = new Date().toISOString();
-    setSurahNotes((prev) => ({
-      ...prev,
-      [currentChapter.id]: {
-        surahId: currentChapter.id,
-        blocks,
-        updatedAt: now,
-        createdAt: prev[currentChapter.id]?.createdAt || now,
-      },
-    }));
+    saveSurahNote(currentChapter.id, blocks);
   };
 
   const handleDeleteSurahNote = () => {
     if (!currentChapter) return;
-    setSurahNotes((prev) => {
-      const copy = { ...prev };
-      delete copy[currentChapter.id];
-      return copy;
-    });
+    deleteSurahNote(currentChapter.id);
   };
 
   // Navigation handler for wikilinks in notes
-  const handleNavigateFromNote = (surahId: number, verseNumber?: number) => {
-    if (verseNumber) {
-      handleNavigateFromSearch(surahId, verseNumber);
-    } else {
-      handleChapterSelect(surahId);
-    }
-  };
+  const handleNavigateFromNote = useCallback(
+    (surahId: number, verseNumber?: number) => {
+      if (verseNumber) {
+        handleNavigateFromSearch(surahId, verseNumber);
+      } else {
+        handleChapterSelect(surahId);
+      }
+    },
+    [handleChapterSelect]
+  );
 
   // --- Bookmark & Breadcrumb Handlers ---
   const handleBookmarkVerse = useCallback((verseRef: VerseRef) => {
     setBookmarkedVerse(verseRef);
     setBreadcrumbs([]); // Clear breadcrumbs when bookmark moves
   }, []);
+
+  // Stable callback version for bookmark that accepts verseKey (for React.memo optimization)
+  const handleBookmarkByKey = useCallback(
+    (verseKey: string) => {
+      const [surahIdStr, verseNumStr] = verseKey.split(":");
+      const surahId = parseInt(surahIdStr);
+      const verseNumber = parseInt(verseNumStr);
+      handleBookmarkVerse({
+        surahId,
+        verseNumber,
+        verseKey,
+      });
+    },
+    [handleBookmarkVerse]
+  );
 
   const handleBreadcrumbClick = useCallback(
     (index: number) => {
@@ -1165,8 +1153,8 @@ const App: React.FC = () => {
     const parsed = parseBackupData(data);
     const merged = mergeParsedBackupData({ notes, surahNotes, bookmark: bookmarkedVerse }, parsed);
 
-    setNotes(merged.notes);
-    setSurahNotes(merged.surahNotes);
+    setAllNotes(merged.notes);
+    setAllSurahNotes(merged.surahNotes);
     if (merged.bookmark) {
       setBookmarkedVerse(merged.bookmark);
     }
@@ -1194,8 +1182,8 @@ const App: React.FC = () => {
         parsed
       );
 
-      setNotes(merged.notes);
-      setSurahNotes(merged.surahNotes);
+      setAllNotes(merged.notes);
+      setAllSurahNotes(merged.surahNotes);
       if (merged.bookmark) {
         setBookmarkedVerse(merged.bookmark);
       }
@@ -1288,17 +1276,11 @@ const App: React.FC = () => {
                     chapterName={currentChapter?.name_simple || ""}
                     chapterId={currentChapter?.id || 0}
                     onNote={handleOpenNote}
-                    onSelect={() => handleVerseSelect(index)}
+                    onSelect={handleVerseSelectByKey}
                     onWordClick={handleWordClick}
                     isActive={currentVerseIndex === index}
                     isBookmarked={bookmarkedVerse?.verseKey === verse.verse_key}
-                    onBookmark={() =>
-                      handleBookmarkVerse({
-                        surahId: currentChapter?.id || 0,
-                        verseNumber: parseInt(verse.verse_key.split(":")[1]),
-                        verseKey: verse.verse_key,
-                      })
-                    }
+                    onBookmark={handleBookmarkByKey}
                     fontSize={settings.fontSize}
                     showTranslation={settings.showTranslation}
                     noteBlocks={notes[verse.verse_key]?.blocks}
@@ -1349,7 +1331,7 @@ const App: React.FC = () => {
           onClose={() => {}}
           autoPlayEnabled={settings.autoPlay}
           onToggleAutoPlay={() => setSettings((prev) => ({ ...prev, autoPlay: !prev.autoPlay }))}
-          hasSurahNotes={currentChapter ? !!surahNotes[currentChapter.id] : false}
+          hasSurahNotes={currentChapter ? hasNoteForSurah(currentChapter.id) : false}
           onOpenSurahNotes={() => setSurahNoteModalOpen(true)}
         />
       )}
@@ -1384,7 +1366,7 @@ const App: React.FC = () => {
             onClose={() => setSurahNoteModalOpen(false)}
             surahId={currentChapter.id}
             surahName={currentChapter.name_simple}
-            initialNote={surahNotes[currentChapter.id]}
+            initialNote={getNoteForSurah(currentChapter.id)}
             onSave={handleSaveSurahNote}
             onDelete={handleDeleteSurahNote}
             theme={settings.theme}

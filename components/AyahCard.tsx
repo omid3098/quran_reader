@@ -1,7 +1,7 @@
 import React, { useMemo } from "react";
 import { Verse } from "../types";
 import { NotebookPen, Bookmark } from "lucide-react";
-import { RichNoteEditor } from "./RichNoteEditor";
+import { NotePreview } from "./NotePreview";
 import { ShareButton } from "./ShareButton";
 import { PartialBlock } from "@blocknote/core";
 
@@ -10,11 +10,11 @@ interface AyahCardProps {
   chapterName: string;
   chapterId: number;
   onNote: (verse: Verse, e: React.MouseEvent) => void;
-  onSelect: () => void;
+  onSelect: (verseKey: string) => void; // Changed to accept verseKey for stable callback
   onWordClick?: (word: string, wordIndex: number, verseKey: string, rect: DOMRect) => void;
   isActive: boolean;
   isBookmarked?: boolean;
-  onBookmark?: () => void;
+  onBookmark?: (verseKey: string) => void; // Changed to accept verseKey for stable callback
   fontSize: number;
   showTranslation: boolean;
   noteBlocks?: PartialBlock[]; // Current note blocks if exists
@@ -36,7 +36,6 @@ const AyahCardComponent: React.FC<AyahCardProps> = ({
   fontSize,
   showTranslation,
   noteBlocks,
-  theme,
   onNavigateToVerse,
   scriptType,
   getSurahName,
@@ -129,7 +128,7 @@ const AyahCardComponent: React.FC<AyahCardProps> = ({
         if (selection && selection.toString().length > 0) {
           return;
         }
-        onSelect();
+        onSelect(verse.verse_key);
       }}
       className={`
         group scroll-mt-48 border-b border-slate-100 dark:border-slate-800 py-8 px-4 md:px-8 transition-all duration-300 cursor-default rounded-xl
@@ -140,6 +139,7 @@ const AyahCardComponent: React.FC<AyahCardProps> = ({
         }
         ${isBookmarked ? "ring-2 ring-amber-400 dark:ring-amber-500/70" : ""}
       `}
+      style={{ contain: "content" }} // CSS containment for performance optimization
     >
       <div className="flex flex-col gap-6">
         {/* Top Actions Bar */}
@@ -166,7 +166,7 @@ const AyahCardComponent: React.FC<AyahCardProps> = ({
             <button
               onClick={(e) => {
                 e.stopPropagation();
-                onBookmark?.();
+                onBookmark?.(verse.verse_key);
               }}
               className={`
                 p-2 rounded-full transition-colors
@@ -264,12 +264,10 @@ const AyahCardComponent: React.FC<AyahCardProps> = ({
               <NotebookPen size={14} className="text-yellow-500" />
             </div>
             <div className="pl-6">
-              <RichNoteEditor
-                initialBlocks={noteBlocks}
-                theme={theme}
+              <NotePreview
+                blocks={noteBlocks}
                 onNavigateToVerse={onNavigateToVerse}
                 getSurahName={getSurahName}
-                editable={false}
               />
             </div>
             <div className="text-[10px] text-yellow-600/70 dark:text-yellow-500/70 mt-2 font-medium text-right">

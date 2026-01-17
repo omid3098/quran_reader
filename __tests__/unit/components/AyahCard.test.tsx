@@ -72,12 +72,12 @@ describe("AyahCard", () => {
     expect(screen.getByText("Sahih International")).toBeDefined();
   });
 
-  it("should call onSelect when card is clicked", () => {
+  it("should call onSelect with verseKey when card is clicked", () => {
     render(<AyahCard {...defaultProps} />);
     const card = screen.getByText("1:1").closest("div[id^='ayah-']");
     if (card) {
       fireEvent.click(card);
-      expect(defaultProps.onSelect).toHaveBeenCalled();
+      expect(defaultProps.onSelect).toHaveBeenCalledWith("1:1");
     }
   });
 
@@ -199,5 +199,13 @@ describe("AyahCard", () => {
     const { container } = render(<AyahCard {...defaultProps} />);
     const card = container.querySelector("#ayah-1-1");
     expect(card).not.toBeNull();
+  });
+
+  it("should call onBookmark with verseKey when bookmark button is clicked", () => {
+    const onBookmark = vi.fn();
+    render(<AyahCard {...defaultProps} onBookmark={onBookmark} />);
+    const bookmarkButton = screen.getByTitle("Set Bookmark");
+    fireEvent.click(bookmarkButton);
+    expect(onBookmark).toHaveBeenCalledWith("1:1");
   });
 });
