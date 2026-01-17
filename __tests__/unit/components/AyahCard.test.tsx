@@ -1,6 +1,11 @@
 import { describe, it, expect, vi, beforeEach } from "vitest";
 import { render, screen, fireEvent } from "@testing-library/react";
-import { AyahCard } from "@/components/AyahCard";
+import {
+  AyahCard,
+  AyahCardConfig,
+  AyahCardCallbacks,
+  AyahCardNavigation,
+} from "@/components/AyahCard";
 import type { Verse } from "@/types";
 
 describe("AyahCard", () => {
@@ -20,17 +25,27 @@ describe("AyahCard", () => {
     ],
   };
 
+  const mockConfig: AyahCardConfig = {
+    fontSize: 28,
+    showTranslation: true,
+    scriptType: "uthmani" as const,
+  };
+
+  const mockCallbacks: AyahCardCallbacks = {
+    onNote: vi.fn(),
+    onSelect: vi.fn(),
+  };
+
+  const mockNavigation: AyahCardNavigation = {};
+
   const defaultProps = {
     verse: mockVerse,
     chapterName: "Al-Fatiha",
     chapterId: 1,
-    onNote: vi.fn(),
-    onSelect: vi.fn(),
     isActive: false,
-    fontSize: 28,
-    showTranslation: true,
-    theme: "light" as const,
-    scriptType: "uthmani" as const,
+    config: mockConfig,
+    callbacks: mockCallbacks,
+    navigation: mockNavigation,
   };
 
   beforeEach(() => {
@@ -49,7 +64,8 @@ describe("AyahCard", () => {
   });
 
   it("should render Arabic text in simple script when specified", () => {
-    render(<AyahCard {...defaultProps} scriptType="simple" />);
+    const simpleConfig = { ...mockConfig, scriptType: "simple" as const };
+    render(<AyahCard {...defaultProps} config={simpleConfig} />);
     expect(screen.getByText("بسم")).toBeDefined();
   });
 
@@ -61,7 +77,8 @@ describe("AyahCard", () => {
   });
 
   it("should not render translation when showTranslation is false", () => {
-    render(<AyahCard {...defaultProps} showTranslation={false} />);
+    const noTransConfig = { ...mockConfig, showTranslation: false };
+    render(<AyahCard {...defaultProps} config={noTransConfig} />);
     expect(
       screen.queryByText("In the name of Allah, the Entirely Merciful, the Especially Merciful.")
     ).toBeNull();
@@ -77,7 +94,7 @@ describe("AyahCard", () => {
     const card = screen.getByText("1:1").closest("div[id^='ayah-']");
     if (card) {
       fireEvent.click(card);
-      expect(defaultProps.onSelect).toHaveBeenCalledWith("1:1");
+      expect(mockCallbacks.onSelect).toHaveBeenCalledWith("1:1");
     }
   });
 
@@ -85,7 +102,7 @@ describe("AyahCard", () => {
     render(<AyahCard {...defaultProps} />);
     const noteButton = screen.getByTitle("Personal Note");
     fireEvent.click(noteButton);
-    expect(defaultProps.onNote).toHaveBeenCalledWith(mockVerse, expect.any(Object));
+    expect(mockCallbacks.onNote).toHaveBeenCalledWith(mockVerse, expect.any(Object));
   });
 
   it("should display note when provided", () => {
@@ -125,14 +142,16 @@ describe("AyahCard", () => {
   });
 
   it("should apply correct font size to Arabic text", () => {
-    const { container } = render(<AyahCard {...defaultProps} fontSize={32} />);
+    const customConfig = { ...mockConfig, fontSize: 32 };
+    const { container } = render(<AyahCard {...defaultProps} config={customConfig} />);
     const arabicText = container.querySelector("[dir='rtl'] p");
     expect(arabicText?.getAttribute("style")).toContain("font-size: 32px");
   });
 
   it("should call onWordClick when a word is clicked on active verse", () => {
     const onWordClick = vi.fn();
-    render(<AyahCard {...defaultProps} isActive={true} onWordClick={onWordClick} />);
+    const callbacksWithWordClick = { ...mockCallbacks, onWordClick };
+    render(<AyahCard {...defaultProps} isActive={true} callbacks={callbacksWithWordClick} />);
 
     const wordSpan = screen.getByText("بِسْمِ");
     fireEvent.click(wordSpan);
@@ -142,7 +161,8 @@ describe("AyahCard", () => {
 
   it("should not call onWordClick when a word is clicked on non-active verse", () => {
     const onWordClick = vi.fn();
-    render(<AyahCard {...defaultProps} isActive={false} onWordClick={onWordClick} />);
+    const callbacksWithWordClick = { ...mockCallbacks, onWordClick };
+    render(<AyahCard {...defaultProps} isActive={false} callbacks={callbacksWithWordClick} />);
 
     const wordSpan = screen.getByText("بِسْمِ");
     fireEvent.click(wordSpan);
@@ -203,7 +223,8 @@ describe("AyahCard", () => {
 
   it("should call onBookmark with verseKey when bookmark button is clicked", () => {
     const onBookmark = vi.fn();
-    render(<AyahCard {...defaultProps} onBookmark={onBookmark} />);
+    const callbacksWithBookmark = { ...mockCallbacks, onBookmark };
+    render(<AyahCard {...defaultProps} callbacks={callbacksWithBookmark} />);
     const bookmarkButton = screen.getByTitle("Set Bookmark");
     fireEvent.click(bookmarkButton);
     expect(onBookmark).toHaveBeenCalledWith("1:1");

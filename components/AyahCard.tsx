@@ -5,41 +5,56 @@ import { NotePreview } from "./NotePreview";
 import { ShareButton } from "./ShareButton";
 import { PartialBlock } from "@blocknote/core";
 
+// Grouped stable configuration props
+export interface AyahCardConfig {
+  fontSize: number;
+  showTranslation: boolean;
+  scriptType: "uthmani" | "simple";
+}
+
+// Grouped callback props
+export interface AyahCardCallbacks {
+  onNote: (verse: Verse, e: React.MouseEvent) => void;
+  onSelect: (verseKey: string) => void;
+  onWordClick?: (word: string, wordIndex: number, verseKey: string, rect: DOMRect) => void;
+  onBookmark?: (verseKey: string) => void;
+}
+
+// Grouped navigation props
+export interface AyahCardNavigation {
+  onNavigateToVerse?: (surahId: number, verseNumber?: number) => void;
+  getSurahName?: (surahId: number) => string | undefined;
+}
+
 interface AyahCardProps {
+  // Per-verse data
   verse: Verse;
   chapterName: string;
   chapterId: number;
-  onNote: (verse: Verse, e: React.MouseEvent) => void;
-  onSelect: (verseKey: string) => void; // Changed to accept verseKey for stable callback
-  onWordClick?: (word: string, wordIndex: number, verseKey: string, rect: DOMRect) => void;
   isActive: boolean;
   isBookmarked?: boolean;
-  onBookmark?: (verseKey: string) => void; // Changed to accept verseKey for stable callback
-  fontSize: number;
-  showTranslation: boolean;
   noteBlocks?: PartialBlock[]; // Current note blocks if exists
-  theme: "light" | "dark";
-  onNavigateToVerse?: (surahId: number, verseNumber?: number) => void;
-  scriptType: "uthmani" | "simple";
-  getSurahName?: (surahId: number) => string | undefined;
+
+  // Grouped props
+  config: AyahCardConfig;
+  callbacks: AyahCardCallbacks;
+  navigation: AyahCardNavigation;
 }
 
 const AyahCardComponent: React.FC<AyahCardProps> = ({
   verse,
   chapterId,
-  onNote,
-  onSelect,
-  onWordClick,
   isActive,
   isBookmarked,
-  onBookmark,
-  fontSize,
-  showTranslation,
   noteBlocks,
-  onNavigateToVerse,
-  scriptType,
-  getSurahName,
+  config,
+  callbacks,
+  navigation,
 }) => {
+  // Destructure grouped props
+  const { fontSize, showTranslation, scriptType } = config;
+  const { onNote, onSelect, onWordClick, onBookmark } = callbacks;
+  const { onNavigateToVerse, getSurahName } = navigation;
   const verseNum = verse.verse_key.split(":")[1];
 
   // Calculate translation font size relative to Arabic font size

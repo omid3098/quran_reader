@@ -1,7 +1,12 @@
 import React, { useEffect, useState, useRef, useCallback, Suspense, useMemo } from "react";
 import { Header } from "./components/Header";
 import { AudioPlayer } from "./components/AudioPlayer";
-import { AyahCard } from "./components/AyahCard";
+import {
+  AyahCard,
+  AyahCardConfig,
+  AyahCardCallbacks,
+  AyahCardNavigation,
+} from "./components/AyahCard";
 import { BreadcrumbPanel } from "./components/BreadcrumbPanel";
 import { SmartContextMenu } from "./components/SmartContextMenu";
 import { IframeModal } from "./components/IframeModal";
@@ -1211,6 +1216,38 @@ const App: React.FC = () => {
     }));
   };
 
+  // --- Memoized Prop Groups for AyahCard (Phase 2 Optimization) ---
+
+  // Config: Stable settings that change together
+  const ayahCardConfig: AyahCardConfig = useMemo(
+    () => ({
+      fontSize: settings.fontSize,
+      showTranslation: settings.showTranslation,
+      scriptType: settings.scriptType,
+    }),
+    [settings.fontSize, settings.showTranslation, settings.scriptType]
+  );
+
+  // Callbacks: All event handlers
+  const ayahCardCallbacks: AyahCardCallbacks = useMemo(
+    () => ({
+      onNote: handleOpenNote,
+      onSelect: handleVerseSelectByKey,
+      onWordClick: handleWordClick,
+      onBookmark: handleBookmarkByKey,
+    }),
+    [handleOpenNote, handleVerseSelectByKey, handleWordClick, handleBookmarkByKey]
+  );
+
+  // Navigation: Verse navigation helpers
+  const ayahCardNavigation: AyahCardNavigation = useMemo(
+    () => ({
+      onNavigateToVerse: handleNavigateFromNote,
+      getSurahName,
+    }),
+    [handleNavigateFromNote, getSurahName]
+  );
+
   return (
     <div className="min-h-screen flex flex-col bg-white dark:bg-slate-950 text-slate-900 dark:text-slate-100 transition-colors duration-300 overflow-x-hidden">
       <Header
@@ -1275,19 +1312,12 @@ const App: React.FC = () => {
                     verse={verse}
                     chapterName={currentChapter?.name_simple || ""}
                     chapterId={currentChapter?.id || 0}
-                    onNote={handleOpenNote}
-                    onSelect={handleVerseSelectByKey}
-                    onWordClick={handleWordClick}
                     isActive={currentVerseIndex === index}
                     isBookmarked={bookmarkedVerse?.verseKey === verse.verse_key}
-                    onBookmark={handleBookmarkByKey}
-                    fontSize={settings.fontSize}
-                    showTranslation={settings.showTranslation}
                     noteBlocks={notes[verse.verse_key]?.blocks}
-                    theme={settings.theme}
-                    onNavigateToVerse={handleNavigateFromNote}
-                    scriptType={settings.scriptType}
-                    getSurahName={getSurahName}
+                    config={ayahCardConfig}
+                    callbacks={ayahCardCallbacks}
+                    navigation={ayahCardNavigation}
                   />
                 ))}
               </div>
