@@ -1,6 +1,6 @@
 import React, { useState, useRef, useEffect } from "react";
 import { Chapter } from "../types";
-import { Search, ChevronDown, Menu, Moon, Sun } from "lucide-react";
+import { Search, ChevronDown, Menu, Moon, Sun, Maximize2 } from "lucide-react";
 
 interface HeaderProps {
   chapters: Chapter[];
@@ -10,6 +10,7 @@ interface HeaderProps {
   onToggleSettings: () => void;
   theme: "light" | "dark";
   onToggleTheme: () => void;
+  onOpenFocusMode: () => void;
   isHidden?: boolean;
 }
 
@@ -21,6 +22,7 @@ export const Header: React.FC<HeaderProps> = ({
   onToggleSettings,
   theme,
   onToggleTheme,
+  onOpenFocusMode,
   isHidden = false,
 }) => {
   const [dropdownOpen, setDropdownOpen] = useState(false);
@@ -162,6 +164,13 @@ export const Header: React.FC<HeaderProps> = ({
             title={theme === "dark" ? "Switch to Light Mode" : "Switch to Dark Mode"}
           >
             {theme === "dark" ? <Sun size={22} /> : <Moon size={22} />}
+          </button>
+          <button
+            onClick={onOpenFocusMode}
+            className="p-2.5 text-slate-500 dark:text-slate-400 hover:bg-slate-100 dark:hover:bg-slate-800 hover:text-emerald-600 dark:hover:text-emerald-400 rounded-full transition-colors hidden md:block"
+            title="Enter Focus Mode"
+          >
+            <Maximize2 size={22} />
           </button>
           <button
             onClick={onOpenSearch}

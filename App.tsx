@@ -25,6 +25,9 @@ const SurahNoteModal = React.lazy(() =>
 const UnifiedSearchModal = React.lazy(() =>
   import("./components/UnifiedSearchModal").then((m) => ({ default: m.UnifiedSearchModal }))
 );
+const FocusMode = React.lazy(() =>
+  import("./components/FocusMode").then((m) => ({ default: m.FocusMode }))
+);
 import { getChapters, getVerses, getAudioUrl } from "./services/quranService";
 import { parseUrlPath, buildVersePath } from "./services/urlService";
 import {
@@ -94,6 +97,12 @@ const App: React.FC = () => {
   const [phraseData, setPhraseData] = useState<{
     count: number;
     verses: { verse_key: string; text: string }[];
+  } | null>(null);
+
+  // --- Focus Mode State ---
+  const [focusModeData, setFocusModeData] = useState<{
+    verse: Verse;
+    chapter: Chapter;
   } | null>(null);
 
   // --- Iframe State ---
@@ -1021,6 +1030,41 @@ const App: React.FC = () => {
     });
   };
 
+  // --- Focus Mode Handlers ---
+  const handleFocusMode = useCallback(
+    (verse: Verse) => {
+      if (currentChapter) {
+        setFocusModeData({ verse, chapter: currentChapter });
+        // Sync the main reading view to this verse as well so the effect doesn't revert it
+        handleVerseSelectByKey(verse.verse_key);
+      }
+    },
+    [currentChapter, handleVerseSelectByKey]
+  );
+
+  const handleFocusModeNext = useCallback(() => {
+    handleNextAyah();
+    // Update focus mode data after a short delay to allow index to update
+    // Or better, use the updated index directly if possible, but index is state
+    // So we need to rely on the effect that updates currentVerseIndex?
+    // Actually, handleNextAyah updates currentVerseIndex.
+    // We can use an effect to sync focusModeData with currentVerseIndex when focus mode is open.
+  }, [handleNextAyah]);
+
+  const handleFocusModePrev = useCallback(() => {
+    handlePrevAyah();
+  }, [handlePrevAyah]);
+
+  // Sync Focus Mode with current verse index
+  useEffect(() => {
+    if (focusModeData && currentChapter && verses[currentVerseIndex]) {
+      const verse = verses[currentVerseIndex];
+      if (verse.id !== focusModeData.verse.id) {
+        setFocusModeData({ verse, chapter: currentChapter });
+      }
+    }
+  }, [currentVerseIndex, verses, currentChapter, focusModeData]);
+
   // --- Note Handlers ---
   const handleOpenNote = useCallback((verse: Verse, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -1266,6 +1310,13 @@ const App: React.FC = () => {
     [handleOpenNote, handleVerseSelectByKey, handleWordClick, handleBookmarkByKey]
   );
 
+  const handleOpenFocusMode = useCallback(() => {
+    if (currentChapter && verses[currentVerseIndex]) {
+      const verse = verses[currentVerseIndex];
+      setFocusModeData({ verse, chapter: currentChapter });
+    }
+  }, [currentChapter, verses, currentVerseIndex]);
+
   // Navigation: Verse navigation helpers
   const ayahCardNavigation: AyahCardNavigation = useMemo(
     () => ({
@@ -1287,6 +1338,7 @@ const App: React.FC = () => {
         onToggleTheme={() =>
           setSettings((prev) => ({ ...prev, theme: prev.theme === "light" ? "dark" : "light" }))
         }
+        onOpenFocusMode={handleOpenFocusMode}
         isHidden={isHeaderHidden}
       />
 
@@ -1452,6 +1504,38 @@ const App: React.FC = () => {
           userLanguage={settings.userLanguage || "en"}
           hideCopy={!selectionContext.verseKey}
         />
+      )}
+
+      {/* Focus Mode Overlay */}
+      {focusModeData && (
+        <Suspense fallback={null}>
+          <FocusMode
+            verse={focusModeData.verse}
+            chapter={focusModeData.chapter}
+            onExit={() => setFocusModeData(null)}
+            onNextVerse={handleFocusModeNext}
+            onPrevVerse={handleFocusModePrev}
+            note={notes[focusModeData.verse.verse_key]}
+            onSaveNote={saveVerseNote}
+            theme={settings.theme}
+            onNavigateToVerse={handleNavigateFromNote}
+            getSurahName={getSurahName}
+            settings={{ fontSize: settings.fontSize }}
+            breadcrumbs={breadcrumbs}
+            bookmark={bookmarkedVerse}
+            onNavigateToBookmark={handleNavigateToBookmark}
+            onBreadcrumbClick={handleBreadcrumbClick}
+            currentVerseKey={focusModeData.verse.verse_key}
+            onBookmark={handleBookmarkByKey}
+            isBookmarked={bookmarkedVerse?.verseKey === focusModeData.verse.verse_key}
+            isPlaying={isPlaying}
+            onTogglePlay={() => setIsPlaying(!isPlaying)}
+            autoPlayEnabled={settings.autoPlay}
+            onToggleAutoPlay={() => setSettings((prev) => ({ ...prev, autoPlay: !prev.autoPlay }))}
+            hasSurahNotes={currentChapter ? hasNoteForSurah(currentChapter.id) : false}
+            onOpenSurahNotes={() => setSurahNoteModalOpen(true)}
+          />
+        </Suspense>
       )}
 
       <IframeModal

@@ -34,8 +34,10 @@ const ScrollTester = ({ threshold = 0 }: { threshold?: number }) => {
         onToggleSettings={() => {}}
         theme="light"
         onToggleTheme={() => {}}
-        isHidden={isHidden}
+        isHidden={false}
+        onOpenFocusMode={() => {}}
       />
+      );
       <main
         ref={(node) => {
           scrollContainerRef.current = node;
