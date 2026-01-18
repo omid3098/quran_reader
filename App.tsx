@@ -1031,17 +1031,6 @@ const App: React.FC = () => {
   };
 
   // --- Focus Mode Handlers ---
-  const handleFocusMode = useCallback(
-    (verse: Verse) => {
-      if (currentChapter) {
-        setFocusModeData({ verse, chapter: currentChapter });
-        // Sync the main reading view to this verse as well so the effect doesn't revert it
-        handleVerseSelectByKey(verse.verse_key);
-      }
-    },
-    [currentChapter, handleVerseSelectByKey]
-  );
-
   const handleFocusModeNext = useCallback(() => {
     handleNextAyah();
     // Update focus mode data after a short delay to allow index to update

@@ -95,7 +95,7 @@ test.describe("Navigation", () => {
     const html = page.locator("html");
 
     // Click theme toggle
-    const themeButton = page.locator('button[title*="Mode"]');
+    const themeButton = page.locator('button[title*="Switch to"]');
     await themeButton.click();
 
     // Theme should change (checking for dark class toggle)

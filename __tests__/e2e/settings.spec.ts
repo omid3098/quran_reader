@@ -38,7 +38,7 @@ test.describe("Settings", () => {
 
   test("should toggle dark mode", async ({ page }) => {
     // Get the theme toggle button
-    const themeButton = page.locator('button[title*="Mode"]');
+    const themeButton = page.locator('button[title*="Switch to"]');
 
     // Click to toggle theme
     await themeButton.click();
@@ -53,7 +53,7 @@ test.describe("Settings", () => {
 
   test("should persist theme preference", async ({ page }) => {
     // Toggle to dark mode
-    const themeButton = page.locator('button[title*="Mode"]');
+    const themeButton = page.locator('button[title*="Switch to"]');
     await themeButton.click();
     await page.waitForTimeout(300);
 

@@ -34,7 +34,7 @@ const ScrollTester = ({ threshold = 0 }: { threshold?: number }) => {
         onToggleSettings={() => {}}
         theme="light"
         onToggleTheme={() => {}}
-        isHidden={false}
+        isHidden={isHidden}
         onOpenFocusMode={() => {}}
       />
       );
