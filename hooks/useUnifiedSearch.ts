@@ -57,8 +57,34 @@ export function useUnifiedSearch({
       const lowerQuery = searchQuery.toLowerCase();
       const results: SearchResult[] = [];
 
+      // Check for verse number match
+      const searchVerseNum = parseInt(searchQuery, 10);
+      const isNumberSearch =
+        !isNaN(searchVerseNum) && searchVerseNum.toString() === searchQuery.trim();
+
+      if (isNumberSearch) {
+        const targetVerse = currentVerses.find((v) => {
+          const [, ayahNum] = v.verse_key.split(":").map(Number);
+          return ayahNum === searchVerseNum;
+        });
+
+        if (targetVerse) {
+          const [surahId, ayahNum] = targetVerse.verse_key.split(":").map(Number);
+          results.push({
+            verseKey: targetVerse.verse_key,
+            surahId,
+            ayahNum,
+            excerpt: targetVerse.text_uthmani || targetVerse.text_simple || "",
+            matchType: "arabic",
+          });
+        }
+      }
+
       for (const verse of currentVerses) {
         const [surahId, ayahNum] = verse.verse_key.split(":").map(Number);
+
+        // Skip if we already added this verse via number search
+        if (isNumberSearch && ayahNum === searchVerseNum) continue;
 
         // Search in Arabic text
         const arabicText = verse.text_uthmani || verse.text_simple;

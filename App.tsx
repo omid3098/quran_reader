@@ -13,9 +13,6 @@ import { LanguageSelectionModal } from "./components/LanguageSelectionModal";
 const SettingsSidebar = React.lazy(() =>
   import("./components/SettingsSidebar").then((m) => ({ default: m.SettingsSidebar }))
 );
-const AISearchModal = React.lazy(() =>
-  import("./components/AISearchModal").then((m) => ({ default: m.AISearchModal }))
-);
 const NoteModal = React.lazy(() =>
   import("./components/NoteModal").then((m) => ({ default: m.NoteModal }))
 );
@@ -81,7 +78,6 @@ const App: React.FC = () => {
   const [settingsOpen, setSettingsOpen] = useState(false);
   const [_loadingChapters, setLoadingChapters] = useState(true);
   const [loadingVerses, setLoadingVerses] = useState(false);
-  const [searchModalOpen, setSearchModalOpen] = useState(false);
   const [unifiedSearchOpen, setUnifiedSearchOpen] = useState(false);
   const [pendingScrollAyah, setPendingScrollAyah] = useState<string | null>(null);
   const [scrollContainer, setScrollContainer] = useState<HTMLElement | null>(null);
@@ -579,7 +575,7 @@ const App: React.FC = () => {
           setTimeout(() => {
             virtualizerRef.current?.scrollToIndex(targetIndex, {
               align: "center",
-              behavior: "smooth",
+              behavior: "auto",
             });
 
             // Clear any existing highlight timeout
@@ -632,7 +628,6 @@ const App: React.FC = () => {
 
   // Refs for keyboard navigation to avoid re-attaching listener on modal changes
   const keyboardStateRef = useRef({
-    searchModalOpen,
     unifiedSearchOpen,
     noteModalOpen,
     surahNoteModalOpen,
@@ -646,7 +641,6 @@ const App: React.FC = () => {
   // Keep refs in sync with state
   useEffect(() => {
     keyboardStateRef.current = {
-      searchModalOpen,
       unifiedSearchOpen,
       noteModalOpen,
       surahNoteModalOpen,
@@ -657,7 +651,6 @@ const App: React.FC = () => {
       versesLength: verses.length,
     };
   }, [
-    searchModalOpen,
     unifiedSearchOpen,
     noteModalOpen,
     surahNoteModalOpen,
@@ -683,7 +676,7 @@ const App: React.FC = () => {
       const state = keyboardStateRef.current;
 
       // Ctrl+F / Cmd+F opens unified search modal
-      if ((e.ctrlKey || e.metaKey) && e.key === "f") {
+      if ((e.ctrlKey || e.metaKey) && (e.key === "f" || e.key === "F")) {
         e.preventDefault();
         setUnifiedSearchOpen(true);
         return;
@@ -691,7 +684,6 @@ const App: React.FC = () => {
 
       // Guard: Check if any modal/overlay is open (except analysis sidebar per user request)
       const anyModalOpen =
-        state.searchModalOpen ||
         state.unifiedSearchOpen ||
         state.noteModalOpen ||
         state.surahNoteModalOpen ||
@@ -1289,7 +1281,7 @@ const App: React.FC = () => {
         chapters={chapters}
         currentChapter={currentChapter}
         onSelectChapter={(id) => handleChapterSelect(id)}
-        onOpenSearch={() => setSearchModalOpen(true)}
+        onOpenSearch={() => setUnifiedSearchOpen(true)}
         onToggleSettings={() => setSettingsOpen(true)}
         theme={settings.theme}
         onToggleTheme={() =>
@@ -1401,14 +1393,6 @@ const App: React.FC = () => {
           onOpenSurahNotes={() => setSurahNoteModalOpen(true)}
         />
       )}
-
-      <Suspense fallback={null}>
-        <AISearchModal
-          isOpen={searchModalOpen}
-          onClose={() => setSearchModalOpen(false)}
-          onNavigate={handleNavigateFromSearch}
-        />
-      </Suspense>
 
       <Suspense fallback={null}>
         <UnifiedSearchModal
