@@ -283,6 +283,7 @@ const AyahCardComponent: React.FC<AyahCardProps> = ({
                 blocks={noteBlocks}
                 onNavigateToVerse={onNavigateToVerse}
                 getSurahName={getSurahName}
+                fontSize={translationFontSize}
               />
             </div>
             <div className="text-[10px] text-yellow-600/70 dark:text-yellow-500/70 mt-2 font-medium text-right">

@@ -4,6 +4,13 @@ test.describe("Analysis Panel Translation", () => {
   test.beforeEach(async ({ page }) => {
     // Navigate to the app
     await page.goto("/quran_reader/");
+
+    // Dismiss language selection modal if present
+    const welcomeText = page.locator("text=Welcome");
+    if (await welcomeText.isVisible()) {
+      await page.click("text=English");
+    }
+
     // Wait for the app to load
     await page.waitForSelector('[data-testid="ayah-card"], .font-quran', { timeout: 10000 });
   });

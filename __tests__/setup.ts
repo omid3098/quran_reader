@@ -34,6 +34,18 @@ Object.defineProperty(window, "IntersectionObserver", {
   value: MockIntersectionObserver,
 });
 
+// Mock ResizeObserver (required for @tanstack/react-virtual)
+class MockResizeObserver {
+  observe = vi.fn();
+  disconnect = vi.fn();
+  unobserve = vi.fn();
+}
+
+Object.defineProperty(window, "ResizeObserver", {
+  writable: true,
+  value: MockResizeObserver,
+});
+
 // Mock localStorage
 const localStorageMock = {
   getItem: vi.fn(),

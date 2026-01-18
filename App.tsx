@@ -1,12 +1,9 @@
 import React, { useEffect, useState, useRef, useCallback, Suspense, useMemo } from "react";
+import { Virtualizer } from "@tanstack/react-virtual";
 import { Header } from "./components/Header";
 import { AudioPlayer } from "./components/AudioPlayer";
-import {
-  AyahCard,
-  AyahCardConfig,
-  AyahCardCallbacks,
-  AyahCardNavigation,
-} from "./components/AyahCard";
+import { AyahCardConfig, AyahCardCallbacks, AyahCardNavigation } from "./components/AyahCard";
+import VirtualVerseList from "./components/VirtualVerseList";
 import { BreadcrumbPanel } from "./components/BreadcrumbPanel";
 import { SmartContextMenu } from "./components/SmartContextMenu";
 import { IframeModal } from "./components/IframeModal";
@@ -27,6 +24,9 @@ const AnalysisSidebar = React.lazy(() =>
 );
 const SurahNoteModal = React.lazy(() =>
   import("./components/SurahNoteModal").then((m) => ({ default: m.SurahNoteModal }))
+);
+const UnifiedSearchModal = React.lazy(() =>
+  import("./components/UnifiedSearchModal").then((m) => ({ default: m.UnifiedSearchModal }))
 );
 import { getChapters, getVerses, getAudioUrl } from "./services/quranService";
 import { parseUrlPath, buildVersePath } from "./services/urlService";
@@ -82,8 +82,11 @@ const App: React.FC = () => {
   const [_loadingChapters, setLoadingChapters] = useState(true);
   const [loadingVerses, setLoadingVerses] = useState(false);
   const [searchModalOpen, setSearchModalOpen] = useState(false);
+  const [unifiedSearchOpen, setUnifiedSearchOpen] = useState(false);
   const [pendingScrollAyah, setPendingScrollAyah] = useState<string | null>(null);
   const [scrollContainer, setScrollContainer] = useState<HTMLElement | null>(null);
+  const virtualizerRef = useRef<Virtualizer<HTMLElement, Element> | null>(null);
+  const scrollContainerRef = useRef<HTMLElement>(null);
   const isHeaderHidden = useHideOnScroll(scrollContainer);
 
   // --- Analysis & Context Menu State ---
@@ -120,9 +123,11 @@ const App: React.FC = () => {
     deleteSurahNote,
     getNoteForSurah,
     hasNoteForSurah,
+    searchNotes,
     setAllNotes,
     setAllSurahNotes,
   } = useNotes();
+  const [noteSearchResults, setNoteSearchResults] = useState<ReturnType<typeof searchNotes>>([]);
 
   const [noteModalOpen, setNoteModalOpen] = useState(false);
   const [editingNoteVerse, setEditingNoteVerse] = useState<Verse | null>(null);
@@ -562,36 +567,53 @@ const App: React.FC = () => {
 
   // --- Scrolling Logic ---
   useEffect(() => {
-    if (!loadingVerses && pendingScrollAyah) {
-      const element = document.getElementById(pendingScrollAyah);
-      if (element) {
-        // Clear any existing highlight timeout
-        if (highlightTimeoutRef.current) {
-          clearTimeout(highlightTimeoutRef.current);
-          highlightTimeoutRef.current = null;
+    if (!loadingVerses && pendingScrollAyah && virtualizerRef.current) {
+      // Extract verse key from ayah ID format: "ayah-1-1" -> "1:1"
+      const match = pendingScrollAyah.match(/ayah-(\d+)-(\d+)/);
+      if (match) {
+        const verseKey = `${match[1]}:${match[2]}`;
+        const targetIndex = verses.findIndex((v) => v.verse_key === verseKey);
+
+        if (targetIndex !== -1) {
+          // Scroll to the verse using virtualizer
+          setTimeout(() => {
+            virtualizerRef.current?.scrollToIndex(targetIndex, {
+              align: "center",
+              behavior: "smooth",
+            });
+
+            // Clear any existing highlight timeout
+            if (highlightTimeoutRef.current) {
+              clearTimeout(highlightTimeoutRef.current);
+              highlightTimeoutRef.current = null;
+            }
+
+            // Remove highlight from previously highlighted element
+            if (highlightedElementRef.current) {
+              highlightedElementRef.current.classList.remove(
+                "bg-emerald-50/50",
+                "dark:bg-emerald-900/30"
+              );
+              highlightedElementRef.current = null;
+            }
+
+            // Add highlight to new element after scroll
+            setTimeout(() => {
+              const element = document.getElementById(pendingScrollAyah);
+              if (element) {
+                element.classList.add("bg-emerald-50/50", "dark:bg-emerald-900/30");
+                highlightedElementRef.current = element;
+
+                // Set new timeout and store reference
+                highlightTimeoutRef.current = setTimeout(() => {
+                  element.classList.remove("bg-emerald-50/50", "dark:bg-emerald-900/30");
+                  highlightedElementRef.current = null;
+                  highlightTimeoutRef.current = null;
+                }, 2000);
+              }
+            }, 300);
+          }, 100);
         }
-
-        // Remove highlight from previously highlighted element
-        if (highlightedElementRef.current) {
-          highlightedElementRef.current.classList.remove(
-            "bg-emerald-50/50",
-            "dark:bg-emerald-900/30"
-          );
-          highlightedElementRef.current = null;
-        }
-
-        setTimeout(() => {
-          element.scrollIntoView({ behavior: "smooth", block: "center" });
-          element.classList.add("bg-emerald-50/50", "dark:bg-emerald-900/30");
-          highlightedElementRef.current = element;
-
-          // Set new timeout and store reference
-          highlightTimeoutRef.current = setTimeout(() => {
-            element.classList.remove("bg-emerald-50/50", "dark:bg-emerald-900/30");
-            highlightedElementRef.current = null;
-            highlightTimeoutRef.current = null;
-          }, 2000);
-        }, 100);
         setPendingScrollAyah(null);
       }
     }
@@ -611,6 +633,7 @@ const App: React.FC = () => {
   // Refs for keyboard navigation to avoid re-attaching listener on modal changes
   const keyboardStateRef = useRef({
     searchModalOpen,
+    unifiedSearchOpen,
     noteModalOpen,
     surahNoteModalOpen,
     settingsOpen,
@@ -624,6 +647,7 @@ const App: React.FC = () => {
   useEffect(() => {
     keyboardStateRef.current = {
       searchModalOpen,
+      unifiedSearchOpen,
       noteModalOpen,
       surahNoteModalOpen,
       settingsOpen,
@@ -634,6 +658,7 @@ const App: React.FC = () => {
     };
   }, [
     searchModalOpen,
+    unifiedSearchOpen,
     noteModalOpen,
     surahNoteModalOpen,
     settingsOpen,
@@ -657,9 +682,17 @@ const App: React.FC = () => {
     const handleKeyDown = (e: KeyboardEvent) => {
       const state = keyboardStateRef.current;
 
+      // Ctrl+F / Cmd+F opens unified search modal
+      if ((e.ctrlKey || e.metaKey) && e.key === "f") {
+        e.preventDefault();
+        setUnifiedSearchOpen(true);
+        return;
+      }
+
       // Guard: Check if any modal/overlay is open (except analysis sidebar per user request)
       const anyModalOpen =
         state.searchModalOpen ||
+        state.unifiedSearchOpen ||
         state.noteModalOpen ||
         state.surahNoteModalOpen ||
         state.settingsOpen ||
@@ -770,29 +803,31 @@ const App: React.FC = () => {
     [verses, getSelectedVerseRef, addBreadcrumb]
   );
 
-  const handleNavigateFromSearch = (surahId: number, ayahNum: number) => {
-    const verseKey = `${surahId}:${ayahNum}`;
-    const targetId = `ayah-${surahId}-${ayahNum}`;
+  const handleNavigateFromSearch = useCallback(
+    (surahId: number, ayahNum: number) => {
+      const verseKey = `${surahId}:${ayahNum}`;
+      const targetId = `ayah-${surahId}-${ayahNum}`;
 
-    // Add current position to breadcrumbs before navigating
-    const currentRef = getSelectedVerseRef();
-    if (currentRef && currentRef.verseKey !== verseKey) {
-      addBreadcrumb(currentRef);
-    }
-
-    setPendingScrollAyah(targetId);
-
-    if (currentChapter?.id !== surahId) {
-      handleChapterSelect(surahId, chapters, verseKey);
-    } else {
-      const targetIndex = verses.findIndex((v) => v.verse_key === verseKey);
-      if (targetIndex !== -1) {
-        setCurrentVerseIndex(targetIndex);
+      // Add current position to breadcrumbs before navigating
+      const currentRef = getSelectedVerseRef();
+      if (currentRef && currentRef.verseKey !== verseKey) {
+        addBreadcrumb(currentRef);
       }
-      const element = document.getElementById(targetId);
-      if (element) element.scrollIntoView({ behavior: "smooth", block: "center" });
-    }
-  };
+
+      setPendingScrollAyah(targetId);
+
+      if (currentChapter?.id !== surahId) {
+        handleChapterSelect(surahId, chapters, verseKey);
+      } else {
+        const targetIndex = verses.findIndex((v) => v.verse_key === verseKey);
+        if (targetIndex !== -1) {
+          setCurrentVerseIndex(targetIndex);
+        }
+        // pendingScrollAyah effect will handle scrolling via virtualizer
+      }
+    },
+    [currentChapter, chapters, verses, getSelectedVerseRef, addBreadcrumb, handleChapterSelect]
+  );
 
   const handleNavigateByKey = (verseKey: string) => {
     const [surah, ayah] = verseKey.split(":").map(Number);
@@ -1031,7 +1066,7 @@ const App: React.FC = () => {
         handleChapterSelect(surahId);
       }
     },
-    [handleChapterSelect]
+    [handleChapterSelect, handleNavigateFromSearch]
   );
 
   // --- Bookmark & Breadcrumb Handlers ---
@@ -1284,7 +1319,10 @@ const App: React.FC = () => {
       <div className="flex flex-1 min-h-screen">
         {/* Main Content Area */}
         <main
-          ref={setScrollContainer}
+          ref={(el) => {
+            setScrollContainer(el);
+            scrollContainerRef.current = el;
+          }}
           className={`
             flex-1 overflow-y-auto h-screen pt-16 relative transition-all duration-300
             ${analysisSidebarOpen ? "md:mr-80 lg:mr-96" : ""}
@@ -1305,22 +1343,20 @@ const App: React.FC = () => {
                 <p className="text-slate-400">Loading verses...</p>
               </div>
             ) : (
-              <div className="space-y-2">
-                {verses.map((verse, index) => (
-                  <AyahCard
-                    key={verse.id}
-                    verse={verse}
-                    chapterName={currentChapter?.name_simple || ""}
-                    chapterId={currentChapter?.id || 0}
-                    isActive={currentVerseIndex === index}
-                    isBookmarked={bookmarkedVerse?.verseKey === verse.verse_key}
-                    noteBlocks={notes[verse.verse_key]?.blocks}
-                    config={ayahCardConfig}
-                    callbacks={ayahCardCallbacks}
-                    navigation={ayahCardNavigation}
-                  />
-                ))}
-              </div>
+              <VirtualVerseList
+                verses={verses}
+                scrollElement={scrollContainer}
+                config={ayahCardConfig}
+                callbacks={ayahCardCallbacks}
+                navigation={ayahCardNavigation}
+                notes={notes}
+                currentVerseIndex={currentVerseIndex}
+                bookmarkedVerseKey={bookmarkedVerse?.verseKey}
+                currentChapter={currentChapter}
+                onVirtualizerReady={(virtualizer) => {
+                  virtualizerRef.current = virtualizer;
+                }}
+              />
             )}
           </div>
         </main>
@@ -1371,6 +1407,20 @@ const App: React.FC = () => {
           isOpen={searchModalOpen}
           onClose={() => setSearchModalOpen(false)}
           onNavigate={handleNavigateFromSearch}
+        />
+      </Suspense>
+
+      <Suspense fallback={null}>
+        <UnifiedSearchModal
+          isOpen={unifiedSearchOpen}
+          onClose={() => setUnifiedSearchOpen(false)}
+          onNavigate={handleNavigateFromSearch}
+          currentVerses={verses}
+          currentChapterId={currentChapter?.id || null}
+          currentChapterName={currentChapter?.name_simple}
+          noteSearchResults={noteSearchResults}
+          onSearchNotes={(query) => setNoteSearchResults(searchNotes(query))}
+          getSurahName={getSurahName}
         />
       </Suspense>
 

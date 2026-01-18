@@ -7,6 +7,7 @@ interface NotePreviewProps {
   blocks: PartialBlock[];
   onNavigateToVerse?: (surahId: number, verseNumber?: number) => void;
   getSurahName?: (surahId: number) => string | undefined;
+  fontSize?: number;
 }
 
 // eslint-disable-next-line @typescript-eslint/no-explicit-any
@@ -301,13 +302,22 @@ function groupListItems(
  * Lightweight read-only renderer for BlockNote blocks.
  * Used in AyahCard to display notes without creating full editor instances.
  */
-export function NotePreview({ blocks, onNavigateToVerse, getSurahName }: NotePreviewProps) {
+export function NotePreview({
+  blocks,
+  onNavigateToVerse,
+  getSurahName,
+  fontSize,
+}: NotePreviewProps) {
   if (!blocks || blocks.length === 0) {
     return null;
   }
 
   return (
-    <div className="note-preview font-vazir text-sm text-slate-700 dark:text-slate-300" dir="auto">
+    <div
+      className="note-preview font-vazir text-slate-700 dark:text-slate-300"
+      dir="auto"
+      style={{ fontSize: fontSize ? `${fontSize}px` : undefined }}
+    >
       {groupListItems(blocks, onNavigateToVerse, getSurahName)}
     </div>
   );
