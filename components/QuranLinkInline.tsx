@@ -250,16 +250,17 @@ function QuranLinkComponent({ reference }: { reference: string }) {
 
   return (
     <span
-      className={`inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-sm font-medium cursor-pointer transition-colors ${
+      className={`quran-link inline-flex items-center gap-1 px-1.5 py-0.5 rounded font-medium cursor-pointer transition-colors ${
         isValid
           ? "bg-emerald-100 text-emerald-700 hover:bg-emerald-200 dark:bg-emerald-900/30 dark:text-emerald-400 dark:hover:bg-emerald-900/50"
           : "bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-400"
       }`}
+      style={{ fontSize: "inherit", verticalAlign: "middle" }}
       onClick={handleClick}
       title={tooltip}
     >
-      <BookOpen size={12} />
-      <span>{parsed.displayText}</span>
+      <BookOpen size="1em" style={{ flexShrink: 0 }} />
+      <span style={{ lineHeight: 1 }}>{parsed.displayText}</span>
     </span>
   );
 }

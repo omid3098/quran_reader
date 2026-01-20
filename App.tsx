@@ -1509,7 +1509,7 @@ const App: React.FC = () => {
             theme={settings.theme}
             onNavigateToVerse={handleNavigateFromNote}
             getSurahName={getSurahName}
-            settings={{ fontSize: settings.fontSize }}
+            settings={{ fontSize: settings.fontSize, scriptType: settings.scriptType }}
             breadcrumbs={breadcrumbs}
             bookmark={bookmarkedVerse}
             onNavigateToBookmark={handleNavigateToBookmark}

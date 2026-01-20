@@ -40,6 +40,7 @@ interface FocusModeProps {
   settings: {
     fontSize: number;
     fontFamily?: string;
+    scriptType?: "uthmani" | "simple";
   };
   breadcrumbs?: BreadcrumbEntry[];
   bookmark?: VerseRef | null;
@@ -349,7 +350,7 @@ export const FocusMode: React.FC<FocusModeProps> = ({
               className="font-quran leading-[2.0] text-slate-800 dark:text-slate-100 transition-all duration-300"
               style={{ fontSize: `${settings.fontSize * 1.1}px` }} // Reduced multiplier from 1.5 to 1.1
             >
-              {verse.text_uthmani}
+              {settings.scriptType === "simple" ? verse.text_simple : verse.text_uthmani}
             </p>
           </div>
 
@@ -419,6 +420,10 @@ export const FocusMode: React.FC<FocusModeProps> = ({
             }
             .focus-mode-notes .bn-editor {
               font-size: ${scaledFontSize}px !important;
+            }
+            .focus-mode-notes .quran-link {
+              border-radius: 9999px !important;
+              padding: 0.25em 0.6em !important;
             }
           `}</style>
           <div className="flex-1 overflow-y-auto px-6 md:px-12 py-8 custom-scrollbar">

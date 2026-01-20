@@ -83,9 +83,33 @@ export function RichNoteEditor({
 
     const needsUpdate = JSON.stringify(normalized) !== JSON.stringify(blocks);
     if (needsUpdate) {
+      // Save cursor position before replacing blocks
+      const selection = editor.getSelection();
+      const textCursor = editor.getTextCursorPosition();
+
       editor.replaceBlocks(editor.document, normalized as (typeof schema.PartialBlock)[]);
+
+      // Restore cursor position after replacing blocks
+      // Use requestAnimationFrame to ensure DOM has updated
+      requestAnimationFrame(() => {
+        try {
+          if (selection) {
+            editor.setSelection(selection.blocks[0], selection.blocks[selection.blocks.length - 1]);
+          } else if (textCursor?.block) {
+            editor.setTextCursorPosition(textCursor.block, textCursor.prevBlock ? "start" : "end");
+          }
+        } catch {
+          // Cursor restoration may fail if blocks changed significantly, that's ok
+        }
+      });
+
+      // Update ref to prevent useEffect from re-triggering
+      lastInitialContentRef.current = JSON.stringify(normalized);
       return;
     }
+
+    // Update ref to prevent useEffect from re-triggering after parent saves
+    lastInitialContentRef.current = JSON.stringify(normalized);
 
     if (onChange) {
       onChange(normalized);
