@@ -29,13 +29,33 @@ export function estimateWordNodeWidth(word: string): number {
 }
 
 const ROOT_NODE_OFFSET_Y = 120;
+const ROOT_NODE_ESTIMATED_WIDTH = 100;
 const SURAH_NODE_OFFSET_Y = 100;
-const SURAH_NODE_WIDTH = 100;
-const SURAH_NODE_GAP_X = 12;
+const SURAH_NODE_GAP_X = 0;
 const VERSE_KEY_NODE_OFFSET_Y = 80;
-const VERSE_KEY_NODE_WIDTH = 70;
-const VERSE_KEY_NODE_GAP_X = 8;
+const VERSE_KEY_NODE_GAP_X = 10;
 const PAGE_SIZE = 20;
+
+// Approximate character widths for node text rendering
+const SURAH_TEXT_CHAR_WIDTH = 7.5; // text-sm average
+const SURAH_NODE_PADDING = 28; // px-3 (24) + border (4)
+const VK_TEXT_CHAR_WIDTH = 7.2; // text-xs font-mono
+const VK_NODE_PADDING = 24; // px-2.5 (20) + border (4)
+
+/**
+ * Estimate rendered width of a surah node from its label text.
+ */
+export function estimateSurahNodeWidth(name: string, verseCount: number): number {
+  const text = `${name} (${verseCount})`;
+  return Math.max(80, text.length * SURAH_TEXT_CHAR_WIDTH + SURAH_NODE_PADDING);
+}
+
+/**
+ * Estimate rendered width of a verse key node.
+ */
+export function estimateVerseKeyNodeWidth(verseKey: string): number {
+  return Math.max(50, verseKey.length * VK_TEXT_CHAR_WIDTH + VK_NODE_PADDING);
+}
 
 interface PositionedNode<T> {
   id: string;
@@ -143,7 +163,7 @@ export function layoutRootNode(
 }
 
 /**
- * Layout surah nodes horizontally below a root node.
+ * Layout surah nodes horizontally below a root node, centered.
  * Paginated: max PAGE_SIZE surahs per page.
  */
 export function layoutSurahNodes(
@@ -155,19 +175,28 @@ export function layoutSurahNodes(
   const start = page * PAGE_SIZE;
   const pageSurahs = surahs.slice(start, start + PAGE_SIZE);
 
+  // Compute variable widths per surah node
+  const widths = pageSurahs.map((s) => estimateSurahNodeWidth(s.name, s.verseCount));
+  const totalWidth =
+    widths.reduce((sum, w) => sum + w, 0) + (pageSurahs.length - 1) * SURAH_NODE_GAP_X;
+
+  // Center the row below the root node
+  const rootCenterX = rootNodePosition.x + ROOT_NODE_ESTIMATED_WIDTH / 2;
+  const startX = rootCenterX - totalWidth / 2;
+
   const y = rootNodePosition.y + SURAH_NODE_OFFSET_Y;
   const nodes: PositionedNode<SurahNodeData>[] = [];
   const edges: { id: string; source: string; target: string }[] = [];
 
+  let cursorX = startX;
   for (let i = 0; i < pageSurahs.length; i++) {
     const surah = pageSurahs[i];
     const nodeId = `surah-${surah.surahId}-${rootNodeId}`;
-    const x = rootNodePosition.x + i * (SURAH_NODE_WIDTH + SURAH_NODE_GAP_X);
 
     nodes.push({
       id: nodeId,
       type: "surah",
-      position: { x, y },
+      position: { x: cursorX, y },
       data: {
         type: "surah",
         surahId: surah.surahId,
@@ -182,31 +211,44 @@ export function layoutSurahNodes(
       source: rootNodeId,
       target: nodeId,
     });
+
+    cursorX += widths[i] + SURAH_NODE_GAP_X;
   }
 
   return { nodes, edges };
 }
 
 /**
- * Layout verse key nodes below a surah node.
+ * Layout verse key nodes below a surah node, centered.
  */
 export function layoutVerseKeyNodes(
   surahNodePosition: { x: number; y: number },
   surahNodeId: string,
-  verseKeys: string[]
+  verseKeys: string[],
+  parentWidth?: number
 ): GroupLayoutResult<VerseKeyNodeData> {
+  // Compute variable widths per verse key node
+  const widths = verseKeys.map((vk) => estimateVerseKeyNodeWidth(vk));
+  const totalWidth =
+    widths.reduce((sum, w) => sum + w, 0) + (verseKeys.length - 1) * VERSE_KEY_NODE_GAP_X;
+
+  // Center below surah node
+  const surahWidth = parentWidth ?? 100;
+  const surahCenterX = surahNodePosition.x + surahWidth / 2;
+  const startX = surahCenterX - totalWidth / 2;
+
   const y = surahNodePosition.y + VERSE_KEY_NODE_OFFSET_Y;
   const nodes: PositionedNode<VerseKeyNodeData>[] = [];
   const edges: { id: string; source: string; target: string }[] = [];
 
+  let cursorX = startX;
   for (let i = 0; i < verseKeys.length; i++) {
     const nodeId = `vk-${verseKeys[i]}-${surahNodeId}`;
-    const x = surahNodePosition.x + i * (VERSE_KEY_NODE_WIDTH + VERSE_KEY_NODE_GAP_X);
 
     nodes.push({
       id: nodeId,
       type: "verseKey",
-      position: { x, y },
+      position: { x: cursorX, y },
       data: {
         type: "verseKey",
         verseKey: verseKeys[i],
@@ -219,6 +261,8 @@ export function layoutVerseKeyNodes(
       source: surahNodeId,
       target: nodeId,
     });
+
+    cursorX += widths[i] + VERSE_KEY_NODE_GAP_X;
   }
 
   return { nodes, edges };

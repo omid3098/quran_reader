@@ -5,6 +5,8 @@ import {
   layoutSurahNodes,
   layoutVerseKeyNodes,
   estimateWordNodeWidth,
+  estimateSurahNodeWidth,
+  estimateVerseKeyNodeWidth,
   WORD_NODE_MIN_WIDTH,
   WORD_NODE_HEIGHT,
   WORD_GAP_X,
@@ -156,6 +158,32 @@ describe("nodeLayout", () => {
     });
   });
 
+  describe("estimateSurahNodeWidth", () => {
+    it("returns reasonable width for short names", () => {
+      const width = estimateSurahNodeWidth("Al-Fatihah", 3);
+      expect(width).toBeGreaterThanOrEqual(80);
+    });
+
+    it("returns wider for longer names", () => {
+      const short = estimateSurahNodeWidth("Taha", 2);
+      const long = estimateSurahNodeWidth("Aal-i-Imraan", 100);
+      expect(long).toBeGreaterThan(short);
+    });
+  });
+
+  describe("estimateVerseKeyNodeWidth", () => {
+    it("returns reasonable width for short keys", () => {
+      const width = estimateVerseKeyNodeWidth("1:1");
+      expect(width).toBeGreaterThanOrEqual(50);
+    });
+
+    it("returns wider for longer keys", () => {
+      const short = estimateVerseKeyNodeWidth("1:1");
+      const long = estimateVerseKeyNodeWidth("114:6");
+      expect(long).toBeGreaterThan(short);
+    });
+  });
+
   describe("layoutSurahNodes", () => {
     const surahs = [
       { surahId: 1, name: "Al-Fatihah", verseCount: 3 },
@@ -174,6 +202,33 @@ describe("nodeLayout", () => {
       expect(ys[1]).toBe(ys[2]);
       // Y below root
       expect(ys[0]).toBeGreaterThan(rootPos.y);
+    });
+
+    it("centers surah row around root node", () => {
+      const rootPos = { x: 400, y: 200 };
+      const result = layoutSurahNodes(rootPos, "root-رحم", surahs, 0);
+
+      // The root center is at x + ~50 (ROOT_NODE_ESTIMATED_WIDTH/2)
+      const rootCenterX = rootPos.x + 50;
+      const xs = result.nodes.map((n) => n.position.x);
+      const widths = surahs.map((s) => estimateSurahNodeWidth(s.name, s.verseCount));
+
+      // First node should be left of root center (row is centered)
+      expect(xs[0]).toBeLessThan(rootCenterX);
+      // Last node's right edge should be right of root center
+      expect(xs[2] + widths[2]).toBeGreaterThan(rootCenterX);
+    });
+
+    it("does not overlap surah nodes", () => {
+      const rootPos = { x: 400, y: 200 };
+      const result = layoutSurahNodes(rootPos, "root-رحم", surahs, 0);
+
+      const widths = surahs.map((s) => estimateSurahNodeWidth(s.name, s.verseCount));
+      for (let i = 0; i < result.nodes.length - 1; i++) {
+        const rightEdge = result.nodes[i].position.x + widths[i];
+        const nextLeft = result.nodes[i + 1].position.x;
+        expect(nextLeft).toBeGreaterThanOrEqual(rightEdge);
+      }
     });
 
     it("paginates at 20 surahs", () => {
@@ -212,6 +267,34 @@ describe("nodeLayout", () => {
       for (const node of result.nodes) {
         expect(node.position.y).toBeGreaterThan(surahPos.y);
         expect(node.type).toBe("verseKey");
+      }
+    });
+
+    it("centers verse key nodes below surah node", () => {
+      const surahPos = { x: 200, y: 300 };
+      const verseKeys = ["2:1", "2:5", "2:255"];
+      const parentWidth = 120;
+      const result = layoutVerseKeyNodes(surahPos, "surah-2", verseKeys, parentWidth);
+
+      const surahCenterX = surahPos.x + parentWidth / 2;
+      const xs = result.nodes.map((n) => n.position.x);
+      const widths = verseKeys.map((vk) => estimateVerseKeyNodeWidth(vk));
+
+      // First node should be left of center
+      expect(xs[0]).toBeLessThan(surahCenterX);
+      // Last node's right edge should be right of center
+      expect(xs[2] + widths[2]).toBeGreaterThan(surahCenterX);
+    });
+
+    it("does not overlap verse key nodes", () => {
+      const verseKeys = ["2:1", "2:5", "2:100", "2:255"];
+      const result = layoutVerseKeyNodes({ x: 200, y: 300 }, "surah-2", verseKeys);
+
+      const widths = verseKeys.map((vk) => estimateVerseKeyNodeWidth(vk));
+      for (let i = 0; i < result.nodes.length - 1; i++) {
+        const rightEdge = result.nodes[i].position.x + widths[i];
+        const nextLeft = result.nodes[i + 1].position.x;
+        expect(nextLeft).toBeGreaterThanOrEqual(rightEdge);
       }
     });
 

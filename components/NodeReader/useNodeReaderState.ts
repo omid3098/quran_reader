@@ -11,7 +11,12 @@ import type {
   Chapter,
 } from "../../types";
 import { findVersesByRoot } from "../../services/analysisService";
-import { layoutRootNode, layoutSurahNodes, layoutVerseKeyNodes } from "./nodeLayout";
+import {
+  layoutRootNode,
+  layoutSurahNodes,
+  layoutVerseKeyNodes,
+  estimateSurahNodeWidth,
+} from "./nodeLayout";
 
 interface UseNodeReaderStateOptions {
   initialNodes: Node[];
@@ -40,6 +45,8 @@ export function useNodeReaderState({
   const childrenMapRef = useRef<Map<string, string[]>>(new Map());
   // Store verse keys grouped by surah for each root node expansion
   const surahVerseMapRef = useRef<Map<string, Map<number, string[]>>>(new Map());
+  // Edges produced inside setNodes callbacks, applied by a separate setEdges call
+  const pendingEdgesRef = useRef<Edge[]>([]);
 
   // Collect all node IDs to remove (recursive), then batch-remove once
   const collectDescendants = useCallback((nodeId: string, toRemove: Set<string>) => {
@@ -63,7 +70,7 @@ export function useNodeReaderState({
     [setNodes, setEdges, collectDescendants]
   );
 
-  // Collapse ALL spawned branches (used on pane click & before opening a new branch)
+  // Collapse ALL spawned branches — clears all edges (all edges are spawned, never initial)
   const collapseAll = useCallback(() => {
     const allSpawnedIds = new Set<string>();
     for (const [parentId] of childrenMapRef.current) {
@@ -71,10 +78,8 @@ export function useNodeReaderState({
     }
     if (allSpawnedIds.size > 0) {
       setNodes((prev) => prev.filter((n) => !allSpawnedIds.has(n.id)));
-      setEdges((prev) =>
-        prev.filter((e) => !allSpawnedIds.has(e.source) && !allSpawnedIds.has(e.target))
-      );
     }
+    setEdges([]);
     childrenMapRef.current.clear();
     surahVerseMapRef.current.clear();
   }, [setNodes, setEdges, collectDescendants]);
@@ -97,7 +102,10 @@ export function useNodeReaderState({
         return;
       }
 
-      // Use setNodes callback to access the latest node state (avoids stale closures)
+      // Compute new nodes inside setNodes callback (fresh state after collapseAll).
+      // Edges are stored in pendingEdgesRef and applied by a separate setEdges call
+      // to avoid nesting setEdges inside setNodes (which causes stale-edge bugs).
+      pendingEdgesRef.current = [];
       setNodes((currentNodes) => {
         const wordNode = currentNodes.find((n) => n.id === nodeId);
         if (!wordNode) return currentNodes;
@@ -106,10 +114,13 @@ export function useNodeReaderState({
           root: wordData.root,
         });
 
-        setEdges((prev) => [...prev, edge as Edge]);
+        pendingEdgesRef.current = [edge as Edge];
         childrenMapRef.current.set(nodeId, [rootNode.id]);
         return [...currentNodes, rootNode as Node];
       });
+      // useNodesState is declared before useEdgesState, so React processes
+      // nodes updaters first — pendingEdgesRef is set by the time this runs.
+      setEdges((prev) => [...prev, ...pendingEdgesRef.current]);
 
       setPropertiesSelection({ type: "word", data: wordData });
     },
@@ -128,13 +139,14 @@ export function useNodeReaderState({
       // Fetch all verses with this root
       const analysis = await findVersesByRoot(rootData.root);
 
-      // Group verses by surah
+      // Group ALL verse keys by surah (not just the limited 50)
+      const allKeys = analysis.allVerseKeys ?? analysis.verses.map((v) => v.verse_key);
       const bySurah = new Map<number, string[]>();
-      for (const v of analysis.verses) {
-        const [surahStr] = v.verse_key.split(":");
+      for (const vk of allKeys) {
+        const [surahStr] = vk.split(":");
         const surahId = parseInt(surahStr, 10);
         if (!bySurah.has(surahId)) bySurah.set(surahId, []);
-        bySurah.get(surahId)!.push(v.verse_key);
+        bySurah.get(surahId)!.push(vk);
       }
 
       const surahList = Array.from(bySurah.entries()).map(([surahId, verseKeys]) => ({
@@ -143,7 +155,7 @@ export function useNodeReaderState({
         verseCount: verseKeys.length,
       }));
 
-      // Use setNodes callback to access latest state (avoids stale closures)
+      pendingEdgesRef.current = [];
       setNodes((currentNodes) => {
         const rootNode = currentNodes.find((n) => n.id === nodeId);
         if (!rootNode) return currentNodes;
@@ -155,7 +167,7 @@ export function useNodeReaderState({
           0
         );
 
-        setEdges((prev) => [...prev, ...(surahEdges as Edge[])]);
+        pendingEdgesRef.current = surahEdges as Edge[];
         childrenMapRef.current.set(
           nodeId,
           surahNodes.map((n) => n.id)
@@ -171,6 +183,7 @@ export function useNodeReaderState({
           )
           .concat(surahNodes as Node[]);
       });
+      setEdges((prev) => [...prev, ...pendingEdgesRef.current]);
 
       setPropertiesSelection({ type: "root", data: rootData, analysis });
     },
@@ -189,7 +202,9 @@ export function useNodeReaderState({
       const rootBySurah = surahVerseMapRef.current.get(surahData.rootNodeId);
       const verseKeys = rootBySurah?.get(surahData.surahId) || [];
 
-      // Use setNodes callback to access latest state (avoids stale closures)
+      const surahWidth = estimateSurahNodeWidth(surahData.surahName, surahData.verseCount);
+
+      pendingEdgesRef.current = [];
       setNodes((currentNodes) => {
         const surahNode = currentNodes.find((n) => n.id === nodeId);
         if (!surahNode) return currentNodes;
@@ -197,16 +212,18 @@ export function useNodeReaderState({
         const { nodes: vkNodes, edges: vkEdges } = layoutVerseKeyNodes(
           surahNode.position,
           nodeId,
-          verseKeys
+          verseKeys,
+          surahWidth
         );
 
-        setEdges((prev) => [...prev, ...(vkEdges as Edge[])]);
+        pendingEdgesRef.current = vkEdges as Edge[];
         childrenMapRef.current.set(
           nodeId,
           vkNodes.map((n) => n.id)
         );
         return [...currentNodes, ...(vkNodes as Node[])];
       });
+      setEdges((prev) => [...prev, ...pendingEdgesRef.current]);
     },
     [setNodes, setEdges, collapseChildren]
   );

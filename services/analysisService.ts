@@ -481,6 +481,7 @@ export const findVersesByRoot = async (root: string): Promise<RootAnalysis> => {
     root,
     occurrences: matches.length,
     verses: limitedMatches,
+    allVerseKeys: matches.map((m) => m.verse_key),
     wordForms,
   };
 };

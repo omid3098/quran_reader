@@ -171,6 +171,7 @@ export interface RootAnalysis {
     text: string; // full verse text
     wordIndex?: number; // position of the matched word (for truncation)
   }[];
+  allVerseKeys?: string[]; // All matching verse keys (no text), for grouping without the 50-item limit
   debugInfo?: {
     selectedText: string;
     normalizedText: string;
