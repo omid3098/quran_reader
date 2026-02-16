@@ -360,7 +360,7 @@ export function normalizeQuranLinkBlocks(blocks: PartialBlock[]): PartialBlock[]
 
         if (item?.type === "quranLink") {
           normalizedContent.push(item);
-          needsProcessing = true;
+          // Already a quranLink node — no processing needed
           return;
         }
 
