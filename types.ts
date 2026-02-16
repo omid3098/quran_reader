@@ -213,6 +213,7 @@ export interface UrlVerseParams {
   surahId: number | null;
   verseNumber: number | null;
   isValid: boolean;
+  viewMode?: "default" | "node";
 }
 
 export interface ShareButtonProps {
@@ -220,3 +221,48 @@ export interface ShareButtonProps {
   verseNumber: number;
   className?: string;
 }
+
+// --- Node Reader Types ---
+
+export interface WordNodeData {
+  [key: string]: unknown;
+  type: "word";
+  word: string;
+  wordIndex: number;
+  verseKey: string;
+  root?: string;
+  lemma?: string;
+}
+
+export interface RootNodeData {
+  [key: string]: unknown;
+  type: "root";
+  root: string;
+  sourceWordId: string;
+  occurrences?: number;
+}
+
+export interface SurahNodeData {
+  [key: string]: unknown;
+  type: "surah";
+  surahId: number;
+  surahName: string;
+  rootNodeId: string;
+  verseCount: number;
+}
+
+export interface VerseKeyNodeData {
+  [key: string]: unknown;
+  type: "verseKey";
+  verseKey: string;
+  surahNodeId: string;
+}
+
+export type NodeReaderNodeData = WordNodeData | RootNodeData | SurahNodeData | VerseKeyNodeData;
+
+export type PropertiesPanelSelection =
+  | { type: "verse"; verseKey: string; chapter: Chapter }
+  | { type: "word"; data: WordNodeData }
+  | { type: "root"; data: RootNodeData; analysis?: RootAnalysis }
+  | { type: "verseKey"; data: VerseKeyNodeData }
+  | null;

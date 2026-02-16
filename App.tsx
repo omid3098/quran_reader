@@ -28,8 +28,11 @@ const UnifiedSearchModal = React.lazy(() =>
 const FocusMode = React.lazy(() =>
   import("./components/FocusMode").then((m) => ({ default: m.FocusMode }))
 );
+const NodeReader = React.lazy(() =>
+  import("./components/NodeReader/NodeReader").then((m) => ({ default: m.NodeReader }))
+);
 import { getChapters, getVerses, getAudioUrl } from "./services/quranService";
-import { parseUrlPath, buildVersePath } from "./services/urlService";
+import { parseUrlPath, buildVersePath, buildNodePath } from "./services/urlService";
 import {
   getVerseWordData,
   findRootOfWord,
@@ -101,6 +104,12 @@ const App: React.FC = () => {
 
   // --- Focus Mode State ---
   const [focusModeData, setFocusModeData] = useState<{
+    verse: Verse;
+    chapter: Chapter;
+  } | null>(null);
+
+  // --- Node Reader State ---
+  const [nodeReaderData, setNodeReaderData] = useState<{
     verse: Verse;
     chapter: Chapter;
   } | null>(null);
@@ -249,19 +258,30 @@ const App: React.FC = () => {
 
     const verse = verses[currentVerseIndex];
     const verseNumber = parseInt(verse.verse_key.split(":")[1]);
-    const newPath = buildVersePath(currentChapter.id, verseNumber);
+    const newPath = nodeReaderData
+      ? buildNodePath(currentChapter.id, verseNumber)
+      : buildVersePath(currentChapter.id, verseNumber);
 
     // Only update if path changed to avoid unnecessary history entries
     if (window.location.pathname !== newPath) {
       window.history.pushState(null, "", newPath);
     }
-  }, [currentChapter, currentVerseIndex, verses, loadingVerses]);
+  }, [currentChapter, currentVerseIndex, verses, loadingVerses, nodeReaderData]);
 
   // Handle browser back/forward navigation
   useEffect(() => {
     const handlePopState = () => {
       const urlParams = parseUrlPath(window.location.pathname);
       if (urlParams.isValid && urlParams.surahId) {
+        // Open/close node reader based on URL
+        if (urlParams.viewMode === "node") {
+          if (!nodeReaderData && currentChapter && verses[currentVerseIndex]) {
+            setNodeReaderData({ verse: verses[currentVerseIndex], chapter: currentChapter });
+          }
+        } else {
+          if (nodeReaderData) setNodeReaderData(null);
+        }
+
         if (currentChapter?.id !== urlParams.surahId) {
           handleChapterSelect(
             urlParams.surahId,
@@ -1054,6 +1074,16 @@ const App: React.FC = () => {
     }
   }, [currentVerseIndex, verses, currentChapter, focusModeData]);
 
+  // Sync Node Reader with current verse index
+  useEffect(() => {
+    if (nodeReaderData && currentChapter && verses[currentVerseIndex]) {
+      const verse = verses[currentVerseIndex];
+      if (verse.id !== nodeReaderData.verse.id) {
+        setNodeReaderData({ verse, chapter: currentChapter });
+      }
+    }
+  }, [currentVerseIndex, verses, currentChapter, nodeReaderData]);
+
   // --- Note Handlers ---
   const handleOpenNote = useCallback((verse: Verse, e: React.MouseEvent) => {
     e.stopPropagation();
@@ -1306,6 +1336,13 @@ const App: React.FC = () => {
     }
   }, [currentChapter, verses, currentVerseIndex]);
 
+  const handleOpenNodeReader = useCallback(() => {
+    if (currentChapter && verses[currentVerseIndex]) {
+      const verse = verses[currentVerseIndex];
+      setNodeReaderData({ verse, chapter: currentChapter });
+    }
+  }, [currentChapter, verses, currentVerseIndex]);
+
   // Navigation: Verse navigation helpers
   const ayahCardNavigation: AyahCardNavigation = useMemo(
     () => ({
@@ -1328,6 +1365,7 @@ const App: React.FC = () => {
           setSettings((prev) => ({ ...prev, theme: prev.theme === "light" ? "dark" : "light" }))
         }
         onOpenFocusMode={handleOpenFocusMode}
+        onOpenNodeReader={handleOpenNodeReader}
         isHidden={isHeaderHidden}
       />
 
@@ -1523,6 +1561,25 @@ const App: React.FC = () => {
             onToggleAutoPlay={() => setSettings((prev) => ({ ...prev, autoPlay: !prev.autoPlay }))}
             hasSurahNotes={currentChapter ? hasNoteForSurah(currentChapter.id) : false}
             onOpenSurahNotes={() => setSurahNoteModalOpen(true)}
+          />
+        </Suspense>
+      )}
+
+      {/* Node Reader Overlay */}
+      {nodeReaderData && (
+        <Suspense fallback={null}>
+          <NodeReader
+            verse={nodeReaderData.verse}
+            chapter={nodeReaderData.chapter}
+            onExit={() => setNodeReaderData(null)}
+            onNextVerse={handleFocusModeNext}
+            onPrevVerse={handleFocusModePrev}
+            onNavigateToVerse={handleNavigateFromNote}
+            getSurahName={getSurahName}
+            isPlaying={isPlaying}
+            onTogglePlay={() => setIsPlaying(!isPlaying)}
+            autoPlayEnabled={settings.autoPlay}
+            onToggleAutoPlay={() => setSettings((prev) => ({ ...prev, autoPlay: !prev.autoPlay }))}
           />
         </Suspense>
       )}

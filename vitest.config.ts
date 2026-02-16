@@ -24,6 +24,14 @@ export default defineConfig({
         "**/*.d.ts",
         "**/*.config.{ts,js,mjs}",
         "**/index.tsx",
+        // NodeReader React components depend heavily on ReactFlow internals (canvas, d3-zoom)
+        // which are not testable in jsdom. Layout logic (nodeLayout.ts) IS tested.
+        "components/NodeReader/NodeReader.tsx",
+        "components/NodeReader/NodeReaderCanvas.tsx",
+        "components/NodeReader/useNodeReaderState.ts",
+        "components/NodeReader/PropertiesPanel.tsx",
+        "components/NodeReader/nodeTypes.ts",
+        "components/NodeReader/nodes/**",
       ],
       thresholds: {
         global: {

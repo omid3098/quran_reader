@@ -35,6 +35,8 @@ export default defineConfig(({ mode }) => {
             ],
             // Icons - can be deferred
             "vendor-icons": ["lucide-react"],
+            // ReactFlow - lazy loaded with NodeReader view only
+            "vendor-xyflow": ["@xyflow/react"],
           },
         },
       },
