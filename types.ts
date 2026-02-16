@@ -243,27 +243,16 @@ export interface RootNodeData {
   occurrences?: number;
 }
 
-export interface SurahNodeData {
-  [key: string]: unknown;
-  type: "surah";
+export interface SurahGroup {
   surahId: number;
   surahName: string;
-  rootNodeId: string;
-  verseCount: number;
+  verseKeys: string[];
 }
 
-export interface VerseKeyNodeData {
-  [key: string]: unknown;
-  type: "verseKey";
-  verseKey: string;
-  surahNodeId: string;
-}
-
-export type NodeReaderNodeData = WordNodeData | RootNodeData | SurahNodeData | VerseKeyNodeData;
+export type NodeReaderNodeData = WordNodeData | RootNodeData;
 
 export type PropertiesPanelSelection =
   | { type: "verse"; verseKey: string; chapter: Chapter }
   | { type: "word"; data: WordNodeData }
-  | { type: "root"; data: RootNodeData; analysis?: RootAnalysis }
-  | { type: "verseKey"; data: VerseKeyNodeData }
+  | { type: "root"; data: RootNodeData; analysis?: RootAnalysis; surahGroups?: SurahGroup[] }
   | null;

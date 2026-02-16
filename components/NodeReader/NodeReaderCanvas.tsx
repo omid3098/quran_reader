@@ -12,7 +12,6 @@ interface NodeReaderCanvasProps {
   verseKey: string;
   chapter: Chapter;
   getSurahName: (surahId: number) => string | undefined;
-  onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
   onSelectionChange: (selection: PropertiesPanelSelection) => void;
 }
 
@@ -21,7 +20,6 @@ export function NodeReaderCanvas({
   verseKey,
   chapter,
   getSurahName,
-  onNavigateToVerse,
   onSelectionChange,
 }: NodeReaderCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -47,7 +45,6 @@ export function NodeReaderCanvas({
     chapter,
     verseKey,
     getSurahName,
-    onNavigateToVerse,
   });
 
   // Sync properties selection to parent
@@ -85,7 +82,7 @@ export function NodeReaderCanvas({
         proOptions={{ hideAttribution: true }}
       >
         <Background gap={24} size={1} color="rgb(30, 41, 59)" />
-        <Controls position="bottom-left" showInteractive={false} />
+        <Controls position="top-left" showInteractive={false} />
       </ReactFlow>
     </div>
   );

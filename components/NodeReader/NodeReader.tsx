@@ -84,20 +84,21 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
       {/* Canvas area */}
       <div className="flex-1 relative flex flex-col">
         {/* Top bar */}
-        <div className="flex items-center justify-between px-4 py-2 bg-slate-900/80 border-b border-slate-800 z-10">
-          <div className="flex items-center gap-3">
-            <button
-              onClick={onExit}
-              className="p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
-              aria-label="Exit node reader"
-            >
-              <X size={20} />
-            </button>
-            <div>
-              <span className="text-emerald-400 font-bold text-sm">Verse {verse.verse_key}</span>
-              <span className="text-slate-500 text-sm ml-2">{chapter.name_simple}</span>
-            </div>
+        <div className="flex items-center px-4 py-2 bg-slate-900/80 border-b border-slate-800 z-10">
+          <button
+            onClick={onExit}
+            className="p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
+            aria-label="Exit node reader"
+          >
+            <X size={20} />
+          </button>
+          <div className="flex-1 text-center">
+            <span className="text-sm font-semibold text-slate-200">{chapter.name_simple}</span>
+            <span className="text-slate-600 mx-2">·</span>
+            <span className="text-sm font-vazir text-slate-400">{chapter.name_arabic}</span>
           </div>
+          {/* Spacer to balance the exit button */}
+          <div className="w-9" />
         </div>
 
         {/* Canvas */}
@@ -113,11 +114,16 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
                 verseKey={verse.verse_key}
                 chapter={chapter}
                 getSurahName={getSurahName}
-                onNavigateToVerse={onNavigateToVerse}
                 onSelectionChange={handleSelectionChange}
               />
             </ReactFlowProvider>
           )}
+          {/* Floating Verse Key Indicator (Bottom Left) */}
+          <div className="absolute bottom-4 left-4 pointer-events-none select-none z-20">
+            <span className="text-4xl font-black font-sans text-white opacity-20">
+              {verse.verse_key}
+            </span>
+          </div>
         </div>
 
         {/* Audio controls */}
@@ -159,7 +165,12 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
       </div>
 
       {/* Properties Panel */}
-      <PropertiesPanel selection={propertiesSelection} verse={verse} chapter={chapter} />
+      <PropertiesPanel
+        selection={propertiesSelection}
+        verse={verse}
+        chapter={chapter}
+        onNavigateToVerse={onNavigateToVerse}
+      />
     </div>
   );
 };

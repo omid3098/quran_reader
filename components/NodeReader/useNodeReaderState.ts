@@ -4,26 +4,19 @@ import type { Node, Edge } from "@xyflow/react";
 import type {
   WordNodeData,
   RootNodeData,
-  SurahNodeData,
-  VerseKeyNodeData,
   PropertiesPanelSelection,
   NodeReaderNodeData,
   Chapter,
+  SurahGroup,
 } from "../../types";
 import { findVersesByRoot } from "../../services/analysisService";
-import {
-  layoutRootNode,
-  layoutSurahNodes,
-  layoutVerseKeyNodes,
-  estimateSurahNodeWidth,
-} from "./nodeLayout";
+import { layoutRootNode } from "./nodeLayout";
 
 interface UseNodeReaderStateOptions {
   initialNodes: Node[];
   chapter: Chapter;
   verseKey: string;
   getSurahName: (surahId: number) => string | undefined;
-  onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
 }
 
 export function useNodeReaderState({
@@ -31,7 +24,6 @@ export function useNodeReaderState({
   chapter,
   verseKey,
   getSurahName,
-  onNavigateToVerse,
 }: UseNodeReaderStateOptions) {
   const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
   const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
@@ -43,8 +35,6 @@ export function useNodeReaderState({
 
   // Track spawned children per node for cleanup
   const childrenMapRef = useRef<Map<string, string[]>>(new Map());
-  // Store verse keys grouped by surah for each root node expansion
-  const surahVerseMapRef = useRef<Map<string, Map<number, string[]>>>(new Map());
   // Edges produced inside setNodes callbacks, applied by a separate setEdges call
   const pendingEdgesRef = useRef<Edge[]>([]);
 
@@ -81,7 +71,6 @@ export function useNodeReaderState({
     }
     setEdges([]);
     childrenMapRef.current.clear();
-    surahVerseMapRef.current.clear();
   }, [setNodes, setEdges, collectDescendants]);
 
   const handleWordClick = useCallback(
@@ -128,18 +117,11 @@ export function useNodeReaderState({
   );
 
   const handleRootClick = useCallback(
-    async (nodeId: string, rootData: RootNodeData) => {
-      // Toggle: if surahs already spawned, collapse
-      if (childrenMapRef.current.has(nodeId)) {
-        collapseChildren(nodeId);
-        setPropertiesSelection({ type: "root", data: rootData });
-        return;
-      }
-
+    async (_nodeId: string, rootData: RootNodeData) => {
       // Fetch all verses with this root
       const analysis = await findVersesByRoot(rootData.root);
 
-      // Group ALL verse keys by surah (not just the limited 50)
+      // Group ALL verse keys by surah
       const allKeys = analysis.allVerseKeys ?? analysis.verses.map((v) => v.verse_key);
       const bySurah = new Map<number, string[]>();
       for (const vk of allKeys) {
@@ -149,91 +131,29 @@ export function useNodeReaderState({
         bySurah.get(surahId)!.push(vk);
       }
 
-      const surahList = Array.from(bySurah.entries()).map(([surahId, verseKeys]) => ({
-        surahId,
-        name: getSurahName(surahId) || `Surah ${surahId}`,
-        verseCount: verseKeys.length,
-      }));
-
-      pendingEdgesRef.current = [];
-      setNodes((currentNodes) => {
-        const rootNode = currentNodes.find((n) => n.id === nodeId);
-        if (!rootNode) return currentNodes;
-
-        const { nodes: surahNodes, edges: surahEdges } = layoutSurahNodes(
-          rootNode.position,
-          nodeId,
-          surahList,
-          0
-        );
-
-        pendingEdgesRef.current = surahEdges as Edge[];
-        childrenMapRef.current.set(
-          nodeId,
-          surahNodes.map((n) => n.id)
-        );
-
-        // Store the grouped data on the ref for later use by surah click
-        surahVerseMapRef.current.set(nodeId, bySurah);
-
-        // Update root node occurrences + add surah nodes
-        return currentNodes
-          .map((n) =>
-            n.id === nodeId ? { ...n, data: { ...n.data, occurrences: analysis.occurrences } } : n
-          )
-          .concat(surahNodes as Node[]);
-      });
-      setEdges((prev) => [...prev, ...pendingEdgesRef.current]);
-
-      setPropertiesSelection({ type: "root", data: rootData, analysis });
-    },
-    [setNodes, setEdges, collapseChildren, getSurahName]
-  );
-
-  const handleSurahClick = useCallback(
-    (nodeId: string, surahData: SurahNodeData) => {
-      // Toggle
-      if (childrenMapRef.current.has(nodeId)) {
-        collapseChildren(nodeId);
-        return;
-      }
-
-      // Find verse keys for this surah from the stored data
-      const rootBySurah = surahVerseMapRef.current.get(surahData.rootNodeId);
-      const verseKeys = rootBySurah?.get(surahData.surahId) || [];
-
-      const surahWidth = estimateSurahNodeWidth(surahData.surahName, surahData.verseCount);
-
-      pendingEdgesRef.current = [];
-      setNodes((currentNodes) => {
-        const surahNode = currentNodes.find((n) => n.id === nodeId);
-        if (!surahNode) return currentNodes;
-
-        const { nodes: vkNodes, edges: vkEdges } = layoutVerseKeyNodes(
-          surahNode.position,
-          nodeId,
+      const surahGroups: SurahGroup[] = Array.from(bySurah.entries()).map(
+        ([surahId, verseKeys]) => ({
+          surahId,
+          surahName: getSurahName(surahId) || `Surah ${surahId}`,
           verseKeys,
-          surahWidth
-        );
+        })
+      );
 
-        pendingEdgesRef.current = vkEdges as Edge[];
-        childrenMapRef.current.set(
-          nodeId,
-          vkNodes.map((n) => n.id)
-        );
-        return [...currentNodes, ...(vkNodes as Node[])];
+      // Update root node occurrences on canvas
+      setNodes((currentNodes) =>
+        currentNodes.map((n) =>
+          n.id === _nodeId ? { ...n, data: { ...n.data, occurrences: analysis.occurrences } } : n
+        )
+      );
+
+      setPropertiesSelection({
+        type: "root",
+        data: rootData,
+        analysis,
+        surahGroups,
       });
-      setEdges((prev) => [...prev, ...pendingEdgesRef.current]);
     },
-    [setNodes, setEdges, collapseChildren]
-  );
-
-  const handleVerseKeyClick = useCallback(
-    (_nodeId: string, vkData: VerseKeyNodeData) => {
-      const [surahStr, verseStr] = vkData.verseKey.split(":");
-      onNavigateToVerse(parseInt(surahStr, 10), parseInt(verseStr, 10));
-    },
-    [onNavigateToVerse]
+    [setNodes, getSurahName]
   );
 
   const handleNodeClick = useCallback(
@@ -246,15 +166,9 @@ export function useNodeReaderState({
         case "root":
           handleRootClick(node.id, data);
           break;
-        case "surah":
-          handleSurahClick(node.id, data);
-          break;
-        case "verseKey":
-          handleVerseKeyClick(node.id, data);
-          break;
       }
     },
-    [handleWordClick, handleRootClick, handleSurahClick, handleVerseKeyClick]
+    [handleWordClick, handleRootClick]
   );
 
   const handlePaneClick = useCallback(() => {
@@ -264,9 +178,7 @@ export function useNodeReaderState({
 
   const resetCanvas = useCallback(
     (newNodes: Node[]) => {
-      // Clear all spawned children
       childrenMapRef.current.clear();
-      surahVerseMapRef.current.clear();
       setNodes(newNodes);
       setEdges([]);
       setPropertiesSelection({ type: "verse", verseKey, chapter });

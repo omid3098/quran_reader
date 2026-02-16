@@ -21,7 +21,6 @@ function RootNodeComponent({ data, selected }: NodeProps) {
       {d.occurrences !== undefined && (
         <div className="text-xs text-indigo-400/60 mt-1">{d.occurrences} verses</div>
       )}
-      <Handle type="source" position={Position.Bottom} className="!bg-indigo-500 !w-2 !h-2" />
     </div>
   );
 }
