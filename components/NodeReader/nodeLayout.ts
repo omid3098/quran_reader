@@ -41,9 +41,10 @@ interface RootLayoutResult {
 }
 
 /**
- * Layout word nodes in RTL rows.
- * Words flow right-to-left, wrapping to the next row.
- * Each word's width is estimated from its character count.
+ * Layout word nodes in a single RTL row.
+ * Words flow right-to-left in one continuous line — ReactFlow handles
+ * panning/zooming so there's no need to wrap to a second row.
+ * This keeps the row below free for root nodes.
  */
 export function layoutWordNodes(
   words: QuranWord[],
@@ -54,21 +55,20 @@ export function layoutWordNodes(
 
   const nodes: PositionedNode<WordNodeData>[] = [];
 
-  // RTL flow: start from right edge, wrap to next row when full
-  let cursorX = canvasWidth - CANVAS_PADDING;
-  let rowY = CANVAS_PADDING;
+  // Calculate total width to right-align within canvas
+  let totalWidth = 0;
+  for (const w of words) {
+    totalWidth += estimateWordNodeWidth(w.text_uthmani) + WORD_GAP_X;
+  }
+  totalWidth -= WORD_GAP_X; // no trailing gap
+
+  // Start from the right: use canvas width or total width, whichever is larger
+  const startX = Math.max(canvasWidth, totalWidth + CANVAS_PADDING * 2) - CANVAS_PADDING;
+  let cursorX = startX;
+  const rowY = CANVAS_PADDING;
 
   for (let i = 0; i < words.length; i++) {
     const wordWidth = estimateWordNodeWidth(words[i].text_uthmani);
-
-    // Check if this word fits in the current row
-    if (cursorX - wordWidth < CANVAS_PADDING && cursorX < canvasWidth - CANVAS_PADDING) {
-      // Wrap to next row
-      cursorX = canvasWidth - CANVAS_PADDING;
-      rowY += WORD_NODE_HEIGHT + WORD_GAP_Y;
-    }
-
-    // Position: right edge of word at cursorX
     const x = cursorX - wordWidth;
 
     nodes.push({
@@ -85,7 +85,6 @@ export function layoutWordNodes(
       },
     });
 
-    // Advance cursor left
     cursorX -= wordWidth + WORD_GAP_X;
   }
 

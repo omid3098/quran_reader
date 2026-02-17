@@ -55,18 +55,16 @@ describe("nodeLayout", () => {
       expect(xs[2]).toBeGreaterThan(xs[3]);
     });
 
-    it("wraps to next row when exceeding canvas width", () => {
-      // Make canvas narrow enough that only 2 short words fit per row
-      const wordWidth = estimateWordNodeWidth("w0");
-      const narrowWidth = CANVAS_PADDING * 2 + (wordWidth + WORD_GAP_X) * 2 + 10;
-      const words = makeWords(4);
-      const result = layoutWordNodes(words, "1:1", narrowWidth);
+    it("places all words on a single row regardless of canvas width", () => {
+      // Even with a narrow canvas, all words should be on the same row
+      const words = makeWords(10);
+      const result = layoutWordNodes(words, "1:1", 200);
 
-      // First 2 words on row 0, next 2 on row 1
       const ys = result.nodes.map((n) => n.position.y);
-      expect(ys[0]).toBe(ys[1]); // same row
-      expect(ys[2]).toBe(ys[3]); // same row
-      expect(ys[2]).toBeGreaterThan(ys[0]); // second row below first
+      // All nodes on the same Y
+      for (const y of ys) {
+        expect(y).toBe(ys[0]);
+      }
     });
 
     it("handles single-word verses", () => {
@@ -100,14 +98,11 @@ describe("nodeLayout", () => {
       expect(node.data.verseKey).toBe("1:1");
     });
 
-    it("positions all nodes within canvas bounds", () => {
+    it("positions all nodes with non-negative Y", () => {
       const words = makeWords(10);
-      const canvasWidth = 800;
-      const result = layoutWordNodes(words, "2:255", canvasWidth);
+      const result = layoutWordNodes(words, "2:255", 800);
 
       for (const node of result.nodes) {
-        expect(node.position.x).toBeGreaterThanOrEqual(0);
-        expect(node.position.x).toBeLessThan(canvasWidth);
         expect(node.position.y).toBeGreaterThanOrEqual(0);
       }
     });
