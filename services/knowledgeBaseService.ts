@@ -70,6 +70,54 @@ export function saveKnowledgeBase(kb: KnowledgeBase): void {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(kb));
 }
 
+/** Create an empty KB if none exists. */
+function ensureKB(kb: KnowledgeBase | null): KnowledgeBase {
+  return (
+    kb ?? {
+      _meta: { author: "user", version: 1 },
+      roots: {},
+      lemmas: {},
+      connections: [],
+      patterns: [],
+    }
+  );
+}
+
+/** Save or update a note for a specific root. */
+export async function saveRootNote(
+  root: string,
+  note: string,
+  discoveredIn?: string
+): Promise<void> {
+  const kb = ensureKB(await loadKnowledgeBase());
+  if (note.trim() === "") {
+    delete kb.roots[root];
+  } else {
+    kb.roots[root] = { note, ...(discoveredIn ? { discoveredIn } : {}) };
+  }
+  saveKnowledgeBase(kb);
+}
+
+/** Save or update a note for a specific lemma. */
+export async function saveLemmaNote(
+  lemma: string,
+  note: string,
+  root?: string,
+  discoveredIn?: string
+): Promise<void> {
+  const kb = ensureKB(await loadKnowledgeBase());
+  if (note.trim() === "") {
+    delete kb.lemmas[lemma];
+  } else {
+    kb.lemmas[lemma] = {
+      note,
+      ...(root ? { root } : {}),
+      ...(discoveredIn ? { discoveredIn } : {}),
+    };
+  }
+  saveKnowledgeBase(kb);
+}
+
 /** Clear the cache (useful for testing). */
 export function clearKnowledgeBaseCache(): void {
   knowledgeBase = null;

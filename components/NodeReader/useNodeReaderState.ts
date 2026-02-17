@@ -11,7 +11,7 @@ import type {
 } from "../../types";
 import { findVersesByRoot } from "../../services/analysisService";
 import { findPhrasesForWord } from "../../services/phrasesService";
-import { getRootNote } from "../../services/knowledgeBaseService";
+import { getRootNote, getLemmaNote } from "../../services/knowledgeBaseService";
 import { layoutRootNode } from "./nodeLayout";
 
 interface UseNodeReaderStateOptions {
@@ -75,18 +75,32 @@ export function useNodeReaderState({
     childrenMapRef.current.clear();
   }, [setNodes, setEdges, collectDescendants]);
 
+  /** Load phrase matches + KB notes for a word, then update selection. */
+  const enrichWordSelection = useCallback((wordData: WordNodeData) => {
+    setPropertiesSelection({ type: "word", data: wordData });
+
+    Promise.all([
+      findPhrasesForWord(wordData.verseKey, wordData.wordIndex),
+      wordData.root ? getRootNote(wordData.root) : null,
+      wordData.lemma ? getLemmaNote(wordData.lemma) : null,
+    ]).then(([phraseMatches, rootNote, lemmaResult]) => {
+      const enriched: PropertiesPanelSelection = {
+        type: "word",
+        data: wordData,
+        ...(phraseMatches.length > 0 ? { phraseMatches } : {}),
+        ...(rootNote ? { rootNote } : {}),
+        ...(lemmaResult?.note ? { lemmaNote: lemmaResult.note } : {}),
+      };
+      setPropertiesSelection(enriched);
+    });
+  }, []);
+
   const handleWordClick = useCallback(
     (nodeId: string, wordData: WordNodeData) => {
       // Toggle: if this word already has a branch, collapse it
       if (childrenMapRef.current.has(nodeId)) {
         collapseChildren(nodeId);
-        setPropertiesSelection({ type: "word", data: wordData });
-        // Async: look up phrase matches
-        findPhrasesForWord(wordData.verseKey, wordData.wordIndex).then((phraseMatches) => {
-          if (phraseMatches.length > 0) {
-            setPropertiesSelection({ type: "word", data: wordData, phraseMatches });
-          }
-        });
+        enrichWordSelection(wordData);
         return;
       }
 
@@ -94,13 +108,7 @@ export function useNodeReaderState({
       collapseAll();
 
       if (!wordData.root) {
-        // No root data for this word (particle, etc.)
-        setPropertiesSelection({ type: "word", data: wordData });
-        findPhrasesForWord(wordData.verseKey, wordData.wordIndex).then((phraseMatches) => {
-          if (phraseMatches.length > 0) {
-            setPropertiesSelection({ type: "word", data: wordData, phraseMatches });
-          }
-        });
+        enrichWordSelection(wordData);
         return;
       }
 
@@ -124,15 +132,9 @@ export function useNodeReaderState({
       // nodes updaters first — pendingEdgesRef is set by the time this runs.
       setEdges((prev) => [...prev, ...pendingEdgesRef.current]);
 
-      // Set immediate selection, then enrich with phrase matches
-      setPropertiesSelection({ type: "word", data: wordData });
-      findPhrasesForWord(wordData.verseKey, wordData.wordIndex).then((phraseMatches) => {
-        if (phraseMatches.length > 0) {
-          setPropertiesSelection({ type: "word", data: wordData, phraseMatches });
-        }
-      });
+      enrichWordSelection(wordData);
     },
-    [setNodes, setEdges, collapseChildren, collapseAll]
+    [setNodes, setEdges, collapseChildren, collapseAll, enrichWordSelection]
   );
 
   const handleRootClick = useCallback(

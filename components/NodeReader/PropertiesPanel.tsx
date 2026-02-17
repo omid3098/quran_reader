@@ -1,5 +1,5 @@
 import React, { memo, useState, useCallback } from "react";
-import { Info, ChevronDown, Link2 } from "lucide-react";
+import { Info, ChevronDown, Link2, Pencil, Check, X, Plus } from "lucide-react";
 import type {
   PropertiesPanelSelection,
   PhraseMatch,
@@ -8,6 +8,7 @@ import type {
   Chapter,
   SurahGroup,
 } from "../../types";
+import { saveRootNote, saveLemmaNote } from "../../services/knowledgeBaseService";
 
 interface PropertiesPanelProps {
   selection: PropertiesPanelSelection;
@@ -39,6 +40,8 @@ function PropertiesPanelComponent({
           <WordInfo
             data={selection.data}
             phraseMatches={selection.phraseMatches}
+            rootNote={selection.rootNote}
+            lemmaNote={selection.lemmaNote}
             onNavigateToVerse={onNavigateToVerse}
           />
         )}
@@ -72,10 +75,14 @@ function VerseInfo({ verse }: { verse: Verse; chapter: Chapter }) {
 function WordInfo({
   data,
   phraseMatches,
+  rootNote: initialRootNote,
+  lemmaNote: initialLemmaNote,
   onNavigateToVerse,
 }: {
   data: NonNullable<Extract<PropertiesPanelSelection, { type: "word" }>["data"]>;
   phraseMatches?: PhraseMatch[];
+  rootNote?: string;
+  lemmaNote?: string;
   onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
 }) {
   const handleVerseClick = useCallback(
@@ -84,6 +91,20 @@ function WordInfo({
       onNavigateToVerse(parseInt(surahStr, 10), parseInt(verseStr, 10));
     },
     [onNavigateToVerse]
+  );
+
+  const handleSaveRootNote = useCallback(
+    (note: string) => {
+      if (data.root) saveRootNote(data.root, note, data.verseKey);
+    },
+    [data.root, data.verseKey]
+  );
+
+  const handleSaveLemmaNote = useCallback(
+    (note: string) => {
+      if (data.lemma) saveLemmaNote(data.lemma, note, data.root, data.verseKey);
+    },
+    [data.lemma, data.root, data.verseKey]
   );
 
   return (
@@ -98,12 +119,22 @@ function WordInfo({
         <div className="border border-slate-700/50 rounded-lg p-4">
           <div className="text-xs text-slate-500 tracking-wider mb-1">Root</div>
           <div className="font-quran text-xl text-indigo-300">{data.root.split("").join(" ")}</div>
+          <KBNoteField
+            label="Root note"
+            initialNote={initialRootNote}
+            onSave={handleSaveRootNote}
+          />
         </div>
       )}
       {data.lemma && (
         <div className="border border-slate-700/50 rounded-lg p-4">
           <div className="text-xs text-slate-500 tracking-wider mb-1">Lemma</div>
           <div className="font-quran text-lg text-slate-300">{data.lemma}</div>
+          <KBNoteField
+            label="Lemma note"
+            initialNote={initialLemmaNote}
+            onSave={handleSaveLemmaNote}
+          />
         </div>
       )}
       <div className="border border-slate-700/50 rounded-lg p-4">
@@ -131,6 +162,96 @@ function WordInfo({
         </>
       )}
     </>
+  );
+}
+
+function KBNoteField({
+  label,
+  initialNote,
+  onSave,
+}: {
+  label: string;
+  initialNote?: string;
+  onSave: (note: string) => void;
+}) {
+  const [editing, setEditing] = useState(false);
+  const [draft, setDraft] = useState(initialNote || "");
+  const [savedNote, setSavedNote] = useState(initialNote);
+
+  // Sync with new props when a different word is clicked
+  const noteToShow = editing ? undefined : (savedNote ?? initialNote);
+
+  const handleEdit = useCallback(() => {
+    setDraft(savedNote ?? initialNote ?? "");
+    setEditing(true);
+  }, [savedNote, initialNote]);
+
+  const handleCancel = useCallback(() => {
+    setEditing(false);
+  }, []);
+
+  const handleSave = useCallback(() => {
+    const trimmed = draft.trim();
+    onSave(trimmed);
+    setSavedNote(trimmed || undefined);
+    setEditing(false);
+  }, [draft, onSave]);
+
+  if (editing) {
+    return (
+      <div className="mt-2">
+        <textarea
+          value={draft}
+          onChange={(e) => setDraft(e.target.value)}
+          className="w-full rounded border border-yellow-700/50 bg-yellow-950/20 text-sm text-yellow-100 font-vazir p-2 focus:outline-none focus:border-yellow-500 resize-y min-h-[60px]"
+          dir="rtl"
+          placeholder={`${label}...`}
+          autoFocus
+        />
+        <div className="flex gap-1.5 mt-1.5">
+          <button
+            onClick={handleSave}
+            className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-yellow-700/30 text-yellow-300 hover:bg-yellow-700/50 transition-colors"
+          >
+            <Check size={12} /> Save
+          </button>
+          <button
+            onClick={handleCancel}
+            className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-slate-700/30 text-slate-400 hover:bg-slate-700/50 transition-colors"
+          >
+            <X size={12} /> Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (noteToShow) {
+    return (
+      <div className="mt-2 group">
+        <div className="flex items-start gap-1.5">
+          <p className="text-sm text-yellow-200/80 font-vazir leading-relaxed flex-1" dir="rtl">
+            {noteToShow}
+          </p>
+          <button
+            onClick={handleEdit}
+            className="opacity-0 group-hover:opacity-100 p-1 rounded text-yellow-500/60 hover:text-yellow-400 transition-all"
+            title="Edit note"
+          >
+            <Pencil size={12} />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <button
+      onClick={handleEdit}
+      className="mt-2 flex items-center gap-1 text-xs text-yellow-600/50 hover:text-yellow-500 transition-colors"
+    >
+      <Plus size={12} /> {label}
+    </button>
   );
 }
 

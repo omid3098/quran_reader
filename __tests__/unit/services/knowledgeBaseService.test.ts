@@ -97,4 +97,50 @@ describe("knowledgeBaseService", () => {
       );
     });
   });
+
+  describe("saveRootNote", () => {
+    it("should add a root note and persist to localStorage", async () => {
+      mockFetchKB();
+      const { saveRootNote, getRootNote } = await import("@/services/knowledgeBaseService");
+      await saveRootNote("جدد", "تجدید و نو شدن", "2:1");
+      const note = await getRootNote("جدد");
+      expect(note).toBe("تجدید و نو شدن");
+      expect(window.localStorage.setItem).toHaveBeenCalled();
+    });
+
+    it("should delete root note when saving empty string", async () => {
+      mockFetchKB();
+      const { saveRootNote, getRootNote } = await import("@/services/knowledgeBaseService");
+      // Root "سوأ" exists in SAMPLE_KB
+      await saveRootNote("سوأ", "");
+      const note = await getRootNote("سوأ");
+      expect(note).toBeNull();
+    });
+
+    it("should create KB from scratch if none exists", async () => {
+      mockFetch.mockResolvedValue({ ok: false });
+      const { saveRootNote, getRootNote } = await import("@/services/knowledgeBaseService");
+      await saveRootNote("جدد", "new note");
+      const note = await getRootNote("جدد");
+      expect(note).toBe("new note");
+    });
+  });
+
+  describe("saveLemmaNote", () => {
+    it("should add a lemma note with root reference", async () => {
+      mockFetchKB();
+      const { saveLemmaNote, getLemmaNote } = await import("@/services/knowledgeBaseService");
+      await saveLemmaNote("جَدِيد", "چیز نو", "جدد", "2:1");
+      const result = await getLemmaNote("جَدِيد");
+      expect(result).toEqual({ note: "چیز نو", root: "جدد" });
+    });
+
+    it("should delete lemma note when saving empty string", async () => {
+      mockFetchKB();
+      const { saveLemmaNote, getLemmaNote } = await import("@/services/knowledgeBaseService");
+      await saveLemmaNote("سُوء", "");
+      const result = await getLemmaNote("سُوء");
+      expect(result).toBeNull();
+    });
+  });
 });

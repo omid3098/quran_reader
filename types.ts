@@ -291,7 +291,13 @@ export interface KBPattern {
 
 export type PropertiesPanelSelection =
   | { type: "verse"; verseKey: string; chapter: Chapter }
-  | { type: "word"; data: WordNodeData; phraseMatches?: PhraseMatch[] }
+  | {
+      type: "word";
+      data: WordNodeData;
+      phraseMatches?: PhraseMatch[];
+      rootNote?: string;
+      lemmaNote?: string;
+    }
   | {
       type: "root";
       data: RootNodeData;
