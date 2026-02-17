@@ -10,6 +10,7 @@ import type {
   NodeReaderNodeData,
   Chapter,
   SurahGroup,
+  CanvasSnapshot,
 } from "../../types";
 import { findVersesByRoot } from "../../services/analysisService";
 import { findPhrasesForWord } from "../../services/phrasesService";
@@ -21,6 +22,7 @@ interface UseNodeReaderStateOptions {
   chapter: Chapter;
   verseKey: string;
   getSurahName: (surahId: number) => string | undefined;
+  cachedSnapshot?: CanvasSnapshot;
 }
 
 export function useNodeReaderState({
@@ -28,17 +30,18 @@ export function useNodeReaderState({
   chapter,
   verseKey,
   getSurahName,
+  cachedSnapshot,
 }: UseNodeReaderStateOptions) {
-  const [nodes, setNodes, onNodesChange] = useNodesState(initialNodes);
-  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>([]);
-  const [propertiesSelection, setPropertiesSelection] = useState<PropertiesPanelSelection>({
-    type: "verse",
-    verseKey,
-    chapter,
-  });
+  const [nodes, setNodes, onNodesChange] = useNodesState(cachedSnapshot?.nodes ?? initialNodes);
+  const [edges, setEdges, onEdgesChange] = useEdgesState<Edge>(cachedSnapshot?.edges ?? []);
+  const [propertiesSelection, setPropertiesSelection] = useState<PropertiesPanelSelection>(
+    cachedSnapshot?.propertiesSelection ?? { type: "verse", verseKey, chapter }
+  );
 
   // Track spawned children per node for cleanup
-  const childrenMapRef = useRef<Map<string, string[]>>(new Map());
+  const childrenMapRef = useRef<Map<string, string[]>>(
+    cachedSnapshot ? new Map(cachedSnapshot.childrenMap) : new Map()
+  );
   // Edges produced inside setNodes callbacks, applied by a separate setEdges call
   const pendingEdgesRef = useRef<Edge[]>([]);
 
@@ -275,6 +278,26 @@ export function useNodeReaderState({
     [setNodes, setEdges, verseKey, chapter]
   );
 
+  const restoreCanvas = useCallback(
+    (snapshot: CanvasSnapshot) => {
+      childrenMapRef.current = new Map(snapshot.childrenMap);
+      setNodes(snapshot.nodes);
+      setEdges(snapshot.edges);
+      setPropertiesSelection(snapshot.propertiesSelection);
+    },
+    [setNodes, setEdges]
+  );
+
+  const getSnapshot = useCallback(
+    (): CanvasSnapshot => ({
+      nodes,
+      edges,
+      childrenMap: new Map(childrenMapRef.current),
+      propertiesSelection,
+    }),
+    [nodes, edges, propertiesSelection]
+  );
+
   return {
     nodes,
     edges,
@@ -284,6 +307,8 @@ export function useNodeReaderState({
     handlePaneClick,
     propertiesSelection,
     resetCanvas,
+    restoreCanvas,
     togglePhraseOnCanvas,
+    getSnapshot,
   };
 }

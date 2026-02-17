@@ -64,6 +64,7 @@ function PropertiesPanelComponent({
             matchType={selection.matchType}
             patternKeys={selection.patternKeys}
             translationIds={verse.translations.map((t) => t.resource_id)}
+            onNavigateToVerse={onNavigateToVerse}
           />
         )}
       </div>
@@ -89,11 +90,13 @@ function PhraseVerseInfo({
   matchType,
   patternKeys,
   translationIds,
+  onNavigateToVerse,
 }: {
   verseKey: string;
   matchType: PhraseMatchType;
   patternKeys: string[];
   translationIds: string[];
+  onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
 }) {
   const [verse, setVerse] = useState<Verse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -106,13 +109,24 @@ function PhraseVerseInfo({
     });
   }, [verseKey, translationIds]);
 
+  const handleNavigate = useCallback(() => {
+    const [surahStr, verseStr] = verseKey.split(":");
+    onNavigateToVerse(parseInt(surahStr, 10), parseInt(verseStr, 10));
+  }, [verseKey, onNavigateToVerse]);
+
   const s = PHRASE_SECTION_STYLES[matchType];
 
   return (
     <>
       {/* Header badge */}
       <div className={`border ${s.border} rounded-lg p-3 ${s.bg} flex items-center gap-2`}>
-        <span className={`text-xs ${s.icon} tracking-wider`}>{verseKey}</span>
+        <button
+          onClick={handleNavigate}
+          className={`text-xs ${s.icon} tracking-wider hover:underline flex items-center gap-1`}
+        >
+          <Link2 size={12} />
+          {verseKey}
+        </button>
         <span className="text-slate-600 mx-1">·</span>
         <span className={`font-quran text-sm ${s.text}`} dir="rtl">
           {patternKeys.join(" ")}
@@ -136,8 +150,6 @@ function PhraseVerseInfo({
       ) : (
         <div className="text-sm text-slate-500 text-center py-4">Could not load verse</div>
       )}
-
-      <div className="text-xs text-slate-600 text-center">Double-click node to navigate</div>
     </>
   );
 }

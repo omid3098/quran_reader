@@ -320,3 +320,10 @@ export type PropertiesPanelSelection =
       patternKeys: string[];
     }
   | null;
+
+export interface CanvasSnapshot {
+  nodes: import("@xyflow/react").Node[];
+  edges: import("@xyflow/react").Edge[];
+  childrenMap: Map<string, string[]>;
+  propertiesSelection: PropertiesPanelSelection;
+}

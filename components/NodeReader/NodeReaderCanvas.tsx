@@ -8,6 +8,7 @@ import { layoutWordNodes } from "./nodeLayout";
 import type {
   QuranWord,
   Chapter,
+  CanvasSnapshot,
   PhraseMatch,
   PhraseVerseNodeData,
   PropertiesPanelSelection,
@@ -23,6 +24,7 @@ interface NodeReaderCanvasProps {
   onSelectionChange: (selection: PropertiesPanelSelection) => void;
   togglePhraseRef: React.MutableRefObject<TogglePhraseOnCanvas | null>;
   onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
+  canvasCacheRef: React.MutableRefObject<Map<string, CanvasSnapshot>>;
 }
 
 export function NodeReaderCanvas({
@@ -33,9 +35,17 @@ export function NodeReaderCanvas({
   onSelectionChange,
   togglePhraseRef,
   onNavigateToVerse,
+  canvasCacheRef,
 }: NodeReaderCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { fitView } = useReactFlow();
+
+  // Check for cached state on mount
+  const cachedSnapshot = useMemo(
+    () => canvasCacheRef.current.get(verseKey),
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+    [] // Only on mount
+  );
 
   // Compute initial word nodes
   const initialNodes = useMemo(() => {
@@ -52,13 +62,23 @@ export function NodeReaderCanvas({
     handlePaneClick,
     propertiesSelection,
     resetCanvas,
+    restoreCanvas,
     togglePhraseOnCanvas,
+    getSnapshot,
   } = useNodeReaderState({
     initialNodes,
     chapter,
     verseKey,
     getSurahName,
+    cachedSnapshot,
   });
+
+  // Keep a ref to getSnapshot so effects always have the latest version
+  const getSnapshotRef = useRef(getSnapshot);
+  getSnapshotRef.current = getSnapshot;
+
+  // Track previous verseKey so we can save state before switching
+  const prevVerseKeyRef = useRef(verseKey);
 
   // Double-click on phraseVerse nodes → navigate to that verse
   const handleNodeDoubleClick = useCallback(
@@ -82,9 +102,22 @@ export function NodeReaderCanvas({
     onSelectionChange(propertiesSelection);
   }, [propertiesSelection, onSelectionChange]);
 
-  // Reset canvas when verse changes
+  // Save old state BEFORE resetting, then restore or reset for new verse.
+  // On initial mount, skip (state is already initialized via cachedSnapshot or initialNodes).
   useEffect(() => {
-    resetCanvas(initialNodes);
+    if (prevVerseKeyRef.current !== verseKey) {
+      // Save canvas state for the verse we're leaving (before any reset)
+      canvasCacheRef.current.set(prevVerseKeyRef.current, getSnapshotRef.current());
+      prevVerseKeyRef.current = verseKey;
+
+      // Check if we have cached state for the new verse
+      const cached = canvasCacheRef.current.get(verseKey);
+      if (cached) {
+        restoreCanvas(cached);
+      } else {
+        resetCanvas(initialNodes);
+      }
+    }
   }, [verseKey]); // eslint-disable-line react-hooks/exhaustive-deps
 
   // Fit view when word nodes first load

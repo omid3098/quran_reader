@@ -4,7 +4,13 @@ import { X, Play, Pause, SkipBack, SkipForward, Repeat } from "lucide-react";
 import { NodeReaderCanvas, type TogglePhraseOnCanvas } from "./NodeReaderCanvas";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { Spinner } from "../Spinner";
-import type { Verse, Chapter, QuranWord, PropertiesPanelSelection } from "../../types";
+import type {
+  Verse,
+  Chapter,
+  QuranWord,
+  CanvasSnapshot,
+  PropertiesPanelSelection,
+} from "../../types";
 import { loadLocalRootData } from "../../services/analysisService";
 
 interface NodeReaderProps {
@@ -38,6 +44,7 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
   const [loading, setLoading] = useState(true);
   const [propertiesSelection, setPropertiesSelection] = useState<PropertiesPanelSelection>(null);
   const togglePhraseRef = useRef<TogglePhraseOnCanvas | null>(null);
+  const canvasCacheRef = useRef<Map<string, CanvasSnapshot>>(new Map());
 
   // Build word list from actual verse text + root data
   useEffect(() => {
@@ -118,6 +125,7 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
                 onSelectionChange={handleSelectionChange}
                 togglePhraseRef={togglePhraseRef}
                 onNavigateToVerse={onNavigateToVerse}
+                canvasCacheRef={canvasCacheRef}
               />
             </ReactFlowProvider>
           )}
