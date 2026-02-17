@@ -1,6 +1,12 @@
 import React, { memo, useState, useCallback } from "react";
-import { Info, ChevronDown } from "lucide-react";
-import type { PropertiesPanelSelection, Verse, Chapter, SurahGroup } from "../../types";
+import { Info, ChevronDown, Link2 } from "lucide-react";
+import type {
+  PropertiesPanelSelection,
+  PhraseMatch,
+  Verse,
+  Chapter,
+  SurahGroup,
+} from "../../types";
 
 interface PropertiesPanelProps {
   selection: PropertiesPanelSelection;
@@ -28,12 +34,19 @@ function PropertiesPanelComponent({
         {(!selection || selection.type === "verse") && (
           <VerseInfo verse={verse} chapter={chapter} />
         )}
-        {selection?.type === "word" && <WordInfo data={selection.data} />}
+        {selection?.type === "word" && (
+          <WordInfo
+            data={selection.data}
+            phraseMatches={selection.phraseMatches}
+            onNavigateToVerse={onNavigateToVerse}
+          />
+        )}
         {selection?.type === "root" && (
           <RootInfo
             data={selection.data}
             analysis={selection.analysis}
             surahGroups={selection.surahGroups}
+            rootNote={selection.rootNote}
             onNavigateToVerse={onNavigateToVerse}
           />
         )}
@@ -57,9 +70,21 @@ function VerseInfo({ verse }: { verse: Verse; chapter: Chapter }) {
 
 function WordInfo({
   data,
+  phraseMatches,
+  onNavigateToVerse,
 }: {
   data: NonNullable<Extract<PropertiesPanelSelection, { type: "word" }>["data"]>;
+  phraseMatches?: PhraseMatch[];
+  onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
 }) {
+  const handleVerseClick = useCallback(
+    (verseKey: string) => {
+      const [surahStr, verseStr] = verseKey.split(":");
+      onNavigateToVerse(parseInt(surahStr, 10), parseInt(verseStr, 10));
+    },
+    [onNavigateToVerse]
+  );
+
   return (
     <>
       <div className="border border-slate-700/50 rounded-lg p-4">
@@ -86,6 +111,11 @@ function WordInfo({
           Word {data.wordIndex + 1} in {data.verseKey}
         </div>
       </div>
+
+      {/* Phrase Matches */}
+      {phraseMatches && phraseMatches.length > 0 && (
+        <PhraseMatchesSection matches={phraseMatches} onNavigateToVerse={handleVerseClick} />
+      )}
     </>
   );
 }
@@ -94,11 +124,13 @@ function RootInfo({
   data,
   analysis,
   surahGroups,
+  rootNote,
   onNavigateToVerse,
 }: {
   data: NonNullable<Extract<PropertiesPanelSelection, { type: "root" }>["data"]>;
   analysis?: NonNullable<Extract<PropertiesPanelSelection, { type: "root" }>["analysis"]>;
   surahGroups?: SurahGroup[];
+  rootNote?: string;
   onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
 }) {
   const [wordFormsOpen, setWordFormsOpen] = useState(false);
@@ -128,6 +160,14 @@ function RootInfo({
         <div className="text-xs text-slate-500 tracking-wider mb-1">Root</div>
         <div className="font-quran text-2xl text-indigo-300">{data.root.split("").join(" ")}</div>
       </div>
+      {rootNote && (
+        <div className="border border-yellow-700/50 rounded-lg p-4 bg-yellow-900/10">
+          <div className="text-xs text-yellow-500 tracking-wider mb-1">Note</div>
+          <p className="text-sm text-yellow-200/80 font-vazir leading-relaxed" dir="rtl">
+            {rootNote}
+          </p>
+        </div>
+      )}
       {analysis && (
         <>
           <div className="border border-slate-700/50 rounded-lg p-4">
@@ -221,6 +261,66 @@ function RootInfo({
         </div>
       )}
     </>
+  );
+}
+
+function PhraseMatchesSection({
+  matches,
+  onNavigateToVerse,
+}: {
+  matches: PhraseMatch[];
+  onNavigateToVerse: (verseKey: string) => void;
+}) {
+  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+
+  return (
+    <div className="border border-amber-800/50 rounded-lg overflow-hidden bg-amber-950/10">
+      <div className="px-4 py-3 flex items-center gap-2">
+        <Link2 size={14} className="text-amber-500" />
+        <span className="text-xs text-amber-500 tracking-wider">
+          Shared Phrases ({matches.length})
+        </span>
+      </div>
+      <div className="divide-y divide-amber-900/30">
+        {matches.map((match, idx) => {
+          const isOpen = expandedIdx === idx;
+          return (
+            <div key={idx}>
+              <button
+                onClick={() => setExpandedIdx(isOpen ? null : idx)}
+                className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-amber-900/10 transition-colors"
+              >
+                <span className="font-quran text-sm text-amber-200" dir="rtl">
+                  {match.lemmas.join(" ")}
+                </span>
+                <span className="flex items-center gap-1.5">
+                  <span className="text-xs text-amber-500/60">
+                    {match.otherOccurrences.length} other
+                  </span>
+                  <ChevronDown
+                    size={14}
+                    className={`text-amber-500/60 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                  />
+                </span>
+              </button>
+              {isOpen && (
+                <div className="px-4 pb-3 flex flex-wrap gap-1.5">
+                  {match.otherOccurrences.map((occ) => (
+                    <button
+                      key={occ.verse}
+                      onClick={() => onNavigateToVerse(occ.verse)}
+                      className="px-2 py-1 rounded text-xs font-mono text-amber-400 bg-amber-950/50 border border-amber-800/50 hover:border-amber-500 hover:bg-amber-900/30 transition-colors"
+                    >
+                      {occ.verse}
+                    </button>
+                  ))}
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+    </div>
   );
 }
 

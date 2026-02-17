@@ -251,8 +251,49 @@ export interface SurahGroup {
 
 export type NodeReaderNodeData = WordNodeData | RootNodeData;
 
+// --- Phrase Match Types ---
+
+export interface PhraseMatch {
+  lemmas: string[];
+  wordIndices: number[]; // indices in the current verse that form this phrase
+  otherOccurrences: {
+    verse: string;
+    words: number[];
+  }[];
+}
+
+// --- Knowledge Base Types ---
+
+export interface KnowledgeBase {
+  _meta: { author: string; version: number };
+  roots: Record<string, { note: string; discoveredIn?: string }>;
+  lemmas: Record<string, { root?: string; note: string; discoveredIn?: string }>;
+  connections: KBConnection[];
+  patterns: KBPattern[];
+}
+
+export interface KBConnection {
+  from: { verse: string; words: number[] | null };
+  to: { verse: string; words: number[] | null };
+  reason: string;
+}
+
+export interface KBPattern {
+  id: string;
+  title: string;
+  note: string;
+  discoveredIn?: string;
+  relatedRoots?: string[];
+}
+
 export type PropertiesPanelSelection =
   | { type: "verse"; verseKey: string; chapter: Chapter }
-  | { type: "word"; data: WordNodeData }
-  | { type: "root"; data: RootNodeData; analysis?: RootAnalysis; surahGroups?: SurahGroup[] }
+  | { type: "word"; data: WordNodeData; phraseMatches?: PhraseMatch[] }
+  | {
+      type: "root";
+      data: RootNodeData;
+      analysis?: RootAnalysis;
+      surahGroups?: SurahGroup[];
+      rootNote?: string;
+    }
   | null;

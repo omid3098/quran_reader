@@ -20,7 +20,8 @@
     "format:check": "prettier --check .",
     "typecheck": "tsc --noEmit",
     "prepare": "husky",
-    "sync": "bun run scripts/sync.ts"
+    "sync": "bun run scripts/sync.ts",
+    "generate-phrases": "bun run scripts/generate-phrases.ts"
   },
   "dependencies": {
     "@blocknote/core": "^0.42.3",

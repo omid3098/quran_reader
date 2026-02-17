@@ -10,6 +10,8 @@ import type {
   SurahGroup,
 } from "../../types";
 import { findVersesByRoot } from "../../services/analysisService";
+import { findPhrasesForWord } from "../../services/phrasesService";
+import { getRootNote } from "../../services/knowledgeBaseService";
 import { layoutRootNode } from "./nodeLayout";
 
 interface UseNodeReaderStateOptions {
@@ -79,6 +81,12 @@ export function useNodeReaderState({
       if (childrenMapRef.current.has(nodeId)) {
         collapseChildren(nodeId);
         setPropertiesSelection({ type: "word", data: wordData });
+        // Async: look up phrase matches
+        findPhrasesForWord(wordData.verseKey, wordData.wordIndex).then((phraseMatches) => {
+          if (phraseMatches.length > 0) {
+            setPropertiesSelection({ type: "word", data: wordData, phraseMatches });
+          }
+        });
         return;
       }
 
@@ -88,6 +96,11 @@ export function useNodeReaderState({
       if (!wordData.root) {
         // No root data for this word (particle, etc.)
         setPropertiesSelection({ type: "word", data: wordData });
+        findPhrasesForWord(wordData.verseKey, wordData.wordIndex).then((phraseMatches) => {
+          if (phraseMatches.length > 0) {
+            setPropertiesSelection({ type: "word", data: wordData, phraseMatches });
+          }
+        });
         return;
       }
 
@@ -111,15 +124,24 @@ export function useNodeReaderState({
       // nodes updaters first — pendingEdgesRef is set by the time this runs.
       setEdges((prev) => [...prev, ...pendingEdgesRef.current]);
 
+      // Set immediate selection, then enrich with phrase matches
       setPropertiesSelection({ type: "word", data: wordData });
+      findPhrasesForWord(wordData.verseKey, wordData.wordIndex).then((phraseMatches) => {
+        if (phraseMatches.length > 0) {
+          setPropertiesSelection({ type: "word", data: wordData, phraseMatches });
+        }
+      });
     },
     [setNodes, setEdges, collapseChildren, collapseAll]
   );
 
   const handleRootClick = useCallback(
     async (_nodeId: string, rootData: RootNodeData) => {
-      // Fetch all verses with this root
-      const analysis = await findVersesByRoot(rootData.root);
+      // Fetch all verses with this root + KB note in parallel
+      const [analysis, rootNote] = await Promise.all([
+        findVersesByRoot(rootData.root),
+        getRootNote(rootData.root),
+      ]);
 
       // Group ALL verse keys by surah
       const allKeys = analysis.allVerseKeys ?? analysis.verses.map((v) => v.verse_key);
@@ -151,6 +173,7 @@ export function useNodeReaderState({
         data: rootData,
         analysis,
         surahGroups,
+        rootNote: rootNote || undefined,
       });
     },
     [setNodes, getSurahName]
