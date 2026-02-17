@@ -1,11 +1,19 @@
-import { useEffect, useMemo, useRef } from "react";
+import { useCallback, useEffect, useMemo, useRef } from "react";
 import { ReactFlow, Background, Controls, useReactFlow } from "@xyflow/react";
 import type { Node } from "@xyflow/react";
 import "@xyflow/react/dist/style.css";
 import { nodeTypes } from "./nodeTypes";
 import { useNodeReaderState } from "./useNodeReaderState";
 import { layoutWordNodes } from "./nodeLayout";
-import type { QuranWord, Chapter, PropertiesPanelSelection } from "../../types";
+import type {
+  QuranWord,
+  Chapter,
+  PhraseMatch,
+  PhraseVerseNodeData,
+  PropertiesPanelSelection,
+} from "../../types";
+
+export type TogglePhraseOnCanvas = (match: PhraseMatch, show: boolean) => void;
 
 interface NodeReaderCanvasProps {
   words: QuranWord[];
@@ -13,6 +21,8 @@ interface NodeReaderCanvasProps {
   chapter: Chapter;
   getSurahName: (surahId: number) => string | undefined;
   onSelectionChange: (selection: PropertiesPanelSelection) => void;
+  togglePhraseRef: React.MutableRefObject<TogglePhraseOnCanvas | null>;
+  onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
 }
 
 export function NodeReaderCanvas({
@@ -21,6 +31,8 @@ export function NodeReaderCanvas({
   chapter,
   getSurahName,
   onSelectionChange,
+  togglePhraseRef,
+  onNavigateToVerse,
 }: NodeReaderCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { fitView } = useReactFlow();
@@ -40,12 +52,30 @@ export function NodeReaderCanvas({
     handlePaneClick,
     propertiesSelection,
     resetCanvas,
+    togglePhraseOnCanvas,
   } = useNodeReaderState({
     initialNodes,
     chapter,
     verseKey,
     getSurahName,
   });
+
+  // Double-click on phraseVerse nodes → navigate to that verse
+  const handleNodeDoubleClick = useCallback(
+    (_event: React.MouseEvent, node: Node) => {
+      const d = node.data as unknown as PhraseVerseNodeData;
+      if (d.type === "phraseVerse") {
+        const [surahStr, verseStr] = d.verseKey.split(":");
+        onNavigateToVerse(parseInt(surahStr, 10), parseInt(verseStr, 10));
+      }
+    },
+    [onNavigateToVerse]
+  );
+
+  // Expose togglePhraseOnCanvas to parent via ref
+  useEffect(() => {
+    togglePhraseRef.current = togglePhraseOnCanvas;
+  }, [togglePhraseOnCanvas, togglePhraseRef]);
 
   // Sync properties selection to parent
   useEffect(() => {
@@ -72,6 +102,7 @@ export function NodeReaderCanvas({
         onNodesChange={onNodesChange}
         onEdgesChange={onEdgesChange}
         onNodeClick={handleNodeClick}
+        onNodeDoubleClick={handleNodeDoubleClick}
         onPaneClick={handlePaneClick}
         nodeTypes={nodeTypes}
         nodesDraggable={false}

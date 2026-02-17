@@ -19,6 +19,11 @@ function WordNodeComponent({ data, selected }: NodeProps) {
       <span className="font-quran text-3xl text-slate-100 leading-relaxed whitespace-nowrap">
         {d.word}
       </span>
+      <Handle
+        type="target"
+        position={Position.Top}
+        className="!bg-transparent !w-0 !h-0 !border-0 !min-w-0 !min-h-0"
+      />
       <Handle type="source" position={Position.Bottom} className="!bg-emerald-500 !w-2 !h-2" />
     </div>
   );

@@ -1,7 +1,7 @@
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect, useCallback, useRef } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
 import { X, Play, Pause, SkipBack, SkipForward, Repeat } from "lucide-react";
-import { NodeReaderCanvas } from "./NodeReaderCanvas";
+import { NodeReaderCanvas, type TogglePhraseOnCanvas } from "./NodeReaderCanvas";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { Spinner } from "../Spinner";
 import type { Verse, Chapter, QuranWord, PropertiesPanelSelection } from "../../types";
@@ -37,6 +37,7 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
   const [words, setWords] = useState<QuranWord[]>([]);
   const [loading, setLoading] = useState(true);
   const [propertiesSelection, setPropertiesSelection] = useState<PropertiesPanelSelection>(null);
+  const togglePhraseRef = useRef<TogglePhraseOnCanvas | null>(null);
 
   // Build word list from actual verse text + root data
   useEffect(() => {
@@ -115,6 +116,8 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
                 chapter={chapter}
                 getSurahName={getSurahName}
                 onSelectionChange={handleSelectionChange}
+                togglePhraseRef={togglePhraseRef}
+                onNavigateToVerse={onNavigateToVerse}
               />
             </ReactFlowProvider>
           )}
@@ -170,6 +173,7 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
         verse={verse}
         chapter={chapter}
         onNavigateToVerse={onNavigateToVerse}
+        onTogglePhraseOnCanvas={(match, show) => togglePhraseRef.current?.(match, show)}
       />
     </div>
   );

@@ -1,4 +1,4 @@
-import React, { memo, useState, useCallback } from "react";
+import React, { memo, useState, useCallback, useEffect, useRef } from "react";
 import { Info, ChevronDown, Link2, Pencil, Check, X, Plus } from "lucide-react";
 import type {
   PropertiesPanelSelection,
@@ -9,12 +9,14 @@ import type {
   SurahGroup,
 } from "../../types";
 import { saveRootNote, saveLemmaNote } from "../../services/knowledgeBaseService";
+import { getVerseByKey } from "../../services/quranService";
 
 interface PropertiesPanelProps {
   selection: PropertiesPanelSelection;
   verse: Verse;
   chapter: Chapter;
   onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
+  onTogglePhraseOnCanvas?: (match: PhraseMatch, show: boolean) => void;
 }
 
 function PropertiesPanelComponent({
@@ -22,6 +24,7 @@ function PropertiesPanelComponent({
   verse,
   chapter,
   onNavigateToVerse,
+  onTogglePhraseOnCanvas,
 }: PropertiesPanelProps) {
   return (
     <div className="w-80 md:w-96 border-l border-slate-800 bg-slate-900/50 overflow-y-auto custom-scrollbar flex flex-col">
@@ -43,6 +46,7 @@ function PropertiesPanelComponent({
             rootNote={selection.rootNote}
             lemmaNote={selection.lemmaNote}
             onNavigateToVerse={onNavigateToVerse}
+            onTogglePhraseOnCanvas={onTogglePhraseOnCanvas}
           />
         )}
         {selection?.type === "root" && (
@@ -52,6 +56,14 @@ function PropertiesPanelComponent({
             surahGroups={selection.surahGroups}
             rootNote={selection.rootNote}
             onNavigateToVerse={onNavigateToVerse}
+          />
+        )}
+        {selection?.type === "phraseVerse" && (
+          <PhraseVerseInfo
+            verseKey={selection.verseKey}
+            matchType={selection.matchType}
+            patternKeys={selection.patternKeys}
+            translationIds={verse.translations.map((t) => t.resource_id)}
           />
         )}
       </div>
@@ -72,18 +84,78 @@ function VerseInfo({ verse }: { verse: Verse; chapter: Chapter }) {
   );
 }
 
+function PhraseVerseInfo({
+  verseKey,
+  matchType,
+  patternKeys,
+  translationIds,
+}: {
+  verseKey: string;
+  matchType: PhraseMatchType;
+  patternKeys: string[];
+  translationIds: string[];
+}) {
+  const [verse, setVerse] = useState<Verse | null>(null);
+  const [loading, setLoading] = useState(true);
+
+  useEffect(() => {
+    setLoading(true);
+    getVerseByKey(verseKey, translationIds).then((v) => {
+      setVerse(v);
+      setLoading(false);
+    });
+  }, [verseKey, translationIds]);
+
+  const s = PHRASE_SECTION_STYLES[matchType];
+
+  return (
+    <>
+      {/* Header badge */}
+      <div className={`border ${s.border} rounded-lg p-3 ${s.bg} flex items-center gap-2`}>
+        <span className={`text-xs ${s.icon} tracking-wider`}>{verseKey}</span>
+        <span className="text-slate-600 mx-1">·</span>
+        <span className={`font-quran text-sm ${s.text}`} dir="rtl">
+          {patternKeys.join(" ")}
+        </span>
+      </div>
+
+      {/* Verse content */}
+      {loading ? (
+        <div className="flex items-center justify-center py-8">
+          <div className="w-5 h-5 border-2 border-slate-600 border-t-slate-300 rounded-full animate-spin" />
+        </div>
+      ) : verse ? (
+        <>
+          <div className="border border-slate-700/50 rounded-lg p-4">
+            <p className="font-quran text-lg text-slate-200 leading-[2]" dir="rtl">
+              {verse.text_uthmani}
+            </p>
+          </div>
+          {verse.translations.length > 0 && <TranslationTabs translations={verse.translations} />}
+        </>
+      ) : (
+        <div className="text-sm text-slate-500 text-center py-4">Could not load verse</div>
+      )}
+
+      <div className="text-xs text-slate-600 text-center">Double-click node to navigate</div>
+    </>
+  );
+}
+
 function WordInfo({
   data,
   phraseMatches,
   rootNote: initialRootNote,
   lemmaNote: initialLemmaNote,
   onNavigateToVerse,
+  onTogglePhraseOnCanvas,
 }: {
   data: NonNullable<Extract<PropertiesPanelSelection, { type: "word" }>["data"]>;
   phraseMatches?: PhraseMatch[];
   rootNote?: string;
   lemmaNote?: string;
   onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
+  onTogglePhraseOnCanvas?: (match: PhraseMatch, show: boolean) => void;
 }) {
   const handleVerseClick = useCallback(
     (verseKey: string) => {
@@ -156,6 +228,7 @@ function WordInfo({
                 matchType={type}
                 matches={grouped}
                 onNavigateToVerse={handleVerseClick}
+                onTogglePhraseOnCanvas={onTogglePhraseOnCanvas}
               />
             );
           })}
@@ -420,7 +493,7 @@ const PHRASE_SECTION_STYLES: Record<
     border: "border-amber-800/50",
     bg: "bg-amber-950/10",
     icon: "text-amber-500",
-    label: "Shared Phrases",
+    label: "Shared Lemma Patterns",
     text: "text-amber-200",
     textMuted: "text-amber-500/60",
     btnText: "text-amber-400",
@@ -434,7 +507,7 @@ const PHRASE_SECTION_STYLES: Record<
     border: "border-teal-800/50",
     bg: "bg-teal-950/10",
     icon: "text-teal-500",
-    label: "Shared Patterns (root)",
+    label: "Shared Root Patterns",
     text: "text-teal-200",
     textMuted: "text-teal-500/60",
     btnText: "text-teal-400",
@@ -446,17 +519,67 @@ const PHRASE_SECTION_STYLES: Record<
   },
 };
 
+const TOGGLE_STYLES = {
+  lemma: { track: "bg-amber-600", knob: "bg-amber-200" },
+  root: { track: "bg-teal-600", knob: "bg-teal-200" },
+} as const;
+
+function PhraseToggle({ on, matchType }: { on: boolean; matchType: PhraseMatchType }) {
+  const ts = TOGGLE_STYLES[matchType];
+  return (
+    <div
+      className={`w-8 h-4 rounded-full transition-colors duration-200 relative flex-shrink-0 ${
+        on ? ts.track : "bg-slate-700"
+      }`}
+    >
+      <div
+        className={`w-3 h-3 rounded-full absolute top-0.5 transition-all duration-200 ${
+          on ? `${ts.knob} left-[18px]` : "bg-slate-500 left-0.5"
+        }`}
+      />
+    </div>
+  );
+}
+
 function PhraseMatchesSection({
   matchType,
   matches,
   onNavigateToVerse,
+  onTogglePhraseOnCanvas,
 }: {
   matchType: PhraseMatchType;
   matches: PhraseMatch[];
   onNavigateToVerse: (verseKey: string) => void;
+  onTogglePhraseOnCanvas?: (match: PhraseMatch, show: boolean) => void;
 }) {
-  const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+  const [toggledSet, setToggledSet] = useState<Set<number>>(new Set());
   const s = PHRASE_SECTION_STYLES[matchType];
+
+  // Reset toggles when matches change (new word selected)
+  const matchesKeyRef = useRef("");
+  const newKey = matches.map((m) => m.keys.join(",")).join("|");
+  if (newKey !== matchesKeyRef.current) {
+    matchesKeyRef.current = newKey;
+    if (toggledSet.size > 0) setToggledSet(new Set());
+  }
+
+  const handleToggle = useCallback(
+    (idx: number, match: PhraseMatch) => {
+      setToggledSet((prev) => {
+        const next = new Set(prev);
+        const isOn = next.has(idx);
+        if (isOn) {
+          next.delete(idx);
+          onTogglePhraseOnCanvas?.(match, false);
+        } else {
+          next.add(idx);
+          onTogglePhraseOnCanvas?.(match, true);
+        }
+        return next;
+      });
+    },
+    [onTogglePhraseOnCanvas]
+  );
 
   return (
     <div className={`border ${s.border} rounded-lg overflow-hidden ${s.bg}`}>
@@ -468,39 +591,23 @@ function PhraseMatchesSection({
       </div>
       <div className={`divide-y ${s.divider}`}>
         {matches.map((match, idx) => {
-          const isOpen = expandedIdx === idx;
+          const isOn = toggledSet.has(idx);
           return (
             <div key={idx}>
               <button
-                onClick={() => setExpandedIdx(isOpen ? null : idx)}
+                onClick={() => handleToggle(idx, match)}
                 className={`w-full flex items-center justify-between px-4 py-2.5 text-left ${s.hoverBg} transition-colors`}
               >
                 <span className={`font-quran text-sm ${s.text}`} dir="rtl">
                   {match.keys.join(" ")}
                 </span>
-                <span className="flex items-center gap-1.5">
+                <span className="flex items-center gap-2">
                   <span className={`text-xs ${s.textMuted}`}>
                     {match.otherOccurrences.length} other
                   </span>
-                  <ChevronDown
-                    size={14}
-                    className={`${s.textMuted} transition-transform ${isOpen ? "rotate-180" : ""}`}
-                  />
+                  <PhraseToggle on={isOn} matchType={matchType} />
                 </span>
               </button>
-              {isOpen && (
-                <div className="px-4 pb-3 flex flex-wrap gap-1.5">
-                  {match.otherOccurrences.map((occ) => (
-                    <button
-                      key={occ.verse}
-                      onClick={() => onNavigateToVerse(occ.verse)}
-                      className={`px-2 py-1 rounded text-xs font-mono ${s.btnText} ${s.btnBg} border ${s.btnBorder} ${s.btnHover} transition-colors`}
-                    >
-                      {occ.verse}
-                    </button>
-                  ))}
-                </div>
-              )}
             </div>
           );
         })}

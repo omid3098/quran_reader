@@ -4,6 +4,8 @@ import type { Node, Edge } from "@xyflow/react";
 import type {
   WordNodeData,
   RootNodeData,
+  PhraseVerseNodeData,
+  PhraseMatch,
   PropertiesPanelSelection,
   NodeReaderNodeData,
   Chapter,
@@ -12,7 +14,7 @@ import type {
 import { findVersesByRoot } from "../../services/analysisService";
 import { findPhrasesForWord } from "../../services/phrasesService";
 import { getRootNote, getLemmaNote } from "../../services/knowledgeBaseService";
-import { layoutRootNode } from "./nodeLayout";
+import { layoutRootNode, layoutPhraseVerseNodes, estimateWordNodeWidth } from "./nodeLayout";
 
 interface UseNodeReaderStateOptions {
   initialNodes: Node[];
@@ -191,6 +193,16 @@ export function useNodeReaderState({
         case "root":
           handleRootClick(node.id, data);
           break;
+        case "phraseVerse": {
+          const pvData = data as PhraseVerseNodeData;
+          setPropertiesSelection({
+            type: "phraseVerse",
+            verseKey: pvData.verseKey,
+            matchType: pvData.matchType,
+            patternKeys: pvData.patternKeys,
+          });
+          break;
+        }
       }
     },
     [handleWordClick, handleRootClick]
@@ -200,6 +212,58 @@ export function useNodeReaderState({
     collapseAll();
     setPropertiesSelection({ type: "verse", verseKey, chapter });
   }, [verseKey, chapter, collapseAll]);
+
+  const togglePhraseOnCanvas = useCallback(
+    (match: PhraseMatch, show: boolean) => {
+      const phraseKey = `phrase-${match.matchType}-${match.keys.join("-")}`;
+
+      if (!show) {
+        collapseChildren(phraseKey);
+        return;
+      }
+
+      // Collapse any previous toggle for this phrase before re-spawning
+      collapseChildren(phraseKey);
+
+      // Determine row index: count existing phrase groups in childrenMapRef
+      let rowIndex = 0;
+      for (const key of childrenMapRef.current.keys()) {
+        if (key.startsWith("phrase-")) rowIndex++;
+      }
+
+      pendingEdgesRef.current = [];
+      setNodes((currentNodes) => {
+        // Get current word nodes with their widths for proper centering
+        const wordNodes = currentNodes
+          .filter((n) => n.id.startsWith("word-"))
+          .map((n) => {
+            const d = n.data as unknown as WordNodeData;
+            return { id: n.id, position: n.position, width: estimateWordNodeWidth(d.word) };
+          });
+
+        const { nodes: pvNodes, edges: pvEdges } = layoutPhraseVerseNodes(
+          match.otherOccurrences,
+          match.matchType,
+          match.wordIndices,
+          verseKey,
+          wordNodes,
+          match.keys,
+          rowIndex
+        );
+
+        if (pvNodes.length === 0) return currentNodes;
+
+        pendingEdgesRef.current = pvEdges as Edge[];
+        childrenMapRef.current.set(
+          phraseKey,
+          pvNodes.map((n) => n.id)
+        );
+        return [...currentNodes, ...(pvNodes as Node[])];
+      });
+      setEdges((prev) => [...prev, ...pendingEdgesRef.current]);
+    },
+    [setNodes, setEdges, collapseChildren, verseKey]
+  );
 
   const resetCanvas = useCallback(
     (newNodes: Node[]) => {
@@ -220,5 +284,6 @@ export function useNodeReaderState({
     handlePaneClick,
     propertiesSelection,
     resetCanvas,
+    togglePhraseOnCanvas,
   };
 }

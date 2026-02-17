@@ -243,13 +243,21 @@ export interface RootNodeData {
   occurrences?: number;
 }
 
+export interface PhraseVerseNodeData {
+  [key: string]: unknown;
+  type: "phraseVerse";
+  verseKey: string;
+  matchType: PhraseMatchType;
+  patternKeys: string[];
+}
+
 export interface SurahGroup {
   surahId: number;
   surahName: string;
   verseKeys: string[];
 }
 
-export type NodeReaderNodeData = WordNodeData | RootNodeData;
+export type NodeReaderNodeData = WordNodeData | RootNodeData | PhraseVerseNodeData;
 
 // --- Phrase Match Types ---
 
@@ -304,5 +312,11 @@ export type PropertiesPanelSelection =
       analysis?: RootAnalysis;
       surahGroups?: SurahGroup[];
       rootNote?: string;
+    }
+  | {
+      type: "phraseVerse";
+      verseKey: string;
+      matchType: PhraseMatchType;
+      patternKeys: string[];
     }
   | null;
