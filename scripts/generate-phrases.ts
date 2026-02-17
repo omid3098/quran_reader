@@ -60,7 +60,6 @@ type Mode = "lemma" | "root";
 
 // --- Constants ---
 
-const MAX_NGRAM_LENGTH = 5;
 const MIN_OCCURRENCES = 2;
 
 const MODE_CONFIG: Record<Mode, { field: "l" | "r"; outputFile: string; description: string }> = {
@@ -126,7 +125,7 @@ function buildPhraseIndex(
     const verseKey = verses[v];
     const words = data[verseKey];
     const contentWords = extractContentWords(words, field);
-    const ngrams = generateNgrams(contentWords, MAX_NGRAM_LENGTH);
+    const ngrams = generateNgrams(contentWords, contentWords.length);
 
     for (const ngram of ngrams) {
       const key = ngram.keys.join("|");
@@ -226,7 +225,7 @@ function generate(
 
   console.log(`\n=== Generating ${mode} phrases ===`);
 
-  console.log(`Building phrase index (n-grams 2-${MAX_NGRAM_LENGTH})...`);
+  console.log(`Building phrase index (n-grams 2+, no length cap)...`);
   const fullIndex = buildPhraseIndex(data, config.field);
   console.log(`  ${fullIndex.size} unique ${mode} sequences found.`);
 
@@ -240,12 +239,13 @@ function generate(
 
   phrases.sort((a, b) => b.occurrences.length - a.occurrences.length);
   const totalOccurrences = phrases.reduce((sum, p) => sum + p.occurrences.length, 0);
+  const maxLength = phrases.reduce((max, p) => Math.max(max, p.keys.length), 0);
 
   const output: OutputFile = {
     _meta: {
       description: config.description,
       matchBy: mode,
-      maxLength: MAX_NGRAM_LENGTH,
+      maxLength,
       source: "computed from quran-roots.json",
       generated: new Date().toISOString(),
       sourceChecksum,
