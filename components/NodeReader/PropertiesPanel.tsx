@@ -3,6 +3,7 @@ import { Info, ChevronDown, Link2 } from "lucide-react";
 import type {
   PropertiesPanelSelection,
   PhraseMatch,
+  PhraseMatchType,
   Verse,
   Chapter,
   SurahGroup,
@@ -112,9 +113,22 @@ function WordInfo({
         </div>
       </div>
 
-      {/* Phrase Matches */}
+      {/* Phrase Matches — grouped by match type */}
       {phraseMatches && phraseMatches.length > 0 && (
-        <PhraseMatchesSection matches={phraseMatches} onNavigateToVerse={handleVerseClick} />
+        <>
+          {(["lemma", "root"] as PhraseMatchType[]).map((type) => {
+            const grouped = phraseMatches.filter((m) => m.matchType === type);
+            if (grouped.length === 0) return null;
+            return (
+              <PhraseMatchesSection
+                key={type}
+                matchType={type}
+                matches={grouped}
+                onNavigateToVerse={handleVerseClick}
+              />
+            );
+          })}
+        </>
       )}
     </>
   );
@@ -264,42 +278,92 @@ function RootInfo({
   );
 }
 
+const PHRASE_SECTION_STYLES: Record<
+  PhraseMatchType,
+  {
+    border: string;
+    bg: string;
+    icon: string;
+    label: string;
+    text: string;
+    textMuted: string;
+    btnText: string;
+    btnBg: string;
+    btnBorder: string;
+    btnHover: string;
+    divider: string;
+    hoverBg: string;
+  }
+> = {
+  lemma: {
+    border: "border-amber-800/50",
+    bg: "bg-amber-950/10",
+    icon: "text-amber-500",
+    label: "Shared Phrases",
+    text: "text-amber-200",
+    textMuted: "text-amber-500/60",
+    btnText: "text-amber-400",
+    btnBg: "bg-amber-950/50",
+    btnBorder: "border-amber-800/50",
+    btnHover: "hover:border-amber-500 hover:bg-amber-900/30",
+    divider: "divide-amber-900/30",
+    hoverBg: "hover:bg-amber-900/10",
+  },
+  root: {
+    border: "border-teal-800/50",
+    bg: "bg-teal-950/10",
+    icon: "text-teal-500",
+    label: "Shared Patterns (root)",
+    text: "text-teal-200",
+    textMuted: "text-teal-500/60",
+    btnText: "text-teal-400",
+    btnBg: "bg-teal-950/50",
+    btnBorder: "border-teal-800/50",
+    btnHover: "hover:border-teal-500 hover:bg-teal-900/30",
+    divider: "divide-teal-900/30",
+    hoverBg: "hover:bg-teal-900/10",
+  },
+};
+
 function PhraseMatchesSection({
+  matchType,
   matches,
   onNavigateToVerse,
 }: {
+  matchType: PhraseMatchType;
   matches: PhraseMatch[];
   onNavigateToVerse: (verseKey: string) => void;
 }) {
   const [expandedIdx, setExpandedIdx] = useState<number | null>(null);
+  const s = PHRASE_SECTION_STYLES[matchType];
 
   return (
-    <div className="border border-amber-800/50 rounded-lg overflow-hidden bg-amber-950/10">
+    <div className={`border ${s.border} rounded-lg overflow-hidden ${s.bg}`}>
       <div className="px-4 py-3 flex items-center gap-2">
-        <Link2 size={14} className="text-amber-500" />
-        <span className="text-xs text-amber-500 tracking-wider">
-          Shared Phrases ({matches.length})
+        <Link2 size={14} className={s.icon} />
+        <span className={`text-xs ${s.icon} tracking-wider`}>
+          {s.label} ({matches.length})
         </span>
       </div>
-      <div className="divide-y divide-amber-900/30">
+      <div className={`divide-y ${s.divider}`}>
         {matches.map((match, idx) => {
           const isOpen = expandedIdx === idx;
           return (
             <div key={idx}>
               <button
                 onClick={() => setExpandedIdx(isOpen ? null : idx)}
-                className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-amber-900/10 transition-colors"
+                className={`w-full flex items-center justify-between px-4 py-2.5 text-left ${s.hoverBg} transition-colors`}
               >
-                <span className="font-quran text-sm text-amber-200" dir="rtl">
-                  {match.lemmas.join(" ")}
+                <span className={`font-quran text-sm ${s.text}`} dir="rtl">
+                  {match.keys.join(" ")}
                 </span>
                 <span className="flex items-center gap-1.5">
-                  <span className="text-xs text-amber-500/60">
+                  <span className={`text-xs ${s.textMuted}`}>
                     {match.otherOccurrences.length} other
                   </span>
                   <ChevronDown
                     size={14}
-                    className={`text-amber-500/60 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                    className={`${s.textMuted} transition-transform ${isOpen ? "rotate-180" : ""}`}
                   />
                 </span>
               </button>
@@ -309,7 +373,7 @@ function PhraseMatchesSection({
                     <button
                       key={occ.verse}
                       onClick={() => onNavigateToVerse(occ.verse)}
-                      className="px-2 py-1 rounded text-xs font-mono text-amber-400 bg-amber-950/50 border border-amber-800/50 hover:border-amber-500 hover:bg-amber-900/30 transition-colors"
+                      className={`px-2 py-1 rounded text-xs font-mono ${s.btnText} ${s.btnBg} border ${s.btnBorder} ${s.btnHover} transition-colors`}
                     >
                       {occ.verse}
                     </button>

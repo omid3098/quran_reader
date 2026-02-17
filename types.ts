@@ -253,8 +253,11 @@ export type NodeReaderNodeData = WordNodeData | RootNodeData;
 
 // --- Phrase Match Types ---
 
+export type PhraseMatchType = "lemma" | "root";
+
 export interface PhraseMatch {
-  lemmas: string[];
+  matchType: PhraseMatchType;
+  keys: string[]; // lemma strings or root strings depending on matchType
   wordIndices: number[]; // indices in the current verse that form this phrase
   otherOccurrences: {
     verse: string;

@@ -1,11 +1,17 @@
 #!/usr/bin/env bun
 /**
- * Generates quran-phrases.json from quran-roots.json
+ * Generates phrase data files from quran-roots.json
  *
- * Finds all repeated lemma sequences (length 2-5) across Quran verses.
- * Used by the NodeReader to show cross-verse phrase connections.
+ * Finds all repeated sequences (length 2-5) across Quran verses.
+ * Supports two modes:
+ *   - lemma: match by lemma (exact dictionary form) → quran-phrases.json
+ *   - root:  match by root (3-letter root)          → quran-root-phrases.json
  *
- * Usage: bun run generate-phrases
+ * Usage:
+ *   bun run scripts/generate-phrases.ts          # generates both files
+ *   bun run scripts/generate-phrases.ts lemma    # lemma only
+ *   bun run scripts/generate-phrases.ts root     # root only
+ *   bun run scripts/generate-phrases.ts all      # both (default)
  */
 import { readFileSync, writeFileSync } from "node:fs";
 import path from "node:path";
@@ -33,13 +39,14 @@ interface PhraseOccurrence {
 }
 
 interface Phrase {
-  lemmas: string[];
+  keys: string[];
   occurrences: PhraseOccurrence[];
 }
 
 interface OutputFile {
   _meta: {
     description: string;
+    matchBy: "lemma" | "root";
     maxLength: number;
     source: string;
     generated: string;
@@ -49,20 +56,38 @@ interface OutputFile {
   phrases: Phrase[];
 }
 
+type Mode = "lemma" | "root";
+
 // --- Constants ---
 
 const MAX_NGRAM_LENGTH = 5;
 const MIN_OCCURRENCES = 2;
 
+const MODE_CONFIG: Record<Mode, { field: "l" | "r"; outputFile: string; description: string }> = {
+  lemma: {
+    field: "l",
+    outputFile: "quran-phrases.json",
+    description: "Repeated lemma sequences across Quran verses",
+  },
+  root: {
+    field: "r",
+    outputFile: "quran-root-phrases.json",
+    description: "Repeated root sequences across Quran verses",
+  },
+};
+
 // --- Core Logic ---
 
 /** Extract content words (non-null entries) with their original indices */
-function extractContentWords(words: (RootDataEntry | null)[]): { lemma: string; index: number }[] {
-  const result: { lemma: string; index: number }[] = [];
+function extractContentWords(
+  words: (RootDataEntry | null)[],
+  field: "l" | "r"
+): { key: string; index: number }[] {
+  const result: { key: string; index: number }[] = [];
   for (let i = 0; i < words.length; i++) {
     const w = words[i];
     if (w !== null) {
-      result.push({ lemma: w.l, index: i });
+      result.push({ key: w[field], index: i });
     }
   }
   return result;
@@ -70,15 +95,15 @@ function extractContentWords(words: (RootDataEntry | null)[]): { lemma: string; 
 
 /** Generate all n-grams (length 2..maxLen) from content words */
 function generateNgrams(
-  contentWords: { lemma: string; index: number }[],
+  contentWords: { key: string; index: number }[],
   maxLen: number
-): { lemmas: string[]; indices: number[] }[] {
-  const ngrams: { lemmas: string[]; indices: number[] }[] = [];
+): { keys: string[]; indices: number[] }[] {
+  const ngrams: { keys: string[]; indices: number[] }[] = [];
   for (let len = 2; len <= maxLen; len++) {
     for (let start = 0; start <= contentWords.length - len; start++) {
       const slice = contentWords.slice(start, start + len);
       ngrams.push({
-        lemmas: slice.map((w) => w.lemma),
+        keys: slice.map((w) => w.key),
         indices: slice.map((w) => w.index),
       });
     }
@@ -86,9 +111,10 @@ function generateNgrams(
   return ngrams;
 }
 
-/** Build phrase index: map from lemma key to occurrences */
+/** Build phrase index: map from key sequence to occurrences */
 function buildPhraseIndex(
-  data: Record<string, (RootDataEntry | null)[]>
+  data: Record<string, (RootDataEntry | null)[]>,
+  field: "l" | "r"
 ): Map<string, PhraseOccurrence[]> {
   const index = new Map<string, PhraseOccurrence[]>();
   const verses = Object.keys(data);
@@ -99,11 +125,11 @@ function buildPhraseIndex(
     }
     const verseKey = verses[v];
     const words = data[verseKey];
-    const contentWords = extractContentWords(words);
+    const contentWords = extractContentWords(words, field);
     const ngrams = generateNgrams(contentWords, MAX_NGRAM_LENGTH);
 
     for (const ngram of ngrams) {
-      const key = ngram.lemmas.join("|");
+      const key = ngram.keys.join("|");
       let occurrences = index.get(key);
       if (!occurrences) {
         occurrences = [];
@@ -123,7 +149,6 @@ function filterByMinOccurrences(
 ): Map<string, PhraseOccurrence[]> {
   const filtered = new Map<string, PhraseOccurrence[]>();
   for (const [key, occurrences] of index) {
-    // Count distinct verses
     const distinctVerses = new Set(occurrences.map((o) => o.verse));
     if (distinctVerses.size >= minOccurrences) {
       filtered.set(key, occurrences);
@@ -135,44 +160,34 @@ function filterByMinOccurrences(
 /**
  * Deduplicate: remove occurrences where the same words in the same verse
  * are fully covered by a longer phrase.
- *
- * For each verse, build a set of word-index-ranges covered by longer phrases.
- * Then remove shorter phrase occurrences whose indices are subsets.
  */
 function deduplicateSubphrases(index: Map<string, PhraseOccurrence[]>): Phrase[] {
-  // Sort phrases by length (longest first) so we process longer phrases first
   const entries = [...index.entries()].sort((a, b) => {
     const lenA = a[0].split("|").length;
     const lenB = b[0].split("|").length;
     return lenB - lenA;
   });
 
-  // Build covered set: verse → Set of "startIdx-endIdx" ranges
-  // Each range represents word indices covered by a phrase in that verse
   const coveredByVerse = new Map<string, Set<string>>();
-
   const result: Phrase[] = [];
 
   for (const [key, occurrences] of entries) {
-    const lemmas = key.split("|");
+    const keys = key.split("|");
     const survivingOccurrences: PhraseOccurrence[] = [];
 
     for (const occ of occurrences) {
       const covered = coveredByVerse.get(occ.verse);
       if (covered) {
-        // Check if this occurrence's indices are a subset of any covered range
         const isCovered = isSubsetOfAnyCoveredRange(occ.words, covered);
-        if (isCovered) continue; // Skip — covered by longer phrase
+        if (isCovered) continue;
       }
       survivingOccurrences.push(occ);
     }
 
-    // Only keep phrases with 2+ distinct verses after dedup
     const distinctVerses = new Set(survivingOccurrences.map((o) => o.verse));
     if (distinctVerses.size >= MIN_OCCURRENCES) {
-      result.push({ lemmas, occurrences: survivingOccurrences });
+      result.push({ keys, occurrences: survivingOccurrences });
 
-      // Mark these occurrences as covered for shorter phrases
       for (const occ of survivingOccurrences) {
         let covered = coveredByVerse.get(occ.verse);
         if (!covered) {
@@ -198,23 +213,22 @@ function isSubsetOfAnyCoveredRange(indices: number[], coveredRanges: Set<string>
   return false;
 }
 
-// --- Main ---
+// --- Generate for a single mode ---
 
-function main() {
-  const rootDir = process.cwd();
-  const inputPath = path.join(rootDir, "public", "quran-roots.json");
-  const outputPath = path.join(rootDir, "public", "quran-phrases.json");
+function generate(
+  data: Record<string, (RootDataEntry | null)[]>,
+  mode: Mode,
+  sourceChecksum: string,
+  rootDir: string
+) {
+  const config = MODE_CONFIG[mode];
+  const outputPath = path.join(rootDir, "public", config.outputFile);
 
-  console.log("Reading quran-roots.json...");
-  const raw = readFileSync(inputPath, "utf-8");
-  const rootsFile: QuranRootsFile = JSON.parse(raw);
-  const data = rootsFile.data;
-  const verseCount = Object.keys(data).length;
-  console.log(`  ${verseCount} verses loaded.`);
+  console.log(`\n=== Generating ${mode} phrases ===`);
 
-  console.log("Building phrase index (n-grams 2-5)...");
-  const fullIndex = buildPhraseIndex(data);
-  console.log(`  ${fullIndex.size} unique lemma sequences found.`);
+  console.log(`Building phrase index (n-grams 2-${MAX_NGRAM_LENGTH})...`);
+  const fullIndex = buildPhraseIndex(data, config.field);
+  console.log(`  ${fullIndex.size} unique ${mode} sequences found.`);
 
   console.log("Filtering to phrases in 2+ distinct verses...");
   const filtered = filterByMinOccurrences(fullIndex, MIN_OCCURRENCES);
@@ -224,33 +238,51 @@ function main() {
   const phrases = deduplicateSubphrases(filtered);
   console.log(`  ${phrases.length} phrases after deduplication.`);
 
-  // Sort by number of occurrences (most common first)
   phrases.sort((a, b) => b.occurrences.length - a.occurrences.length);
-
   const totalOccurrences = phrases.reduce((sum, p) => sum + p.occurrences.length, 0);
 
   const output: OutputFile = {
     _meta: {
-      description: "Repeated lemma sequences across Quran verses",
+      description: config.description,
+      matchBy: mode,
       maxLength: MAX_NGRAM_LENGTH,
       source: "computed from quran-roots.json",
       generated: new Date().toISOString(),
-      sourceChecksum: rootsFile._meta.source.checksum,
-      stats: {
-        totalPhrases: phrases.length,
-        totalOccurrences,
-      },
+      sourceChecksum,
+      stats: { totalPhrases: phrases.length, totalOccurrences },
     },
     phrases,
   };
 
-  console.log("Writing quran-phrases.json...");
+  console.log(`Writing ${config.outputFile}...`);
   writeFileSync(outputPath, JSON.stringify(output, null, 2), "utf-8");
 
-  console.log(`Done!`);
-  console.log(`  Phrases: ${phrases.length}`);
-  console.log(`  Total occurrences: ${totalOccurrences}`);
-  console.log(`  Output: ${outputPath}`);
+  console.log(`Done! Phrases: ${phrases.length}, Occurrences: ${totalOccurrences}`);
+}
+
+// --- Main ---
+
+function main() {
+  const arg = process.argv[2] || "all";
+  const modes: Mode[] = arg === "all" ? ["lemma", "root"] : [arg as Mode];
+
+  if (!modes.every((m) => m === "lemma" || m === "root")) {
+    console.error(`Usage: generate-phrases.ts [lemma|root|all]`);
+    process.exit(1);
+  }
+
+  const rootDir = process.cwd();
+  const inputPath = path.join(rootDir, "public", "quran-roots.json");
+
+  console.log("Reading quran-roots.json...");
+  const raw = readFileSync(inputPath, "utf-8");
+  const rootsFile: QuranRootsFile = JSON.parse(raw);
+  const data = rootsFile.data;
+  console.log(`  ${Object.keys(data).length} verses loaded.`);
+
+  for (const mode of modes) {
+    generate(data, mode, rootsFile._meta.source.checksum, rootDir);
+  }
 }
 
 try {

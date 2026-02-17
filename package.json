@@ -21,7 +21,8 @@
     "typecheck": "tsc --noEmit",
     "prepare": "husky",
     "sync": "bun run scripts/sync.ts",
-    "generate-phrases": "bun run scripts/generate-phrases.ts"
+    "generate-phrases": "bun run scripts/generate-phrases.ts all",
+    "generate-root-phrases": "bun run scripts/generate-phrases.ts root"
   },
   "dependencies": {
     "@blocknote/core": "^0.42.3",
