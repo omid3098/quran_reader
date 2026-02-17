@@ -2,7 +2,7 @@
 /**
  * Generates phrase data files from quran-roots.json
  *
- * Finds all repeated sequences (length 2-5) across Quran verses.
+ * Finds all repeated sequences (length 2+) across Quran verses.
  * Supports two modes:
  *   - lemma: match by lemma (exact dictionary form) → quran-phrases.json
  *   - root:  match by root (3-letter root)          → quran-root-phrases.json
@@ -156,60 +156,12 @@ function filterByMinOccurrences(
   return filtered;
 }
 
-/**
- * Deduplicate: remove occurrences where the same words in the same verse
- * are fully covered by a longer phrase.
- */
-function deduplicateSubphrases(index: Map<string, PhraseOccurrence[]>): Phrase[] {
-  const entries = [...index.entries()].sort((a, b) => {
-    const lenA = a[0].split("|").length;
-    const lenB = b[0].split("|").length;
-    return lenB - lenA;
-  });
-
-  const coveredByVerse = new Map<string, Set<string>>();
-  const result: Phrase[] = [];
-
-  for (const [key, occurrences] of entries) {
-    const keys = key.split("|");
-    const survivingOccurrences: PhraseOccurrence[] = [];
-
-    for (const occ of occurrences) {
-      const covered = coveredByVerse.get(occ.verse);
-      if (covered) {
-        const isCovered = isSubsetOfAnyCoveredRange(occ.words, covered);
-        if (isCovered) continue;
-      }
-      survivingOccurrences.push(occ);
-    }
-
-    const distinctVerses = new Set(survivingOccurrences.map((o) => o.verse));
-    if (distinctVerses.size >= MIN_OCCURRENCES) {
-      result.push({ keys, occurrences: survivingOccurrences });
-
-      for (const occ of survivingOccurrences) {
-        let covered = coveredByVerse.get(occ.verse);
-        if (!covered) {
-          covered = new Set();
-          coveredByVerse.set(occ.verse, covered);
-        }
-        covered.add(occ.words.join(","));
-      }
-    }
-  }
-
-  return result;
-}
-
-/** Check if `indices` is a subset of any covered range in the set */
-function isSubsetOfAnyCoveredRange(indices: number[], coveredRanges: Set<string>): boolean {
-  for (const rangeStr of coveredRanges) {
-    const range = rangeStr.split(",").map(Number);
-    if (indices.every((idx) => range.includes(idx))) {
-      return true;
-    }
-  }
-  return false;
+/** Convert filtered index to Phrase array */
+function toPhrases(index: Map<string, PhraseOccurrence[]>): Phrase[] {
+  return [...index.entries()].map(([key, occurrences]) => ({
+    keys: key.split("|"),
+    occurrences,
+  }));
 }
 
 // --- Generate for a single mode ---
@@ -233,9 +185,8 @@ function generate(
   const filtered = filterByMinOccurrences(fullIndex, MIN_OCCURRENCES);
   console.log(`  ${filtered.size} phrases appear in 2+ verses.`);
 
-  console.log("Deduplicating sub-phrases...");
-  const phrases = deduplicateSubphrases(filtered);
-  console.log(`  ${phrases.length} phrases after deduplication.`);
+  const phrases = toPhrases(filtered);
+  console.log(`  ${phrases.length} phrases to write.`);
 
   phrases.sort((a, b) => b.occurrences.length - a.occurrences.length);
   const totalOccurrences = phrases.reduce((sum, p) => sum + p.occurrences.length, 0);
