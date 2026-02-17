@@ -1,26 +1,15 @@
-<!-- OPENSPEC:START -->
+## Documentation
 
-# OpenSpec Instructions
+Design decisions, workflows, and architectural context live in `docs/`. **Before working on any design or architecture topic, read `docs/index.md` and the relevant linked docs.** After decisions are made or discussions happen, update the relevant doc immediately.
 
-These instructions are for AI assistants working in this project.
+Key docs:
 
-Always open `@/openspec/AGENTS.md` when the request:
-
-- Mentions planning or proposals (words like proposal, spec, change, plan)
-- Introduces new capabilities, breaking changes, architecture shifts, or big performance/security work
-- Sounds ambiguous and you need the authoritative spec before coding
-
-Use `@/openspec/AGENTS.md` to learn:
-
-- How to create and apply change proposals
-- Spec format and conventions
-- Project structure and guidelines
-
-Keep this managed block so 'openspec update' can refresh the instructions.
-
-<!-- OPENSPEC:END -->
-
-# GEMINI.md
+- `docs/index.md` — Master index with status of each topic
+- `docs/study-workflow.md` — How the user actually studies (spiral, not linear)
+- `docs/analysis-framework.md` — The 11-step Quran analysis framework
+- `docs/data-architecture.md` — Three-layer data model (computed, KB, narrative)
+- `docs/node-reader-redesign.md` — NodeReader UX: problems, FSCR scoring, open questions
+- `docs/sample-notes.md` — Patterns from real study notes
 
 ## Project Overview
 
@@ -39,30 +28,60 @@ The application allows users to read the Quran, listen to recitations, view tran
 - **Note-Taking:** Users can take notes on individual verses, which are saved in the browser's local storage.
 - **Customization:** Users can customize the reading experience with settings for font size, theme (light/dark), and more.
 
-### Architecture:
+### Tech Stack
 
-- **Frontend:** The entire application is a single-page application (SPA) built with **React**.
-- **State Management:** Component state is managed using React hooks (`useState`, `useEffect`, `useRef`).
-- **Services:** The application is well-structured with a `services` directory that encapsulates interactions with external APIs and data sources.
-  - `quranService.ts`: Fetches Quranic data (chapters, verses, translations, audio) from `api.alquran.cloud` and `everyayah.com`.
-  - `geminiService.ts`: Interacts with the Gemini API for AI-powered features.
-  - `analysisService.ts`: Provides advanced word and root analysis.
-  - `textSanitizer.ts`: Cleans and sanitizes Quranic text.
-- **Styling:** The application is styled using **Tailwind CSS**.
+- **React 19** — UI framework
+- **TypeScript 5.8** — strict typing, target ES2022/ESNext
+- **Vite 6** — build tool and dev server
+- **Tailwind CSS** — utility-first styling (inline classes)
+- **@google/genai** — Gemini API for AI features
+- **@xyflow/react** — ReactFlow for NodeReader canvas
+- **lucide-react** — icon library
+- **Bun** — package manager and runtime
+- **Vitest** — unit testing, **Playwright** — E2E testing
+
+### Architecture
+
+- **Flat structure:** No `src/` directory; components at root level
+- **Single entry point:** `App.tsx` orchestrates all state and child components
+- **Path alias:** `@/*` maps to project root
+- **State management:** React hooks, no external state library
+- **Persistence:** Browser localStorage for settings, notes, and bookmarks
+- **Client-side only:** No backend server; all data fetched from external APIs
+- **Services:**
+  - `quranService.ts`: Quran data from `api.alquran.cloud` and `everyayah.com`
+  - `geminiService.ts`: AI features via Gemini API
+  - `analysisService.ts`: Word/root analysis
+  - `letterAnalysisService.ts`: Arabic letter analysis
+  - `textSanitizer.ts`: Text normalization
+
+### Domain Context
+
+- **Quran terminology:** Surah (chapter), Ayah (verse), Tafseer (explanation/exegesis)
+- **Arabic text:** Uthmani script (traditional) and Simple script options; RTL rendering required
+- **Root analysis:** Arabic words share trilateral roots (e.g., "كتب" = k-t-b)
+- **Verse keys:** Format is "surah:ayah" (e.g., "1:1" = Al-Fatiha verse 1)
+
+### External Dependencies
+
+- **Gemini API** (`@google/genai`) — AI-powered search and explanations
+- **api.alquran.cloud** — Quran chapters, verses, and translations
+- **everyayah.com** — Verse-by-verse audio recitations
+- **Quran.com API** — Word-level data and root analysis
+- **quran-roots.json** — Local data source for Arabic root lookups
 
 ## Building and Running
 
 ### Prerequisites:
 
-- **Node.js**
-- **npm** (or a compatible package manager)
+- **[Bun](https://bun.sh/)** — package manager and runtime
 
 ### Setup:
 
 1.  **Install Dependencies:**
 
     ```bash
-    npm install
+    bun install
     ```
 
 2.  **Set API Key:**
@@ -76,7 +95,7 @@ The application allows users to read the Quran, listen to recitations, view tran
 - **Development Mode:**
 
   ```bash
-  npm run dev
+  bun run dev
   ```
 
   This will start a development server, typically at `http://localhost:3000`.
@@ -84,14 +103,14 @@ The application allows users to read the Quran, listen to recitations, view tran
 - **Production Build:**
 
   ```bash
-  npm run build
+  bun run build
   ```
 
   This will create a `dist` directory with the optimized production build of the application.
 
 - **Preview Production Build:**
   ```bash
-  npm run preview
+  bun run preview
   ```
   This will serve the production build locally for testing.
 
