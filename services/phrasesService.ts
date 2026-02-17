@@ -171,9 +171,42 @@ function deduplicateRootMatches(matches: PhraseMatch[]): PhraseMatch[] {
 }
 
 /**
+ * Remove sub-phrase matches whose verse connections are entirely covered
+ * by a longer match of the same type.
+ *
+ * A shorter match is redundant when:
+ *   1. Its wordIndices are a subset of a longer match's wordIndices
+ *   2. ALL of its otherOccurrences verses are also in that longer match
+ *
+ * Short phrases with unique verse connections are always preserved.
+ */
+function deduplicateSubphrases(matches: PhraseMatch[]): PhraseMatch[] {
+  if (matches.length <= 1) return matches;
+
+  const sorted = [...matches].sort((a, b) => b.keys.length - a.keys.length);
+
+  return sorted.filter((match, i) => {
+    for (let j = 0; j < i; j++) {
+      const longer = sorted[j];
+      if (longer.matchType !== match.matchType) continue;
+
+      // 1. Word indices must be a subset
+      const longerIndices = new Set(longer.wordIndices);
+      if (!match.wordIndices.every((idx) => longerIndices.has(idx))) continue;
+
+      // 2. All connected verses must be covered
+      const longerVerses = new Set(longer.otherOccurrences.map((o) => o.verse));
+      if (match.otherOccurrences.every((o) => longerVerses.has(o.verse))) return false;
+    }
+    return true;
+  });
+}
+
+/**
  * Find all phrase matches for a specific word in a verse.
  * Returns matches from both lemma and root indices.
  * Root matches already covered by lemma matches are excluded.
+ * Sub-phrases with no unique verse connections are excluded.
  * Sorted by phrase length (longest first), then lemma before root.
  */
 export async function findPhrasesForWord(
@@ -184,9 +217,9 @@ export async function findPhrasesForWord(
   const matches = mergeMatches(lemmaIdx, rootIdx, verseKey, wordIndex);
   if (matches.length === 0) return [];
 
-  const deduplicated = deduplicateRootMatches(matches);
+  const deduped = deduplicateSubphrases(deduplicateRootMatches(matches));
 
-  return deduplicated.sort((a, b) => {
+  return deduped.sort((a, b) => {
     const lenDiff = b.keys.length - a.keys.length;
     if (lenDiff !== 0) return lenDiff;
     if (a.matchType !== b.matchType) return a.matchType === "lemma" ? -1 : 1;
@@ -221,9 +254,9 @@ export async function findPhrasesForVerse(
     }
   }
 
-  // Deduplicate root matches covered by lemma per word
+  // Deduplicate root matches covered by lemma, then sub-phrases per word
   for (const [wordIdx, matches] of merged) {
-    merged.set(wordIdx, deduplicateRootMatches(matches));
+    merged.set(wordIdx, deduplicateSubphrases(deduplicateRootMatches(matches)));
   }
 
   return merged.size > 0 ? merged : null;

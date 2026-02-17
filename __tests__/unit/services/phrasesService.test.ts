@@ -193,6 +193,82 @@ describe("phrasesService", () => {
       expect(matches[1].keys).toEqual(["X", "Y"]);
     });
 
+    it("should remove sub-phrases whose verses are all covered by a longer phrase", async () => {
+      // 3-word and 2-word phrases both connect to the same verse (4:2)
+      // The 2-word is a subset of the 3-word → redundant
+      const data = {
+        ...SAMPLE_LEMMA_DATA,
+        phrases: [
+          {
+            keys: ["A", "B", "C"],
+            occurrences: [
+              { verse: "4:1", words: [0, 1, 2] },
+              { verse: "4:2", words: [0, 1, 2] },
+            ],
+          },
+          {
+            keys: ["A", "B"],
+            occurrences: [
+              { verse: "4:1", words: [0, 1] },
+              { verse: "4:2", words: [0, 1] },
+            ],
+          },
+        ],
+      };
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes("quran-root-phrases")) {
+          return Promise.resolve({ ok: false, status: 404 });
+        }
+        if (url.includes("quran-phrases")) {
+          return Promise.resolve({ ok: true, json: () => Promise.resolve(data) });
+        }
+        return Promise.resolve({ ok: false, status: 404 });
+      });
+      const { findPhrasesForWord: fn } = await import("@/services/phrasesService");
+      const matches = await fn("4:1", 0);
+      expect(matches.length).toBe(1);
+      expect(matches[0].keys).toEqual(["A", "B", "C"]);
+    });
+
+    it("should keep sub-phrases that connect to unique verses", async () => {
+      // 3-word connects to 4:2; 2-word connects to 4:2 AND 4:3
+      // The 2-word has a unique verse (4:3) → kept
+      const data = {
+        ...SAMPLE_LEMMA_DATA,
+        phrases: [
+          {
+            keys: ["A", "B", "C"],
+            occurrences: [
+              { verse: "4:1", words: [0, 1, 2] },
+              { verse: "4:2", words: [0, 1, 2] },
+            ],
+          },
+          {
+            keys: ["A", "B"],
+            occurrences: [
+              { verse: "4:1", words: [0, 1] },
+              { verse: "4:2", words: [0, 1] },
+              { verse: "4:3", words: [5, 6] },
+            ],
+          },
+        ],
+      };
+      mockFetch.mockImplementation((url: string) => {
+        if (url.includes("quran-root-phrases")) {
+          return Promise.resolve({ ok: false, status: 404 });
+        }
+        if (url.includes("quran-phrases")) {
+          return Promise.resolve({ ok: true, json: () => Promise.resolve(data) });
+        }
+        return Promise.resolve({ ok: false, status: 404 });
+      });
+      const { findPhrasesForWord: fn } = await import("@/services/phrasesService");
+      const matches = await fn("4:1", 0);
+      expect(matches.length).toBe(2);
+      expect(matches[0].keys).toEqual(["A", "B", "C"]);
+      expect(matches[1].keys).toEqual(["A", "B"]);
+    });
+
     it("should return empty array when all fetches fail", async () => {
       mockFetchAllFail();
       const { findPhrasesForWord: fn } = await import("@/services/phrasesService");
