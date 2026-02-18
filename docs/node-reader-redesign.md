@@ -143,20 +143,21 @@ The review produced a clear three-zone layout:
 
 ## Current Status & Next Steps
 
-**Status:** Design complete. Two of three foundation tasks done. Layout restructuring is next.
+**Status:** Foundation tasks complete. Word-level familiarity indicators implemented. Building features.
 
 **Foundation tasks:**
 
-1. **Layout restructuring** — Move panel from right to left, add bottom panel with tabs (Translations, Verse Notes, Surah Notes), add webcam clear zone. This is the biggest UI change. **← NEXT**
+1. ~~**Layout restructuring**~~ — Done. Left panel (properties + webcam zone), bottom panel with tabs (Translations, Verse Notes, Surah Notes), resizable splits, canvas flex resize.
 2. ~~**Build quran-phrases.json**~~ — Done. File at `public/quran-phrases.json` (4.5MB), generation script included.
 3. ~~**Define KB TypeScript types**~~ — Done. Types in `types.ts`, CRUD service in `knowledgeBaseService.ts`.
 
-**After those are done:**
+**Feature tasks:**
 
-4. Familiarity indicators on word nodes (#12) and verse level (#13)
-5. Prompt Builder (#11)
-6. Multi-branch support (Problem #2)
-7. Systematic color palette + legend (#18)
+4. ~~**Familiarity indicators on word nodes (#12)**~~ — Done. Pure helper in `services/familiarityService.ts` checks KB for root/lemma notes. `WordNode` shows a subtle yellow dot (`bg-yellow-400/40`, 6px) when familiar. KB loaded in parallel with root data on verse load (zero overhead — both cached). Single dot per word (root-vs-lemma detail available on click in PropertiesPanel). Flags not updated in real-time after saving a note — appears on next verse load.
+5. **Familiarity indicators at verse level (#13)** — Deferred. Depends on KB connections UI (no `saveConnection` or connection creation UI exists yet).
+6. **Prompt Builder (#11)** — **← NEXT**
+7. **Multi-branch support (Problem #2)**
+8. **Systematic color palette + legend (#18)**
 
 **Design decisions still TBD** (deferred intentionally, resolve when dependencies are met):
 
@@ -165,10 +166,13 @@ The review produced a clear three-zone layout:
 - Patterns (#14) → after notes + connections are in use
 - Color palette (#18) → during or after layout work
 
+## Resolved Questions
+
+- **Familiarity indicator threshold** (was Open Question #3): Every KB note triggers the indicator. Empty notes are auto-deleted by `saveRootNote`/`saveLemmaNote`, so any existing entry is substantial. No threshold needed.
+
 ## Open Questions
 
 1. **Bottom panel tabs interaction**: When switching verses, should the bottom panel remember which tab was active? Should translations auto-open on verse change?
 2. **Prompt Builder scope**: What exactly gets included? Should the user be able to configure which data sources are included in the generated prompt?
-3. **Familiarity indicator threshold**: Should every KB note trigger the indicator, or only "substantial" notes? What about empty/placeholder notes?
-4. **Multi-branch support**: The single-branch constraint (Problem #2) wasn't directly addressed in the data review. It's still a problem — comparing two roots side-by-side is a core need. How many simultaneous branches to allow?
-5. **Canvas state persistence**: Problem #6 (ephemeral state) also wasn't directly addressed. What should be saved and restored between sessions?
+3. **Multi-branch support**: The single-branch constraint (Problem #2) wasn't directly addressed in the data review. It's still a problem — comparing two roots side-by-side is a core need. How many simultaneous branches to allow?
+4. **Canvas state persistence**: Problem #6 (ephemeral state) also wasn't directly addressed. What should be saved and restored between sessions?

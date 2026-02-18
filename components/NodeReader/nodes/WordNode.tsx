@@ -6,10 +6,12 @@ import { estimateWordNodeWidth } from "../nodeLayout";
 function WordNodeComponent({ data, selected }: NodeProps) {
   const d = data as unknown as WordNodeData;
   const width = estimateWordNodeWidth(d.word);
+  const isFamiliar = d.hasFamiliarRoot || d.hasFamiliarLemma;
+
   return (
     <div
       style={{ width }}
-      className={`py-4 rounded-xl border-2 transition-colors duration-200 cursor-pointer text-center
+      className={`relative py-4 rounded-xl border-2 transition-colors duration-200 cursor-pointer text-center
         ${
           selected
             ? "border-emerald-500 bg-emerald-50/10 shadow-lg shadow-emerald-500/10"
@@ -19,6 +21,12 @@ function WordNodeComponent({ data, selected }: NodeProps) {
       <span className="font-quran text-3xl text-slate-100 leading-relaxed whitespace-nowrap">
         {d.word}
       </span>
+      {isFamiliar && (
+        <span
+          className="absolute bottom-1.5 left-1/2 -translate-x-1/2 w-1.5 h-1.5 rounded-full bg-yellow-400/40"
+          aria-label="Previously studied"
+        />
+      )}
       <Handle
         type="target"
         position={Position.Top}

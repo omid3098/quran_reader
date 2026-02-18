@@ -154,6 +154,8 @@ export interface QuranWord {
   text_simple?: string; // sometimes provided
   root?: string; // The raw Arabic root e.g. "كتب"
   lemma?: string; // The lemma/base form of the word
+  hasFamiliarRoot?: boolean; // KB has a note for this word's root
+  hasFamiliarLemma?: boolean; // KB has a note for this word's lemma
 }
 
 export interface RootWordForm {
@@ -233,6 +235,8 @@ export interface WordNodeData {
   verseKey: string;
   root?: string;
   lemma?: string;
+  hasFamiliarRoot?: boolean;
+  hasFamiliarLemma?: boolean;
 }
 
 export interface RootNodeData {

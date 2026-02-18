@@ -16,6 +16,8 @@ import type {
 } from "../../types";
 import type { PartialBlock } from "@blocknote/core";
 import { loadLocalRootData } from "../../services/analysisService";
+import { loadKnowledgeBase } from "../../services/knowledgeBaseService";
+import { annotateWordsWithFamiliarity } from "../../services/familiarityService";
 
 interface NodeReaderProps {
   verse: Verse;
@@ -65,7 +67,7 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
   useEffect(() => {
     let cancelled = false;
     setLoading(true);
-    loadLocalRootData().then((rootData) => {
+    Promise.all([loadLocalRootData(), loadKnowledgeBase()]).then(([rootData, kb]) => {
       if (cancelled) return;
       // Split the actual verse text — this is the authoritative word list
       const verseWords = verse.text_uthmani.split(" ");
@@ -79,7 +81,9 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
         root: rawEntries[i]?.r || undefined,
         lemma: rawEntries[i]?.l || undefined,
       }));
-      setWords(builtWords);
+      // Annotate words with familiarity flags from the Knowledge Base
+      const annotatedWords = annotateWordsWithFamiliarity(builtWords, kb);
+      setWords(annotatedWords);
       setLoading(false);
     });
     return () => {

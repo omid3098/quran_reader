@@ -4,31 +4,28 @@ This folder contains all design decisions, workflows, and architectural context 
 
 ## Current Focus & Next Steps
 
-**Phase: NodeReader Implementation** — Design phase is complete. Ready to build.
+**Phase: NodeReader Implementation** — Foundation tasks complete. Building features.
 
 **What to do next:**
 
-1. **Layout restructuring** — Move panel from right to left, add bottom panel with tabs, add webcam clear zone.
-   - Read: [node-reader-redesign.md](node-reader-redesign.md) → "Emerging Layout Model" and "Decision Table"
+1. ~~**Layout restructuring**~~ — Done. Left panel + bottom panel with tabs + webcam zone + resizable splits.
 2. ~~**Build quran-phrases.json**~~ — Done. File exists at `public/quran-phrases.json` (4.5MB) with generation script.
 3. ~~**Define KB TypeScript types**~~ — Done. Types in `types.ts`, CRUD service in `knowledgeBaseService.ts`.
-
-**After those are done** (see [node-reader-redesign.md](node-reader-redesign.md) → "Current Status & Next Steps" for full roadmap):
-
-- Familiarity indicators on word nodes and verse level
-- Prompt Builder (replaces built-in AI tafseer)
-- Multi-branch support
-- Systematic color palette + legend
+4. ~~**Familiarity indicators on word nodes (#12)**~~ — Done. Subtle yellow dot on words with KB notes. Pure helper in `services/familiarityService.ts`.
+5. **Familiarity indicators at verse level (#13)** — Deferred until KB connections UI exists. **← NEXT (blocked)**
+6. **Prompt Builder (#11)** — Replaces built-in AI tafseer. **← NEXT**
+7. **Multi-branch support (Problem #2)**
+8. **Systematic color palette + legend (#18)**
 
 ## Documents
 
-| Document                                           | What it covers                                                                                                | Status                                          |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ----------------------------------------------- |
-| [node-reader-redesign.md](node-reader-redesign.md) | NodeReader UX: layout model, all 19 data placement decisions, 6 design constraints, TBD items, open questions | Design done, ready to implement                 |
-| [data-architecture.md](data-architecture.md)       | Three-layer data model: computed data, personal KB (JSON schema), narrative notes                             | Partially implemented (phrases + KB types done) |
-| [study-workflow.md](study-workflow.md)             | How the user actually studies the Quran (spiral process, not linear)                                          | Documented                                      |
-| [analysis-framework.md](analysis-framework.md)     | The 11-step analytical framework for reading the Quran                                                        | Documented                                      |
-| [sample-notes.md](sample-notes.md)                 | Patterns extracted from real study notes (2:169-171) — informs tool design                                    | Documented                                      |
+| Document                                           | What it covers                                                                                                | Status                                                        |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------- |
+| [node-reader-redesign.md](node-reader-redesign.md) | NodeReader UX: layout model, all 19 data placement decisions, 6 design constraints, TBD items, open questions | Layout done, word familiarity done                            |
+| [data-architecture.md](data-architecture.md)       | Three-layer data model: computed data, personal KB (JSON schema), narrative notes                             | Partially implemented (phrases + KB types + familiarity done) |
+| [study-workflow.md](study-workflow.md)             | How the user actually studies the Quran (spiral process, not linear)                                          | Documented                                                    |
+| [analysis-framework.md](analysis-framework.md)     | The 11-step analytical framework for reading the Quran                                                        | Documented                                                    |
+| [sample-notes.md](sample-notes.md)                 | Patterns extracted from real study notes (2:169-171) — informs tool design                                    | Documented                                                    |
 
 ## Quick Context for AI Assistants
 

@@ -107,6 +107,23 @@ describe("nodeLayout", () => {
       }
     });
 
+    it("passes familiarity flags through to node data", () => {
+      const words: QuranWord[] = [
+        {
+          id: 0,
+          position: 1,
+          text_uthmani: "بِسْمِ",
+          root: "سمو",
+          hasFamiliarRoot: true,
+        },
+        { id: 1, position: 2, text_uthmani: "ٱللَّهِ" },
+      ];
+      const result = layoutWordNodes(words, "1:1", 800);
+      expect(result.nodes[0].data.hasFamiliarRoot).toBe(true);
+      expect(result.nodes[0].data.hasFamiliarLemma).toBeUndefined();
+      expect(result.nodes[1].data.hasFamiliarRoot).toBeUndefined();
+    });
+
     it("does not overlap nodes for long Arabic words", () => {
       const words: QuranWord[] = [
         { id: 0, position: 1, text_uthmani: "ٱهْدِنَا", root: "هدي" },

@@ -88,6 +88,8 @@ export function layoutWordNodes(
         verseKey,
         root: words[i].root,
         lemma: words[i].lemma,
+        hasFamiliarRoot: words[i].hasFamiliarRoot,
+        hasFamiliarLemma: words[i].hasFamiliarLemma,
       },
     });
 
