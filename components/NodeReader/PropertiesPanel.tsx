@@ -39,6 +39,7 @@ interface PropertiesPanelProps {
   noteBacklinks?: NoteBacklink[];
   onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
   onTogglePhraseOnCanvas?: (match: PhraseMatch, show: boolean) => void;
+  fontSize?: number;
 }
 
 function PropertiesPanelComponent({
@@ -49,6 +50,7 @@ function PropertiesPanelComponent({
   noteBacklinks,
   onNavigateToVerse,
   onTogglePhraseOnCanvas,
+  fontSize,
 }: PropertiesPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { percentage: propertiesPercent, startResizing } = useResizablePanel({
@@ -203,6 +205,7 @@ function PropertiesPanelComponent({
             patternKeys={selection.patternKeys}
             translationIds={verse.translations.map((t) => t.resource_id)}
             onNavigateToVerse={onNavigateToVerse}
+            fontSize={fontSize}
           />
         )}
       </div>
@@ -228,6 +231,7 @@ function PhraseVerseInfo({
   patternKeys,
   translationIds,
   onNavigateToVerse,
+  fontSize,
 }: {
   verseKey: string;
   currentVerseKey: string;
@@ -235,6 +239,7 @@ function PhraseVerseInfo({
   patternKeys: string[];
   translationIds: string[];
   onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
+  fontSize?: number;
 }) {
   const [verse, setVerse] = useState<Verse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -283,7 +288,9 @@ function PhraseVerseInfo({
               {verse.text_uthmani}
             </p>
           </div>
-          {verse.translations.length > 0 && <TranslationTabs translations={verse.translations} />}
+          {verse.translations.length > 0 && (
+            <TranslationTabs translations={verse.translations} fontSize={fontSize} />
+          )}
         </>
       ) : (
         <div className="text-sm text-slate-500 text-center py-4">Could not load verse</div>

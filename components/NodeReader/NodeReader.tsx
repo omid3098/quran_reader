@@ -45,6 +45,7 @@ interface NodeReaderProps {
   surahNote: SurahNote | undefined;
   onSaveSurahNote: (surahId: number, blocks: PartialBlock[]) => void;
   theme: "light" | "dark";
+  fontSize?: number;
 }
 
 export const NodeReader: React.FC<NodeReaderProps> = ({
@@ -64,6 +65,7 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
   surahNote,
   onSaveSurahNote,
   theme,
+  fontSize,
 }) => {
   const [words, setWords] = useState<QuranWord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -141,6 +143,7 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
         noteBacklinks={noteBacklinks}
         onNavigateToVerse={onNavigateToVerse}
         onTogglePhraseOnCanvas={(match, show) => togglePhraseRef.current?.(match, show)}
+        fontSize={fontSize}
       />
 
       {/* Right area (Nav + Canvas + Bottom Panel + Audio) */}
@@ -215,6 +218,7 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
             theme={theme}
             onNavigateToVerse={onNavigateToVerse}
             getSurahName={getSurahName}
+            fontSize={fontSize}
           />
         </div>
 

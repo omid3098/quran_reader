@@ -1585,6 +1585,7 @@ const App: React.FC = () => {
             surahNote={getNoteForSurah(nodeReaderData.chapter.id)}
             onSaveSurahNote={saveSurahNote}
             theme={settings.theme}
+            fontSize={settings.fontSize}
           />
         </Suspense>
       )}

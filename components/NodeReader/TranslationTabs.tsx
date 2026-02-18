@@ -5,9 +5,12 @@ interface TranslationTabsProps {
   translations: Verse["translations"];
   /** When true, removes the outer border/label wrapper (used inside BottomPanel) */
   compact?: boolean;
+  /** Base font size from settings — translation size matches FocusMode formula */
+  fontSize?: number;
 }
 
-function TranslationTabsComponent({ translations, compact }: TranslationTabsProps) {
+function TranslationTabsComponent({ translations, compact, fontSize }: TranslationTabsProps) {
+  const translationFontSize = fontSize ? Math.round(fontSize * 0.55 * 1.8) : undefined;
   const [activeTab, setActiveTab] = useState(0);
   const current = translations[activeTab];
 
@@ -32,7 +35,12 @@ function TranslationTabsComponent({ translations, compact }: TranslationTabsProp
       {/* Active translation */}
       {current && (
         <p
-          className="text-sm text-slate-300 leading-relaxed font-vazir"
+          className="text-slate-300 leading-relaxed font-vazir"
+          style={
+            translationFontSize
+              ? { fontSize: `${translationFontSize}px` }
+              : { fontSize: "0.875rem" }
+          }
           dir={current.direction === "rtl" ? "rtl" : "ltr"}
         >
           {current.text.replace(/<[^>]*>/g, "")}

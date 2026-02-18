@@ -23,6 +23,7 @@ interface BottomPanelProps {
   onNavigateToVerse?: (surahId: number, verseNumber?: number) => void;
   getSurahName?: (surahId: number) => string | undefined;
   containerRef: React.RefObject<HTMLDivElement | null>;
+  fontSize?: number;
 }
 
 function BottomPanelComponent({
@@ -37,6 +38,7 @@ function BottomPanelComponent({
   onNavigateToVerse,
   getSurahName,
   containerRef,
+  fontSize,
 }: BottomPanelProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<BottomPanelTab>("translations");
@@ -185,7 +187,7 @@ function BottomPanelComponent({
       <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
         {activeTab === "translations" && translations.length > 0 && (
           <div className="p-4">
-            <TranslationTabs translations={translations} compact />
+            <TranslationTabs translations={translations} compact fontSize={fontSize} />
           </div>
         )}
         {activeTab === "translations" && translations.length === 0 && (
