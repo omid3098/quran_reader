@@ -3,6 +3,7 @@ import { ReactFlowProvider } from "@xyflow/react";
 import { X, Play, Pause, SkipBack, SkipForward, Repeat } from "lucide-react";
 import { NodeReaderCanvas, type TogglePhraseOnCanvas } from "./NodeReaderCanvas";
 import { PropertiesPanel } from "./PropertiesPanel";
+import { BottomPanel } from "./BottomPanel";
 import { Spinner } from "../Spinner";
 import type {
   Verse,
@@ -10,7 +11,10 @@ import type {
   QuranWord,
   CanvasSnapshot,
   PropertiesPanelSelection,
+  VerseNote,
+  SurahNote,
 } from "../../types";
+import type { PartialBlock } from "@blocknote/core";
 import { loadLocalRootData } from "../../services/analysisService";
 
 interface NodeReaderProps {
@@ -25,6 +29,11 @@ interface NodeReaderProps {
   onTogglePlay: () => void;
   autoPlayEnabled: boolean;
   onToggleAutoPlay: () => void;
+  verseNote: VerseNote | undefined;
+  onSaveVerseNote: (verseKey: string, blocks: PartialBlock[]) => void;
+  surahNote: SurahNote | undefined;
+  onSaveSurahNote: (surahId: number, blocks: PartialBlock[]) => void;
+  theme: "light" | "dark";
 }
 
 export const NodeReader: React.FC<NodeReaderProps> = ({
@@ -39,6 +48,11 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
   onTogglePlay,
   autoPlayEnabled,
   onToggleAutoPlay,
+  verseNote,
+  onSaveVerseNote,
+  surahNote,
+  onSaveSurahNote,
+  theme,
 }) => {
   const [words, setWords] = useState<QuranWord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -72,9 +86,16 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
     };
   }, [verse.verse_key, verse.text_uthmani]);
 
-  // Keyboard navigation
+  // Keyboard navigation — skip when inside an editable element
   useEffect(() => {
     const handleKeyDown = (e: KeyboardEvent) => {
+      const active = document.activeElement;
+      const isEditing =
+        active instanceof HTMLInputElement ||
+        active instanceof HTMLTextAreaElement ||
+        (active instanceof HTMLElement && active.isContentEditable);
+      if (isEditing) return;
+
       if (e.key === "ArrowLeft") onNextVerse(); // RTL: left = next
       if (e.key === "ArrowRight") onPrevVerse(); // RTL: right = prev
       if (e.key === "Escape") onExit();
@@ -89,9 +110,17 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
 
   return (
     <div className="fixed inset-0 z-[100] flex bg-slate-950" data-testid="node-reader">
-      {/* Canvas area */}
+      {/* Left Panel (Properties + Webcam zone) */}
+      <PropertiesPanel
+        selection={propertiesSelection}
+        verse={verse}
+        onNavigateToVerse={onNavigateToVerse}
+        onTogglePhraseOnCanvas={(match, show) => togglePhraseRef.current?.(match, show)}
+      />
+
+      {/* Right area (Nav + Canvas + Bottom Panel + Audio) */}
       <div className="flex-1 relative flex flex-col">
-        {/* Top bar */}
+        {/* Navigation bar */}
         <div className="flex items-center px-4 py-2 bg-slate-900/80 border-b border-slate-800 z-10">
           <button
             onClick={onExit}
@@ -109,7 +138,7 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
           <div className="w-9" />
         </div>
 
-        {/* Canvas */}
+        {/* Canvas + Bottom Panel */}
         <div className="flex-1 relative">
           {loading ? (
             <div className="flex items-center justify-center h-full">
@@ -129,12 +158,25 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
               />
             </ReactFlowProvider>
           )}
-          {/* Floating Verse Key Indicator (Bottom Left) */}
+          {/* Floating Verse Key Indicator */}
           <div className="absolute bottom-4 left-4 pointer-events-none select-none z-20">
             <span className="text-4xl font-black font-sans text-white opacity-20">
               {verse.verse_key}
             </span>
           </div>
+          {/* Bottom Panel */}
+          <BottomPanel
+            translations={verse.translations}
+            verseKey={verse.verse_key}
+            verseNote={verseNote}
+            onSaveVerseNote={onSaveVerseNote}
+            surahId={chapter.id}
+            surahNote={surahNote}
+            onSaveSurahNote={onSaveSurahNote}
+            theme={theme}
+            onNavigateToVerse={onNavigateToVerse}
+            getSurahName={getSurahName}
+          />
         </div>
 
         {/* Audio controls */}
@@ -174,15 +216,6 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
           </button>
         </div>
       </div>
-
-      {/* Properties Panel */}
-      <PropertiesPanel
-        selection={propertiesSelection}
-        verse={verse}
-        chapter={chapter}
-        onNavigateToVerse={onNavigateToVerse}
-        onTogglePhraseOnCanvas={(match, show) => togglePhraseRef.current?.(match, show)}
-      />
     </div>
   );
 };

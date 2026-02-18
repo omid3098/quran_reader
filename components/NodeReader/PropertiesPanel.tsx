@@ -1,20 +1,20 @@
 import React, { memo, useState, useCallback, useEffect, useRef } from "react";
-import { Info, ChevronDown, Link2, Pencil, Check, X, Plus } from "lucide-react";
+import { Info, ChevronDown, Link2, Pencil, Check, X, Plus, MousePointer } from "lucide-react";
 import type {
   PropertiesPanelSelection,
   PhraseMatch,
   PhraseMatchType,
   Verse,
-  Chapter,
   SurahGroup,
 } from "../../types";
 import { saveRootNote, saveLemmaNote } from "../../services/knowledgeBaseService";
 import { getVerseByKey } from "../../services/quranService";
+import { TranslationTabs } from "./TranslationTabs";
+import { useResizablePanel } from "../../hooks/useResizablePanel";
 
 interface PropertiesPanelProps {
   selection: PropertiesPanelSelection;
   verse: Verse;
-  chapter: Chapter;
   onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
   onTogglePhraseOnCanvas?: (match: PhraseMatch, show: boolean) => void;
 }
@@ -22,22 +22,45 @@ interface PropertiesPanelProps {
 function PropertiesPanelComponent({
   selection,
   verse,
-  chapter,
   onNavigateToVerse,
   onTogglePhraseOnCanvas,
 }: PropertiesPanelProps) {
+  const containerRef = useRef<HTMLDivElement>(null);
+  const { percentage: propertiesPercent, startResizing } = useResizablePanel({
+    initial: 60,
+    min: 30,
+    max: 85,
+    direction: "vertical",
+    containerRef,
+  });
+
+  const hasSelection = selection && selection.type !== "verse";
+
   return (
-    <div className="w-80 md:w-96 border-l border-slate-800 bg-slate-900/50 overflow-y-auto custom-scrollbar flex flex-col">
+    <div
+      ref={containerRef}
+      className="w-80 md:w-96 border-r border-slate-800 bg-slate-900/50 flex flex-col"
+    >
       {/* Header */}
       <div className="p-4 border-b border-slate-800 flex items-center gap-2 text-emerald-500 bg-slate-900/50">
         <Info size={18} />
         <h2 className="font-bold text-sm tracking-tight">Properties</h2>
       </div>
 
-      {/* Content */}
-      <div className="flex-1 p-5 space-y-4">
-        {(!selection || selection.type === "verse") && (
-          <VerseInfo verse={verse} chapter={chapter} />
+      {/* Properties content (resizable top section) */}
+      <div
+        className="overflow-y-auto custom-scrollbar p-5 space-y-4"
+        style={{ height: `${propertiesPercent}%` }}
+      >
+        {!hasSelection && (
+          <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
+            <MousePointer size={24} className="text-slate-600" />
+            <p className="text-sm text-center leading-relaxed">
+              Click a word on the canvas
+              <br />
+              to see its properties
+            </p>
+          </div>
         )}
         {selection?.type === "word" && (
           <WordInfo
@@ -45,7 +68,6 @@ function PropertiesPanelComponent({
             phraseMatches={selection.phraseMatches}
             rootNote={selection.rootNote}
             lemmaNote={selection.lemmaNote}
-            onNavigateToVerse={onNavigateToVerse}
             onTogglePhraseOnCanvas={onTogglePhraseOnCanvas}
           />
         )}
@@ -68,20 +90,18 @@ function PropertiesPanelComponent({
           />
         )}
       </div>
-    </div>
-  );
-}
 
-function VerseInfo({ verse }: { verse: Verse; chapter: Chapter }) {
-  return (
-    <>
-      <div className="border border-slate-700/50 rounded-lg p-4">
-        <p className="font-quran text-lg text-slate-200 leading-[2]" dir="rtl">
-          {verse.text_uthmani}
-        </p>
+      {/* Resize handle */}
+      <div
+        onMouseDown={startResizing}
+        className="h-2 flex-shrink-0 cursor-row-resize border-t border-b border-slate-800 bg-slate-900/80 hover:bg-slate-700/50 transition-colors flex items-center justify-center"
+      >
+        <div className="w-8 h-0.5 rounded-full bg-slate-600" />
       </div>
-      {verse.translations.length > 0 && <TranslationTabs translations={verse.translations} />}
-    </>
+
+      {/* Webcam zone (clear area at bottom) */}
+      <div className="flex-1" />
+    </div>
   );
 }
 
@@ -159,24 +179,14 @@ function WordInfo({
   phraseMatches,
   rootNote: initialRootNote,
   lemmaNote: initialLemmaNote,
-  onNavigateToVerse,
   onTogglePhraseOnCanvas,
 }: {
   data: NonNullable<Extract<PropertiesPanelSelection, { type: "word" }>["data"]>;
   phraseMatches?: PhraseMatch[];
   rootNote?: string;
   lemmaNote?: string;
-  onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
   onTogglePhraseOnCanvas?: (match: PhraseMatch, show: boolean) => void;
 }) {
-  const handleVerseClick = useCallback(
-    (verseKey: string) => {
-      const [surahStr, verseStr] = verseKey.split(":");
-      onNavigateToVerse(parseInt(surahStr, 10), parseInt(verseStr, 10));
-    },
-    [onNavigateToVerse]
-  );
-
   const handleSaveRootNote = useCallback(
     (note: string) => {
       if (data.root) saveRootNote(data.root, note, data.verseKey);
@@ -239,7 +249,6 @@ function WordInfo({
                 key={type}
                 matchType={type}
                 matches={grouped}
-                onNavigateToVerse={handleVerseClick}
                 onTogglePhraseOnCanvas={onTogglePhraseOnCanvas}
               />
             );
@@ -556,12 +565,10 @@ function PhraseToggle({ on, matchType }: { on: boolean; matchType: PhraseMatchTy
 function PhraseMatchesSection({
   matchType,
   matches,
-  onNavigateToVerse,
   onTogglePhraseOnCanvas,
 }: {
   matchType: PhraseMatchType;
   matches: PhraseMatch[];
-  onNavigateToVerse: (verseKey: string) => void;
   onTogglePhraseOnCanvas?: (match: PhraseMatch, show: boolean) => void;
 }) {
   const [toggledSet, setToggledSet] = useState<Set<number>>(new Set());
@@ -624,42 +631,6 @@ function PhraseMatchesSection({
           );
         })}
       </div>
-    </div>
-  );
-}
-
-function TranslationTabs({ translations }: { translations: Verse["translations"] }) {
-  const [activeTab, setActiveTab] = useState(0);
-  const current = translations[activeTab];
-
-  return (
-    <div className="border border-slate-700/50 rounded-lg p-4">
-      <div className="text-xs text-slate-500 tracking-wider mb-2">Translation</div>
-      {/* Tab buttons — single line, scrollable */}
-      <div className="flex gap-1 overflow-x-auto bg-slate-800/50 p-1 rounded-lg mb-3 custom-scrollbar">
-        {translations.map((t, idx) => (
-          <button
-            key={t.id || idx}
-            onClick={() => setActiveTab(idx)}
-            className={`px-2.5 py-1.5 rounded-md text-xs font-bold transition-all font-vazir shrink-0 ${
-              activeTab === idx
-                ? "bg-slate-700 text-slate-100 shadow-sm"
-                : "text-slate-500 hover:text-slate-300"
-            }`}
-          >
-            {t.resource_name || `Translation ${idx + 1}`}
-          </button>
-        ))}
-      </div>
-      {/* Active translation */}
-      {current && (
-        <p
-          className="text-sm text-slate-300 leading-relaxed font-vazir"
-          dir={current.direction === "rtl" ? "rtl" : "ltr"}
-        >
-          {current.text.replace(/<[^>]*>/g, "")}
-        </p>
-      )}
     </div>
   );
 }

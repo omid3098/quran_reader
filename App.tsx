@@ -1580,6 +1580,11 @@ const App: React.FC = () => {
             onTogglePlay={() => setIsPlaying(!isPlaying)}
             autoPlayEnabled={settings.autoPlay}
             onToggleAutoPlay={() => setSettings((prev) => ({ ...prev, autoPlay: !prev.autoPlay }))}
+            verseNote={notes[nodeReaderData.verse.verse_key]}
+            onSaveVerseNote={saveVerseNote}
+            surahNote={getNoteForSurah(nodeReaderData.chapter.id)}
+            onSaveSurahNote={saveSurahNote}
+            theme={settings.theme}
           />
         </Suspense>
       )}
