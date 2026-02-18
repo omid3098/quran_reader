@@ -22,10 +22,10 @@
 
 Computed once, used by everyone.
 
-| File                 | Status         | Content                                     |
-| -------------------- | -------------- | ------------------------------------------- |
-| `quran-roots.json`   | Exists         | Root, lemma, text per word per verse        |
-| `quran-phrases.json` | Needs building | Repeated lemma/root sequences across verses |
+| File                 | Status        | Content                                     |
+| -------------------- | ------------- | ------------------------------------------- |
+| `quran-roots.json`   | Exists        | Root, lemma, text per word per verse        |
+| `quran-phrases.json` | Built (4.5MB) | Repeated lemma/root sequences across verses |
 
 **quran-phrases.json decisions:**
 
@@ -100,4 +100,4 @@ When we have per-root and per-lemma notes, word-in-context analysis (like "innam
 - [x] Implement connection queries (bidirectional lookup) — `verseFamiliarityService.ts`
 - [x] Integrate KB writing — ConnectionSaveField in PropertiesPanel (save/delete connections from phrase verse nodes)
 - [x] Note backlinks — `noteBacklinksService.ts` scans notes for `[x:y]` verse refs, shows "Mentioned in Notes" in PropertiesPanel
-- [ ] Create empty initial KB file (auto-created on first save via `ensureKB()`)
+- [x] Create initial KB file — `public/knowledge-base.json` exists as seed; `ensureKB()` creates localStorage entry on first save

@@ -54,7 +54,7 @@ function PropertiesPanelComponent({
 }: PropertiesPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { percentage: propertiesPercent, startResizing } = useResizablePanel({
-    initial: 60,
+    initial: 43,
     min: 30,
     max: 85,
     direction: "vertical",

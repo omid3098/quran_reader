@@ -2,7 +2,7 @@
 
 ## Current State
 
-NodeReader is a ReactFlow-based canvas with a side panel (currently right, moving to left — see Layout Model below). It displays one verse at a time as word nodes, with expandable root branches and phrase-verse cross-references.
+NodeReader is a ReactFlow-based canvas with a left-side properties panel. It displays one verse at a time as word nodes, with phrase-verse cross-references. Root analysis is shown in the panel on word click (no root nodes on canvas). Merged to main and deployed to production.
 
 ### Architecture
 
@@ -10,6 +10,11 @@ NodeReader is a ReactFlow-based canvas with a side panel (currently right, movin
 - `components/NodeReader/NodeReaderCanvas.tsx` — ReactFlow wrapper, cache save/restore
 - `components/NodeReader/useNodeReaderState.ts` — core state hook (nodes, edges, interactions)
 - `components/NodeReader/PropertiesPanel.tsx` — left sidebar, dynamic header
+- `components/NodeReader/BottomPanel.tsx` — translations, verse notes, surah notes (tabbed)
+- `components/NodeReader/TranslationTabs.tsx` — translation display with FocusMode-matched font size
+- `components/NodeReader/PromptBuilderModal.tsx` — lazy-loaded prompt builder
+- `components/NodeReader/CanvasLegend.tsx` — color legend (bottom-right corner)
+- `components/NodeReader/colorPalette.ts` — centralized color definitions
 - `components/NodeReader/nodeLayout.ts` — pure layout functions
 - `components/NodeReader/nodes/` — WordNode, PhraseVerseNode
 
@@ -137,7 +142,7 @@ The review produced a clear three-zone layout:
 
 ## Current Status & Next Steps
 
-**Status:** Foundation tasks complete. All familiarity features (word + verse + note backlinks) implemented. Connection UI and color legend done. Building features.
+**Status:** Merged to main and deployed to production. Foundation tasks complete. All familiarity features (word + verse + note backlinks) implemented. Connection UI and color legend done. In production testing phase.
 
 **Foundation tasks:**
 
@@ -164,7 +169,7 @@ The review produced a clear three-zone layout:
 - **Familiarity indicator threshold** (was Open Question #3): Every KB note triggers the indicator. Empty notes are auto-deleted by `saveRootNote`/`saveLemmaNote`, so any existing entry is substantial. No threshold needed.
 - **Prompt Builder scope** (was Open Question #2): All sections always included — no toggles for v1. Empty sections are omitted automatically. The user decided "everything always" is the right default.
 - **Backlinks indicator (#13)**: Yellow dot on floating verse key + connections list in PropertiesPanel default view. Two sources: manual KB connections + automatic note backlinks (`[x:y]` references parsed from notes).
-- **Color palette (#18)**: Centralized in `colorPalette.ts`. Legend placed at bottom-right corner of canvas, `pointer-events-none`, semi-transparent dark background. Colors: amber=lemma match, teal=root match, indigo=root analysis, emerald=selected, yellow=user data.
+- **Color palette (#18)**: Centralized in `colorPalette.ts`. Legend placed at bottom-right corner of canvas, `pointer-events-none`, semi-transparent dark background. Colors: amber=lemma match, teal=root match, indigo=root analysis, emerald=selected, yellow=personal data.
 - **Multi-branch support (Problem #2)**: Resolved — not needed. RootNode removed from canvas. Root analysis (occurrence count, word forms, verses by surah) now fetched on word click and shown directly in PropertiesPanel's WordInfo section. PhraseVerseNodes connect directly to WordNodes, so no intermediary root node was necessary.
 
 ## Open Questions

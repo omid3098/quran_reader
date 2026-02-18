@@ -26,7 +26,7 @@ export const NODE_READER_COLORS: Record<string, ColorEntry> = {
     description: "Current selection",
   },
   userData: {
-    label: "Your Data",
+    label: "Personal Data",
     swatch: "bg-yellow-400",
     description: "Notes & connections",
   },

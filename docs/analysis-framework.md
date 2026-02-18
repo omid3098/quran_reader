@@ -96,4 +96,4 @@ Key tool-relevant sections:
 - **Section 1 (Definition Hierarchy)**: Needs root data, lemma data, and cross-references
 - **Section 2 (Networked Thinking)**: Needs cross-reference search with context (the biggest current gap)
 - **Section 5 (Grammar Check)**: Not currently supported by the tool
-- **Section 12 (Classical Review)**: Partially supported via Gemini AI tafseer
+- **Section 12 (Classical Review)**: Supported via Prompt Builder (user copies study context to external AI)

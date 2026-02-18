@@ -4,7 +4,7 @@ This folder contains all design decisions, workflows, and architectural context 
 
 ## Current Focus & Next Steps
 
-**Phase: NodeReader Implementation** — Foundation tasks complete. Building features.
+**Phase: NodeReader — Production Testing** — Merged to main. In production testing to inform next design decisions.
 
 **What to do next:**
 
@@ -21,20 +21,20 @@ This folder contains all design decisions, workflows, and architectural context 
 
 ## Documents
 
-| Document                                           | What it covers                                                                                                | Status                                                                                                       |
-| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------ |
-| [node-reader-redesign.md](node-reader-redesign.md) | NodeReader UX: layout model, all 19 data placement decisions, 6 design constraints, TBD items, open questions | Layout done, word familiarity done, Prompt Builder done, connections done, backlinks done, color legend done |
-| [data-architecture.md](data-architecture.md)       | Three-layer data model: computed data, personal KB (JSON schema), narrative notes                             | Mostly implemented (phrases + KB CRUD + connections + familiarity + backlinks done)                          |
-| [study-workflow.md](study-workflow.md)             | How the user actually studies the Quran (spiral process, not linear)                                          | Documented                                                                                                   |
-| [analysis-framework.md](analysis-framework.md)     | The 11-step analytical framework for reading the Quran                                                        | Documented                                                                                                   |
-| [sample-notes.md](sample-notes.md)                 | Patterns extracted from real study notes (2:169-171) — informs tool design                                    | Documented                                                                                                   |
+| Document                                           | What it covers                                                                                                | Status                                                                                            |
+| -------------------------------------------------- | ------------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------- |
+| [node-reader-redesign.md](node-reader-redesign.md) | NodeReader UX: layout model, all 19 data placement decisions, 6 design constraints, TBD items, open questions | Merged to main. All foundation + feature tasks done except Patterns (#14)                         |
+| [data-architecture.md](data-architecture.md)       | Three-layer data model: computed data, personal KB (JSON schema), narrative notes                             | Fully implemented (phrases + KB CRUD + connections + familiarity + backlinks). Patterns (#14) TBD |
+| [study-workflow.md](study-workflow.md)             | How the user actually studies the Quran (spiral process, not linear)                                          | Documented                                                                                        |
+| [analysis-framework.md](analysis-framework.md)     | The 11-step analytical framework for reading the Quran                                                        | Documented                                                                                        |
+| [sample-notes.md](sample-notes.md)                 | Patterns extracted from real study notes (2:169-171) — informs tool design                                    | Documented                                                                                        |
 
 ## Quick Context for AI Assistants
 
 1. The user studies the Quran using a spiral process: word catches attention → root → cross-references → insight → note → next word
 2. The tool should serve this workflow, not impose a different one
 3. Patterns from real study notes are documented in [sample-notes.md](sample-notes.md)
-4. Data architecture has been decided (three layers) but not fully implemented yet
+4. Data architecture has been decided (three layers) and mostly implemented (only Patterns remain)
 5. The user communicates in Persian (Farsi), documentation is in English
 6. Package manager is **Bun** (not npm)
 
