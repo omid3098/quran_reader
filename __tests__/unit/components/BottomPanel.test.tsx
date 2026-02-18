@@ -1,3 +1,4 @@
+import React from "react";
 import { describe, it, expect, vi } from "vitest";
 import { render, screen, fireEvent, waitFor } from "@testing-library/react";
 import { BottomPanel } from "@/components/NodeReader/BottomPanel";
@@ -12,6 +13,7 @@ vi.mock("@/components/RichNoteEditor", () => ({
 }));
 
 const defaultProps = {
+  containerRef: { current: null } as React.RefObject<HTMLDivElement | null>,
   translations: [
     {
       id: "1",

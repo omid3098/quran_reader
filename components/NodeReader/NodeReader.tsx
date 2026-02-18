@@ -59,6 +59,7 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
   const [propertiesSelection, setPropertiesSelection] = useState<PropertiesPanelSelection>(null);
   const togglePhraseRef = useRef<TogglePhraseOnCanvas | null>(null);
   const canvasCacheRef = useRef<Map<string, CanvasSnapshot>>(new Map());
+  const canvasAreaRef = useRef<HTMLDivElement>(null);
 
   // Build word list from actual verse text + root data
   useEffect(() => {
@@ -139,33 +140,37 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
         </div>
 
         {/* Canvas + Bottom Panel */}
-        <div className="flex-1 relative">
-          {loading ? (
-            <div className="flex items-center justify-center h-full">
-              <Spinner />
+        <div ref={canvasAreaRef} className="flex-1 flex flex-col min-h-0">
+          {/* Canvas */}
+          <div className="flex-1 relative min-h-0">
+            {loading ? (
+              <div className="flex items-center justify-center h-full">
+                <Spinner />
+              </div>
+            ) : (
+              <ReactFlowProvider>
+                <NodeReaderCanvas
+                  words={words}
+                  verseKey={verse.verse_key}
+                  chapter={chapter}
+                  getSurahName={getSurahName}
+                  onSelectionChange={handleSelectionChange}
+                  togglePhraseRef={togglePhraseRef}
+                  onNavigateToVerse={onNavigateToVerse}
+                  canvasCacheRef={canvasCacheRef}
+                />
+              </ReactFlowProvider>
+            )}
+            {/* Floating Verse Key Indicator */}
+            <div className="absolute bottom-4 left-4 pointer-events-none select-none z-20">
+              <span className="text-4xl font-black font-sans text-white opacity-20">
+                {verse.verse_key}
+              </span>
             </div>
-          ) : (
-            <ReactFlowProvider>
-              <NodeReaderCanvas
-                words={words}
-                verseKey={verse.verse_key}
-                chapter={chapter}
-                getSurahName={getSurahName}
-                onSelectionChange={handleSelectionChange}
-                togglePhraseRef={togglePhraseRef}
-                onNavigateToVerse={onNavigateToVerse}
-                canvasCacheRef={canvasCacheRef}
-              />
-            </ReactFlowProvider>
-          )}
-          {/* Floating Verse Key Indicator */}
-          <div className="absolute bottom-4 left-4 pointer-events-none select-none z-20">
-            <span className="text-4xl font-black font-sans text-white opacity-20">
-              {verse.verse_key}
-            </span>
           </div>
           {/* Bottom Panel */}
           <BottomPanel
+            containerRef={canvasAreaRef}
             translations={verse.translations}
             verseKey={verse.verse_key}
             verseNote={verseNote}

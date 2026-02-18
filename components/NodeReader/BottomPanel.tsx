@@ -22,6 +22,7 @@ interface BottomPanelProps {
   theme: "light" | "dark";
   onNavigateToVerse?: (surahId: number, verseNumber?: number) => void;
   getSurahName?: (surahId: number) => string | undefined;
+  containerRef: React.RefObject<HTMLDivElement | null>;
 }
 
 function BottomPanelComponent({
@@ -35,10 +36,10 @@ function BottomPanelComponent({
   theme,
   onNavigateToVerse,
   getSurahName,
+  containerRef,
 }: BottomPanelProps) {
   const [isOpen, setIsOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<BottomPanelTab>("translations");
-  const containerRef = useRef<HTMLDivElement>(null);
 
   // Height resize — percentage is "how much of the canvas the panel takes from the bottom"
   // We invert it: the handle position from top = (100 - panelHeight)%
@@ -125,10 +126,10 @@ function BottomPanelComponent({
 
   if (!isOpen) {
     return (
-      <div className="absolute bottom-0 left-0 right-0 z-10">
+      <div className="shrink-0 flex justify-center py-1.5 border-t border-slate-800">
         <button
           onClick={() => setIsOpen(true)}
-          className="flex items-center gap-2 px-3 py-1.5 mx-auto mb-2 rounded-full bg-slate-800/90 backdrop-blur text-slate-400 hover:text-slate-200 text-xs transition-colors border border-slate-700/50"
+          className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-800/90 backdrop-blur text-slate-400 hover:text-slate-200 text-xs transition-colors border border-slate-700/50"
         >
           <ChevronUp size={14} />
           <span>Panel</span>
@@ -139,106 +140,99 @@ function BottomPanelComponent({
   }
 
   return (
-    <div ref={containerRef} className="absolute inset-0 z-10 pointer-events-none">
-      {/* Invisible area above panel — lets clicks pass through to canvas */}
-      <div style={{ height: `calc(100% - ${panelHeight})` }} />
-
+    <div
+      className="shrink-0 flex flex-col bg-slate-900/95 backdrop-blur border-t border-slate-700/50"
+      style={{ height: panelHeight }}
+      onKeyDown={handleKeyDown}
+    >
       {/* Resize handle */}
       <div
         onMouseDown={startResizing}
-        className="h-2 cursor-row-resize flex items-center justify-center pointer-events-auto bg-transparent hover:bg-slate-700/30 transition-colors"
+        className="h-2 cursor-row-resize flex items-center justify-center hover:bg-slate-700/30 transition-colors shrink-0"
       >
         <div className="w-10 h-0.5 rounded-full bg-slate-500" />
       </div>
-
-      {/* Panel content */}
-      <div
-        className="flex-1 flex flex-col pointer-events-auto bg-slate-900/95 backdrop-blur border-t border-slate-700/50"
-        style={{ height: `calc(${panelHeight} - 0.5rem)` }}
-        onKeyDown={handleKeyDown}
-      >
-        {/* Tab bar */}
-        <div className="flex items-center gap-1 px-3 py-1.5 border-b border-slate-800 shrink-0">
-          {tabs.map((tab) => (
-            <button
-              key={tab.id}
-              onClick={() => setActiveTab(tab.id)}
-              className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-bold transition-all shrink-0 ${
-                activeTab === tab.id
-                  ? "bg-slate-700 text-slate-100 shadow-sm"
-                  : "text-slate-500 hover:text-slate-300"
-              }`}
-            >
-              {tab.icon}
-              {tab.label}
-              {tab.hasIndicator && (
-                <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 shrink-0" />
-              )}
-            </button>
-          ))}
-          <div className="flex-1" />
+      {/* Tab bar */}
+      <div className="flex items-center gap-1 px-3 py-1.5 border-b border-slate-800 shrink-0">
+        {tabs.map((tab) => (
           <button
-            onClick={() => setIsOpen(false)}
-            className="p-1.5 rounded-full hover:bg-slate-800 text-slate-500 hover:text-slate-300 transition-colors"
-            aria-label="Close panel"
+            key={tab.id}
+            onClick={() => setActiveTab(tab.id)}
+            className={`flex items-center gap-1.5 px-2.5 py-1.5 rounded-md text-xs font-bold transition-all shrink-0 ${
+              activeTab === tab.id
+                ? "bg-slate-700 text-slate-100 shadow-sm"
+                : "text-slate-500 hover:text-slate-300"
+            }`}
           >
-            <X size={14} />
+            {tab.icon}
+            {tab.label}
+            {tab.hasIndicator && (
+              <span className="w-1.5 h-1.5 rounded-full bg-yellow-400 shrink-0" />
+            )}
           </button>
-        </div>
+        ))}
+        <div className="flex-1" />
+        <button
+          onClick={() => setIsOpen(false)}
+          className="p-1.5 rounded-full hover:bg-slate-800 text-slate-500 hover:text-slate-300 transition-colors"
+          aria-label="Close panel"
+        >
+          <X size={14} />
+        </button>
+      </div>
 
-        {/* Tab content */}
-        <div className="flex-1 overflow-y-auto custom-scrollbar">
-          {activeTab === "translations" && translations.length > 0 && (
-            <div className="p-4">
-              <TranslationTabs translations={translations} compact />
-            </div>
-          )}
-          {activeTab === "translations" && translations.length === 0 && (
-            <div className="flex items-center justify-center h-full text-slate-500 text-sm">
-              No translations available
-            </div>
-          )}
-          {activeTab === "verseNotes" && (
-            <div className="p-4 h-full">
-              <Suspense
-                fallback={
-                  <div className="flex items-center justify-center py-8 text-slate-500 text-sm">
-                    Loading editor...
-                  </div>
-                }
-              >
-                <RichNoteEditor
-                  key={verseKey}
-                  initialBlocks={verseNote?.blocks}
-                  onChange={handleVerseNoteChange}
-                  theme={theme}
-                  onNavigateToVerse={onNavigateToVerse}
-                  getSurahName={getSurahName}
-                />
-              </Suspense>
-            </div>
-          )}
-          {activeTab === "surahNotes" && (
-            <div className="p-4 h-full">
-              <Suspense
-                fallback={
-                  <div className="flex items-center justify-center py-8 text-slate-500 text-sm">
-                    Loading editor...
-                  </div>
-                }
-              >
-                <RichNoteEditor
-                  key={`surah-${surahId}`}
-                  initialBlocks={surahNote?.blocks}
-                  onChange={handleSurahNoteChange}
-                  theme={theme}
-                  onNavigateToVerse={onNavigateToVerse}
-                  getSurahName={getSurahName}
-                />
-              </Suspense>
-            </div>
-          )}
-        </div>
+      {/* Tab content */}
+      <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
+        {activeTab === "translations" && translations.length > 0 && (
+          <div className="p-4">
+            <TranslationTabs translations={translations} compact />
+          </div>
+        )}
+        {activeTab === "translations" && translations.length === 0 && (
+          <div className="flex items-center justify-center h-full text-slate-500 text-sm">
+            No translations available
+          </div>
+        )}
+        {activeTab === "verseNotes" && (
+          <div className="p-4 h-full">
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center py-8 text-slate-500 text-sm">
+                  Loading editor...
+                </div>
+              }
+            >
+              <RichNoteEditor
+                key={verseKey}
+                initialBlocks={verseNote?.blocks}
+                onChange={handleVerseNoteChange}
+                theme={theme}
+                onNavigateToVerse={onNavigateToVerse}
+                getSurahName={getSurahName}
+              />
+            </Suspense>
+          </div>
+        )}
+        {activeTab === "surahNotes" && (
+          <div className="p-4 h-full">
+            <Suspense
+              fallback={
+                <div className="flex items-center justify-center py-8 text-slate-500 text-sm">
+                  Loading editor...
+                </div>
+              }
+            >
+              <RichNoteEditor
+                key={`surah-${surahId}`}
+                initialBlocks={surahNote?.blocks}
+                onChange={handleSurahNoteChange}
+                theme={theme}
+                onNavigateToVerse={onNavigateToVerse}
+                getSurahName={getSurahName}
+              />
+            </Suspense>
+          </div>
+        )}
       </div>
     </div>
   );
