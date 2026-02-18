@@ -16,8 +16,8 @@ This folder contains all design decisions, workflows, and architectural context 
 6. ~~**Connection UI + Verse familiarity (#13)**~~ — Done. KB connection CRUD, ConnectionSaveField on phrase verse nodes, verse-level familiarity indicator (yellow dot on verse key), connections list in PropertiesPanel default view.
 7. ~~**Note Backlinks**~~ — Done. Auto-detect `[x:y]` verse references in notes, show "Mentioned in Notes" in PropertiesPanel.
 8. ~~**Systematic color palette + legend (#18)**~~ — Done. Centralized `colorPalette.ts`, memoized `CanvasLegend` component (bottom-right corner).
-9. **Multi-branch support (Problem #2)** — **← NEXT**
-10. **Patterns (#14)** — Deferred until notes + connections are in use
+9. ~~**Multi-branch support (Problem #2)**~~ — Resolved: RootNode removed from canvas, root analysis shown in PropertiesPanel on word click.
+10. **Patterns (#14)** — **← NEXT** (Deferred until notes + connections are in use)
 
 ## Documents
 

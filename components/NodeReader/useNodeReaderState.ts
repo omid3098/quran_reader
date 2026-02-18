@@ -3,7 +3,6 @@ import { useNodesState, useEdgesState } from "@xyflow/react";
 import type { Node, Edge } from "@xyflow/react";
 import type {
   WordNodeData,
-  RootNodeData,
   PhraseVerseNodeData,
   PhraseMatch,
   PropertiesPanelSelection,
@@ -15,7 +14,7 @@ import type {
 import { findVersesByRoot } from "../../services/analysisService";
 import { findPhrasesForWord } from "../../services/phrasesService";
 import { getRootNote, getLemmaNote } from "../../services/knowledgeBaseService";
-import { layoutRootNode, layoutPhraseVerseNodes, estimateWordNodeWidth } from "./nodeLayout";
+import { layoutPhraseVerseNodes, estimateWordNodeWidth } from "./nodeLayout";
 
 interface UseNodeReaderStateOptions {
   initialNodes: Node[];
@@ -80,25 +79,49 @@ export function useNodeReaderState({
     childrenMapRef.current.clear();
   }, [setNodes, setEdges, collectDescendants]);
 
-  /** Load phrase matches + KB notes for a word, then update selection. */
-  const enrichWordSelection = useCallback((wordData: WordNodeData) => {
-    setPropertiesSelection({ type: "word", data: wordData });
+  /** Load phrase matches, KB notes, and root analysis for a word, then update selection. */
+  const enrichWordSelection = useCallback(
+    (wordData: WordNodeData) => {
+      setPropertiesSelection({ type: "word", data: wordData });
 
-    Promise.all([
-      findPhrasesForWord(wordData.verseKey, wordData.wordIndex),
-      wordData.root ? getRootNote(wordData.root) : null,
-      wordData.lemma ? getLemmaNote(wordData.lemma) : null,
-    ]).then(([phraseMatches, rootNote, lemmaResult]) => {
-      const enriched: PropertiesPanelSelection = {
-        type: "word",
-        data: wordData,
-        ...(phraseMatches.length > 0 ? { phraseMatches } : {}),
-        ...(rootNote ? { rootNote } : {}),
-        ...(lemmaResult?.note ? { lemmaNote: lemmaResult.note } : {}),
-      };
-      setPropertiesSelection(enriched);
-    });
-  }, []);
+      Promise.all([
+        findPhrasesForWord(wordData.verseKey, wordData.wordIndex),
+        wordData.root ? getRootNote(wordData.root) : null,
+        wordData.lemma ? getLemmaNote(wordData.lemma) : null,
+        wordData.root ? findVersesByRoot(wordData.root) : null,
+      ]).then(([phraseMatches, rootNote, lemmaResult, rootAnalysis]) => {
+        // Build surah groups from root analysis
+        let surahGroups: SurahGroup[] | undefined;
+        if (rootAnalysis) {
+          const allKeys = rootAnalysis.allVerseKeys ?? rootAnalysis.verses.map((v) => v.verse_key);
+          const bySurah = new Map<number, string[]>();
+          for (const vk of allKeys) {
+            const [surahStr] = vk.split(":");
+            const surahId = parseInt(surahStr, 10);
+            if (!bySurah.has(surahId)) bySurah.set(surahId, []);
+            bySurah.get(surahId)!.push(vk);
+          }
+          surahGroups = Array.from(bySurah.entries()).map(([surahId, verseKeys]) => ({
+            surahId,
+            surahName: getSurahName(surahId) || `Surah ${surahId}`,
+            verseKeys,
+          }));
+        }
+
+        const enriched: PropertiesPanelSelection = {
+          type: "word",
+          data: wordData,
+          ...(phraseMatches.length > 0 ? { phraseMatches } : {}),
+          ...(rootNote ? { rootNote } : {}),
+          ...(lemmaResult?.note ? { lemmaNote: lemmaResult.note } : {}),
+          ...(rootAnalysis ? { rootAnalysis } : {}),
+          ...(surahGroups ? { surahGroups } : {}),
+        };
+        setPropertiesSelection(enriched);
+      });
+    },
+    [getSurahName]
+  );
 
   const handleWordClick = useCallback(
     (nodeId: string, wordData: WordNodeData) => {
@@ -112,78 +135,9 @@ export function useNodeReaderState({
       // Collapse any other open branches first
       collapseAll();
 
-      if (!wordData.root) {
-        enrichWordSelection(wordData);
-        return;
-      }
-
-      // Compute new nodes inside setNodes callback (fresh state after collapseAll).
-      // Edges are stored in pendingEdgesRef and applied by a separate setEdges call
-      // to avoid nesting setEdges inside setNodes (which causes stale-edge bugs).
-      pendingEdgesRef.current = [];
-      setNodes((currentNodes) => {
-        const wordNode = currentNodes.find((n) => n.id === nodeId);
-        if (!wordNode) return currentNodes;
-
-        const { node: rootNode, edge } = layoutRootNode(wordNode.position, nodeId, {
-          root: wordData.root,
-        });
-
-        pendingEdgesRef.current = [edge as Edge];
-        childrenMapRef.current.set(nodeId, [rootNode.id]);
-        return [...currentNodes, rootNode as Node];
-      });
-      // useNodesState is declared before useEdgesState, so React processes
-      // nodes updaters first — pendingEdgesRef is set by the time this runs.
-      setEdges((prev) => [...prev, ...pendingEdgesRef.current]);
-
       enrichWordSelection(wordData);
     },
-    [setNodes, setEdges, collapseChildren, collapseAll, enrichWordSelection]
-  );
-
-  const handleRootClick = useCallback(
-    async (_nodeId: string, rootData: RootNodeData) => {
-      // Fetch all verses with this root + KB note in parallel
-      const [analysis, rootNote] = await Promise.all([
-        findVersesByRoot(rootData.root),
-        getRootNote(rootData.root),
-      ]);
-
-      // Group ALL verse keys by surah
-      const allKeys = analysis.allVerseKeys ?? analysis.verses.map((v) => v.verse_key);
-      const bySurah = new Map<number, string[]>();
-      for (const vk of allKeys) {
-        const [surahStr] = vk.split(":");
-        const surahId = parseInt(surahStr, 10);
-        if (!bySurah.has(surahId)) bySurah.set(surahId, []);
-        bySurah.get(surahId)!.push(vk);
-      }
-
-      const surahGroups: SurahGroup[] = Array.from(bySurah.entries()).map(
-        ([surahId, verseKeys]) => ({
-          surahId,
-          surahName: getSurahName(surahId) || `Surah ${surahId}`,
-          verseKeys,
-        })
-      );
-
-      // Update root node occurrences on canvas
-      setNodes((currentNodes) =>
-        currentNodes.map((n) =>
-          n.id === _nodeId ? { ...n, data: { ...n.data, occurrences: analysis.occurrences } } : n
-        )
-      );
-
-      setPropertiesSelection({
-        type: "root",
-        data: rootData,
-        analysis,
-        surahGroups,
-        rootNote: rootNote || undefined,
-      });
-    },
-    [setNodes, getSurahName]
+    [collapseChildren, collapseAll, enrichWordSelection]
   );
 
   const handleNodeClick = useCallback(
@@ -192,9 +146,6 @@ export function useNodeReaderState({
       switch (data.type) {
         case "word":
           handleWordClick(node.id, data);
-          break;
-        case "root":
-          handleRootClick(node.id, data);
           break;
         case "phraseVerse": {
           const pvData = data as PhraseVerseNodeData;
@@ -208,7 +159,7 @@ export function useNodeReaderState({
         }
       }
     },
-    [handleWordClick, handleRootClick]
+    [handleWordClick]
   );
 
   const handlePaneClick = useCallback(() => {

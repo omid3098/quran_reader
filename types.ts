@@ -239,14 +239,6 @@ export interface WordNodeData {
   hasFamiliarLemma?: boolean;
 }
 
-export interface RootNodeData {
-  [key: string]: unknown;
-  type: "root";
-  root: string;
-  sourceWordId: string;
-  occurrences?: number;
-}
-
 export interface PhraseVerseNodeData {
   [key: string]: unknown;
   type: "phraseVerse";
@@ -261,7 +253,7 @@ export interface SurahGroup {
   verseKeys: string[];
 }
 
-export type NodeReaderNodeData = WordNodeData | RootNodeData | PhraseVerseNodeData;
+export type NodeReaderNodeData = WordNodeData | PhraseVerseNodeData;
 
 // --- Phrase Match Types ---
 
@@ -315,13 +307,8 @@ export type PropertiesPanelSelection =
       phraseMatches?: PhraseMatch[];
       rootNote?: string;
       lemmaNote?: string;
-    }
-  | {
-      type: "root";
-      data: RootNodeData;
-      analysis?: RootAnalysis;
+      rootAnalysis?: RootAnalysis;
       surahGroups?: SurahGroup[];
-      rootNote?: string;
     }
   | {
       type: "phraseVerse";

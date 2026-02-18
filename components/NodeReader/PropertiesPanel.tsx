@@ -17,6 +17,7 @@ import type {
   Verse,
   SurahGroup,
   NoteBacklink,
+  RootAnalysis,
 } from "../../types";
 import type { VerseFamiliarityInfo } from "../../services/verseFamiliarityService";
 import {
@@ -81,10 +82,6 @@ function PropertiesPanelComponent({
               {selection.data.wordIndex + 1}/{totalWords}
             </span>
           </>
-        ) : selection?.type === "root" ? (
-          <span className="font-quran text-lg text-indigo-300">
-            {selection.data.root.split("").join(" ")}
-          </span>
         ) : selection?.type === "phraseVerse" ? (
           <>
             <span className="text-sm font-mono text-slate-300">{selection.verseKey}</span>
@@ -192,15 +189,9 @@ function PropertiesPanelComponent({
             phraseMatches={selection.phraseMatches}
             rootNote={selection.rootNote}
             lemmaNote={selection.lemmaNote}
-            onTogglePhraseOnCanvas={onTogglePhraseOnCanvas}
-          />
-        )}
-        {selection?.type === "root" && (
-          <RootInfo
-            data={selection.data}
-            analysis={selection.analysis}
+            rootAnalysis={selection.rootAnalysis}
             surahGroups={selection.surahGroups}
-            rootNote={selection.rootNote}
+            onTogglePhraseOnCanvas={onTogglePhraseOnCanvas}
             onNavigateToVerse={onNavigateToVerse}
           />
         )}
@@ -450,13 +441,19 @@ function WordInfo({
   phraseMatches,
   rootNote: initialRootNote,
   lemmaNote: initialLemmaNote,
+  rootAnalysis,
+  surahGroups,
   onTogglePhraseOnCanvas,
+  onNavigateToVerse,
 }: {
   data: NonNullable<Extract<PropertiesPanelSelection, { type: "word" }>["data"]>;
   phraseMatches?: PhraseMatch[];
   rootNote?: string;
   lemmaNote?: string;
+  rootAnalysis?: RootAnalysis;
+  surahGroups?: SurahGroup[];
   onTogglePhraseOnCanvas?: (match: PhraseMatch, show: boolean) => void;
+  onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
 }) {
   const handleSaveRootNote = useCallback(
     (note: string) => {
@@ -483,6 +480,13 @@ function WordInfo({
             initialNote={initialRootNote}
             onSave={handleSaveRootNote}
           />
+          {rootAnalysis && (
+            <RootAnalysisMore
+              analysis={rootAnalysis}
+              surahGroups={surahGroups}
+              onNavigateToVerse={onNavigateToVerse}
+            />
+          )}
         </div>
       )}
       {data.lemma && (
@@ -607,19 +611,16 @@ function KBNoteField({
   );
 }
 
-function RootInfo({
-  data,
+function RootAnalysisMore({
   analysis,
   surahGroups,
-  rootNote,
   onNavigateToVerse,
 }: {
-  data: NonNullable<Extract<PropertiesPanelSelection, { type: "root" }>["data"]>;
-  analysis?: NonNullable<Extract<PropertiesPanelSelection, { type: "root" }>["analysis"]>;
+  analysis: RootAnalysis;
   surahGroups?: SurahGroup[];
-  rootNote?: string;
   onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
 }) {
+  const [moreOpen, setMoreOpen] = useState(false);
   const [wordFormsOpen, setWordFormsOpen] = useState(false);
   const [versesOpen, setVersesOpen] = useState(false);
   const [expandedSurahs, setExpandedSurahs] = useState<Set<number>>(new Set());
@@ -642,39 +643,35 @@ function RootInfo({
   );
 
   return (
-    <>
-      <div className="border border-slate-700/50 rounded-lg p-4">
-        <div className="text-xs text-slate-500 tracking-wider mb-1">Root</div>
-        <div className="font-quran text-2xl text-indigo-300">{data.root.split("").join(" ")}</div>
-      </div>
-      {rootNote && (
-        <div className="border border-yellow-700/50 rounded-lg p-4 bg-yellow-900/10">
-          <div className="text-xs text-yellow-500 tracking-wider mb-1">Note</div>
-          <p className="text-sm text-yellow-200/80 font-vazir leading-relaxed" dir="rtl">
-            {rootNote}
-          </p>
-        </div>
-      )}
-      {analysis && (
-        <>
-          <div className="border border-slate-700/50 rounded-lg p-4">
-            <div className="text-xs text-slate-500 tracking-wider mb-1">Occurrences</div>
-            <div className="text-sm text-slate-300">{analysis.occurrences} verses</div>
-          </div>
+    <div className="mt-3 border-t border-slate-700/30">
+      <button
+        onClick={() => setMoreOpen((v) => !v)}
+        className="w-full flex items-center justify-between py-3 text-left hover:text-slate-300 transition-colors"
+      >
+        <span className="text-xs text-slate-500 tracking-wider">
+          More · {analysis.occurrences} verses
+        </span>
+        <ChevronDown
+          size={16}
+          className={`text-slate-500 transition-transform ${moreOpen ? "rotate-180" : ""}`}
+        />
+      </button>
+      {moreOpen && (
+        <div className="space-y-2 pb-1">
           {analysis.wordForms.length > 0 && (
-            <div className="border border-slate-700/50 rounded-lg overflow-hidden">
+            <div className="border-t border-slate-700/30 overflow-hidden">
               <button
                 onClick={() => setWordFormsOpen((v) => !v)}
-                className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-800/50 transition-colors"
+                className="w-full flex items-center justify-between py-2.5 text-left hover:text-slate-300 transition-colors"
               >
                 <span className="text-xs text-slate-500 tracking-wider">Word Forms</span>
                 <ChevronDown
-                  size={16}
+                  size={14}
                   className={`text-slate-500 transition-transform ${wordFormsOpen ? "rotate-180" : ""}`}
                 />
               </button>
               {wordFormsOpen && (
-                <div className="px-4 pb-3 flex flex-wrap gap-2" dir="rtl">
+                <div className="pb-2 flex flex-wrap gap-2" dir="rtl">
                   {analysis.wordForms.slice(0, 15).map((wf, i) => (
                     <span
                       key={i}
@@ -688,66 +685,65 @@ function RootInfo({
               )}
             </div>
           )}
-        </>
-      )}
 
-      {/* Surah accordion */}
-      {surahGroups && surahGroups.length > 0 && (
-        <div className="border border-slate-700/50 rounded-lg overflow-hidden">
-          <button
-            onClick={() => setVersesOpen((v) => !v)}
-            className="w-full flex items-center justify-between px-4 py-3 text-left hover:bg-slate-800/50 transition-colors"
-          >
-            <span className="text-xs text-slate-500 tracking-wider">
-              Verses by Surah ({surahGroups.length})
-            </span>
-            <ChevronDown
-              size={16}
-              className={`text-slate-500 transition-transform ${versesOpen ? "rotate-180" : ""}`}
-            />
-          </button>
-          {versesOpen && (
-            <div className="divide-y divide-slate-700/30">
-              {surahGroups.map((group) => {
-                const isOpen = expandedSurahs.has(group.surahId);
-                return (
-                  <div key={group.surahId}>
-                    <button
-                      onClick={() => toggleSurah(group.surahId)}
-                      className="w-full flex items-center justify-between px-4 py-2.5 text-left hover:bg-slate-800/50 transition-colors"
-                    >
-                      <span className="text-sm text-slate-200">
-                        {group.surahName}
-                        <span className="text-xs text-slate-500 ml-1.5">
-                          ({group.verseKeys.length})
-                        </span>
-                      </span>
-                      <ChevronDown
-                        size={16}
-                        className={`text-slate-500 transition-transform ${isOpen ? "rotate-180" : ""}`}
-                      />
-                    </button>
-                    {isOpen && (
-                      <div className="px-4 pb-3 flex flex-wrap gap-1.5">
-                        {group.verseKeys.map((vk) => (
-                          <button
-                            key={vk}
-                            onClick={() => handleVerseKeyClick(vk)}
-                            className="px-2 py-1 rounded text-xs font-mono text-emerald-400 bg-slate-800/80 border border-slate-700 hover:border-emerald-500 hover:bg-emerald-900/20 transition-colors"
-                          >
-                            {vk}
-                          </button>
-                        ))}
+          {surahGroups && surahGroups.length > 0 && (
+            <div className="border-t border-slate-700/30 overflow-hidden">
+              <button
+                onClick={() => setVersesOpen((v) => !v)}
+                className="w-full flex items-center justify-between py-2.5 text-left hover:text-slate-300 transition-colors"
+              >
+                <span className="text-xs text-slate-500 tracking-wider">
+                  Verses by Surah ({surahGroups.length})
+                </span>
+                <ChevronDown
+                  size={14}
+                  className={`text-slate-500 transition-transform ${versesOpen ? "rotate-180" : ""}`}
+                />
+              </button>
+              {versesOpen && (
+                <div className="divide-y divide-slate-700/30">
+                  {surahGroups.map((group) => {
+                    const isOpen = expandedSurahs.has(group.surahId);
+                    return (
+                      <div key={group.surahId}>
+                        <button
+                          onClick={() => toggleSurah(group.surahId)}
+                          className="w-full flex items-center justify-between py-2.5 text-left hover:text-slate-300 transition-colors"
+                        >
+                          <span className="text-sm text-slate-200">
+                            {group.surahName}
+                            <span className="text-xs text-slate-500 ml-1.5">
+                              ({group.verseKeys.length})
+                            </span>
+                          </span>
+                          <ChevronDown
+                            size={16}
+                            className={`text-slate-500 transition-transform ${isOpen ? "rotate-180" : ""}`}
+                          />
+                        </button>
+                        {isOpen && (
+                          <div className="pb-2 flex flex-wrap gap-1.5">
+                            {group.verseKeys.map((vk) => (
+                              <button
+                                key={vk}
+                                onClick={() => handleVerseKeyClick(vk)}
+                                className="px-2 py-1 rounded text-xs font-mono text-emerald-400 bg-slate-800/80 border border-slate-700 hover:border-emerald-500 hover:bg-emerald-900/20 transition-colors"
+                              >
+                                {vk}
+                              </button>
+                            ))}
+                          </div>
+                        )}
                       </div>
-                    )}
-                  </div>
-                );
-              })}
+                    );
+                  })}
+                </div>
+              )}
             </div>
           )}
         </div>
       )}
-    </>
+    </div>
   );
 }
 

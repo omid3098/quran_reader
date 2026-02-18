@@ -11,12 +11,11 @@ NodeReader is a ReactFlow-based canvas with a side panel (currently right, movin
 - `components/NodeReader/useNodeReaderState.ts` — core state hook (nodes, edges, interactions)
 - `components/NodeReader/PropertiesPanel.tsx` — left sidebar, dynamic header
 - `components/NodeReader/nodeLayout.ts` — pure layout functions
-- `components/NodeReader/nodes/` — WordNode, RootNode, PhraseVerseNode
+- `components/NodeReader/nodes/` — WordNode, PhraseVerseNode
 
 ### Node Types
 
-- **WordNode**: Arabic word, click to expand root branch
-- **RootNode**: Root letters + occurrence count (after click)
+- **WordNode**: Arabic word, click to see root analysis + phrase matches in panel
 - **PhraseVerseNode**: Verse key badge (e.g. "27:40"), color-coded by match type
 
 ## Core Problems
@@ -25,14 +24,13 @@ NodeReader is a ReactFlow-based canvas with a side panel (currently right, movin
 
 Canvas is a "selector" — click something to see info in side panel. Panel is where actual exploration happens. User must look at two places constantly. (Note: moving the panel from right to left helps with RTL reading flow but doesn't fully solve this structural problem.)
 
-### 2. Single-branch constraint
+### ~~2. Single-branch constraint~~ (Resolved — not needed)
 
-`collapseAll()` runs before each word expand. Only one word can be expanded at a time. Cannot compare two roots side-by-side.
+RootNode was removed from the canvas entirely. Root analysis (occurrence count, word forms, verses by surah) is now shown in PropertiesPanel when a word is clicked. PhraseVerseNodes connect directly to WordNodes, so no root node intermediary was needed. This eliminates the multi-branch problem since there are no root branches to compare.
 
 ### 3. Nodes carry minimal data
 
 - PhraseVerseNode shows only "27:40" — no preview of what the verse says
-- RootNode shows only letters + count — no word forms
 - WordNode shows only Arabic text — no root/lemma annotation
 
 ### 4. No bidirectional linking
@@ -100,7 +98,7 @@ The review produced a clear three-zone layout:
 | #   | Data Input                        | Placement                                                    | Details                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                     |
 | --- | --------------------------------- | ------------------------------------------------------------ | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
 | 1-2 | Arabic text + individual words    | **Canvas (permanent) + panel header (on select)**            | Words displayed as nodes with natural reading spacing. This is the primary content — the verse text itself. Spacing between word nodes must feel natural enough that the user can read the verse fluently, not like disconnected boxes. When a word is selected, it appears in the panel header (no separate "Word" section in panel content — the header IS the word display).                                                                                                                                                                                                                                                                                                                                                                                                                             |
-| 3-4 | Root + lemma per word             | **Canvas (on click)**                                        | Shown when the user clicks a word node. The exact visual treatment is still TBD — could be an inline expansion below the word, a connected child node, or an overlay. Whatever the design, it must not disrupt the readability of surrounding words.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                        |
+| 3-4 | Root + lemma per word             | **Panel (on word click)**                                    | Shown in PropertiesPanel when the user clicks a word node. Root letters, KB note, occurrence count, word forms (collapsible), and verses by surah (collapsible) are all displayed in the WordInfo section. No root node on canvas — keeps Arabic text readability clean.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                    |
 | 5   | Word position in verse            | **Panel header (on word select)**                            | Shown as compact `X/N` in the panel header when a word is selected (e.g., `10/12` = word 10 of 12). Communicates position without a separate section. Not shown when no word is selected.                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                                   |
 | 6   | Root verse list                   | **Deprioritized**                                            | The raw list of all verses containing a root is not directly useful in the study workflow. The user doesn't browse verse lists — they use AI to find contextually relevant verses. The root verse list may still exist as underlying data that feeds other features (like the Prompt Builder), but it's not a primary UI element.                                                                                                                                                                                                                                                                                                                                                                                                                                                                           |
 | 7   | Phrase matches (shared sequences) | **Canvas (on interaction)**                                  | Automated phrase detection is critically important. Finding shared multi-word sequences automatically and presenting them is far more reliable than asking an AI to find similar verses from scratch. The automation reduces error rates significantly. These appear as PhraseVerseNode badges on canvas when a word is explored. The automated detection also feeds the Prompt Builder (see #11) to give external AI tools precise cross-reference data.                                                                                                                                                                                                                                                                                                                                                   |
@@ -127,16 +125,15 @@ The review produced a clear three-zone layout:
 
 4. **"Familiarity" as a design pattern.** A recurring theme: when the user encounters something they've studied before (a root, a lemma, a verse), the UI should passively signal recognition. This applies to word nodes (root/lemma KB notes → subtle indicator) and to verses (backlinks from connections → verse-level indicator). The exact visual treatment is TBD but the principle is established.
 
-5. **Left panel = dynamic header + selected item properties + webcam zone.** The panel is on the left side (not right), split into two resizable sections. The **header changes dynamically** based on what's selected: word selected → Arabic word text + position `X/N`; root selected → spaced root letters; phrase verse selected → verse key + pattern; no selection → current verse key + connection/backlink counts. This eliminates redundant "Word" and "Position" sections from the panel content and saves vertical space. The top section shows properties and notes for the currently selected canvas item (a word, a root, a phrase match). The bottom section is kept clear for the webcam overlay during recording. When not recording, the user can resize the split to give more space to properties. This layout is efficient because the webcam dead zone (bottom-left corner) is naturally absorbed into the panel rather than wasting canvas space. It also frees the right side entirely for the canvas, which benefits RTL Arabic text reading.
+5. **Left panel = dynamic header + selected item properties + webcam zone.** The panel is on the left side (not right), split into two resizable sections. The **header changes dynamically** based on what's selected: word selected → Arabic word text + position `X/N`; phrase verse selected → verse key + pattern; no selection → current verse key + connection/backlink counts. This eliminates redundant "Word" and "Position" sections from the panel content and saves vertical space. The top section shows properties and notes for the currently selected canvas item (a word, a phrase match). The bottom section is kept clear for the webcam overlay during recording. When not recording, the user can resize the split to give more space to properties. This layout is efficient because the webcam dead zone (bottom-left corner) is naturally absorbed into the panel rather than wasting canvas space. It also frees the right side entirely for the canvas, which benefits RTL Arabic text reading.
 
 6. **Webcam zone = bottom of left panel.** The user records video lessons with a webcam overlay (OBS) at the bottom-left corner of the viewport. The bottom portion of the left panel is kept completely clear for this purpose. The user should never worry about their webcam covering content during recording. The resizable split between properties and webcam zone lets the user adjust the boundary. The same constraint already applies in Focus Mode.
 
 ### Items Still TBD
 
-| Item                      | What's undecided                            | Depends on                                           |
-| ------------------------- | ------------------------------------------- | ---------------------------------------------------- |
-| Root/lemma display (#3-4) | Exact visual treatment when clicking a word | Canvas layout experiments                            |
-| Patterns (#14)            | Which of three approaches to use            | Usage experience after notes + connections are built |
+| Item           | What's undecided                 | Depends on                                           |
+| -------------- | -------------------------------- | ---------------------------------------------------- |
+| Patterns (#14) | Which of three approaches to use | Usage experience after notes + connections are built |
 
 ## Current Status & Next Steps
 
@@ -155,12 +152,11 @@ The review produced a clear three-zone layout:
 6. ~~**Connection UI + Verse familiarity (#13)**~~ — Done. KB connection CRUD (`saveConnection`, `deleteConnection`, `getConnectionsForVerse`) in `knowledgeBaseService.ts`. `ConnectionSaveField` in `PropertiesPanel.tsx` — appears on PhraseVerseInfo with pre-filled reason, save/delete/yellow "Connected" state. `verseFamiliarityService.ts` pure function checks KB connections. Yellow dot on floating verse key when connections exist. Connections list in PropertiesPanel default view (no selection) with clickable verse links.
 7. ~~**Note Backlinks**~~ — Done. `noteBacklinksService.ts` scans all verse notes for `[x:y]` references using `blocksToText()` + regex. `computeBacklinks()` pure function, `getBacklinksForVerse()` reads from localStorage. "Mentioned in Notes" section in PropertiesPanel default view with excerpts. Yellow dot on verse key also triggered by backlinks.
 8. ~~**Systematic color palette + legend (#18)**~~ — Done. `colorPalette.ts` centralizes `NODE_READER_COLORS` (lemmaMatch=amber, rootMatch=teal, rootAnalysis=indigo, selected=emerald, userData=yellow). Memoized `CanvasLegend` component, absolute bottom-right corner, pointer-events-none. Tests for data integrity.
-9. **Multi-branch support (Problem #2)** — **← NEXT**
-10. **Patterns (#14)** — Deferred
+9. ~~**Multi-branch support (Problem #2)**~~ — Resolved: RootNode removed from canvas, root analysis shown in PropertiesPanel on word click. Problem eliminated.
+10. **Patterns (#14)** — **← NEXT** (Deferred until notes + connections are in use)
 
 **Design decisions still TBD** (deferred intentionally, resolve when dependencies are met):
 
-- Root/lemma display treatment (#3-4) → after layout is built, experiment on canvas
 - Patterns (#14) → after notes + connections are in use
 
 ## Resolved Questions
@@ -169,9 +165,9 @@ The review produced a clear three-zone layout:
 - **Prompt Builder scope** (was Open Question #2): All sections always included — no toggles for v1. Empty sections are omitted automatically. The user decided "everything always" is the right default.
 - **Backlinks indicator (#13)**: Yellow dot on floating verse key + connections list in PropertiesPanel default view. Two sources: manual KB connections + automatic note backlinks (`[x:y]` references parsed from notes).
 - **Color palette (#18)**: Centralized in `colorPalette.ts`. Legend placed at bottom-right corner of canvas, `pointer-events-none`, semi-transparent dark background. Colors: amber=lemma match, teal=root match, indigo=root analysis, emerald=selected, yellow=user data.
+- **Multi-branch support (Problem #2)**: Resolved — not needed. RootNode removed from canvas. Root analysis (occurrence count, word forms, verses by surah) now fetched on word click and shown directly in PropertiesPanel's WordInfo section. PhraseVerseNodes connect directly to WordNodes, so no intermediary root node was necessary.
 
 ## Open Questions
 
 1. **Bottom panel tabs interaction**: When switching verses, should the bottom panel remember which tab was active? Should translations auto-open on verse change?
-2. **Multi-branch support**: The single-branch constraint (Problem #2) wasn't directly addressed in the data review. It's still a problem — comparing two roots side-by-side is a core need. How many simultaneous branches to allow?
-3. **Canvas state persistence**: Problem #6 (ephemeral state) also wasn't directly addressed. What should be saved and restored between sessions?
+2. **Canvas state persistence**: Problem #6 (ephemeral state) also wasn't directly addressed. What should be saved and restored between sessions?

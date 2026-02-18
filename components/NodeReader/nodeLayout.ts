@@ -1,10 +1,4 @@
-import type {
-  QuranWord,
-  WordNodeData,
-  RootNodeData,
-  PhraseVerseNodeData,
-  PhraseMatchType,
-} from "../../types";
+import type { QuranWord, WordNodeData, PhraseVerseNodeData, PhraseMatchType } from "../../types";
 
 // Layout constants
 export const WORD_NODE_MIN_WIDTH = 100;
@@ -28,8 +22,6 @@ export function estimateWordNodeWidth(word: string): number {
   return Math.max(WORD_NODE_MIN_WIDTH, stripped.length * ARABIC_CHAR_WIDTH + NODE_PADDING_X);
 }
 
-const ROOT_NODE_OFFSET_Y = 120;
-
 interface PositionedNode<T> {
   id: string;
   type: string;
@@ -41,16 +33,10 @@ interface LayoutResult {
   nodes: PositionedNode<WordNodeData>[];
 }
 
-interface RootLayoutResult {
-  node: PositionedNode<RootNodeData>;
-  edge: { id: string; source: string; target: string };
-}
-
 /**
  * Layout word nodes in a single RTL row.
  * Words flow right-to-left in one continuous line — ReactFlow handles
  * panning/zooming so there's no need to wrap to a second row.
- * This keeps the row below free for root nodes.
  */
 export function layoutWordNodes(
   words: QuranWord[],
@@ -97,38 +83,6 @@ export function layoutWordNodes(
   }
 
   return { nodes };
-}
-
-/**
- * Calculate position for a root node spawned from a word node.
- */
-export function layoutRootNode(
-  wordNodePosition: { x: number; y: number },
-  wordNodeId: string,
-  rootData: { root: string }
-): RootLayoutResult {
-  const nodeId = `root-${rootData.root}-${wordNodeId}`;
-
-  return {
-    node: {
-      id: nodeId,
-      type: "root",
-      position: {
-        x: wordNodePosition.x,
-        y: wordNodePosition.y + ROOT_NODE_OFFSET_Y,
-      },
-      data: {
-        type: "root",
-        root: rootData.root,
-        sourceWordId: wordNodeId,
-      },
-    },
-    edge: {
-      id: `edge-${wordNodeId}-${nodeId}`,
-      source: wordNodeId,
-      target: nodeId,
-    },
-  };
 }
 
 // --- Phrase Verse Nodes ---

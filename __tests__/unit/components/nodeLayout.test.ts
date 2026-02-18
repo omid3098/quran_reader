@@ -1,7 +1,6 @@
 import { describe, it, expect } from "vitest";
 import {
   layoutWordNodes,
-  layoutRootNode,
   estimateWordNodeWidth,
   WORD_NODE_MIN_WIDTH,
   WORD_NODE_HEIGHT,
@@ -144,25 +143,6 @@ describe("nodeLayout", () => {
           );
         }
       }
-    });
-  });
-
-  describe("layoutRootNode", () => {
-    it("positions root node below the word node", () => {
-      const wordPos = { x: 400, y: 100 };
-      const result = layoutRootNode(wordPos, "word-1:1-0", { root: "رحم" });
-
-      expect(result.node.position.y).toBeGreaterThan(wordPos.y);
-      expect(result.node.type).toBe("root");
-      expect(result.node.data.root).toBe("رحم");
-      expect(result.node.data.sourceWordId).toBe("word-1:1-0");
-    });
-
-    it("creates an edge from word to root", () => {
-      const result = layoutRootNode({ x: 400, y: 100 }, "word-1:1-0", { root: "رحم" });
-
-      expect(result.edge.source).toBe("word-1:1-0");
-      expect(result.edge.target).toBe(result.node.id);
     });
   });
 });
