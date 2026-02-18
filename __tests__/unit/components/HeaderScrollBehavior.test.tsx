@@ -36,6 +36,7 @@ const ScrollTester = ({ threshold = 0 }: { threshold?: number }) => {
         onToggleTheme={() => {}}
         isHidden={isHidden}
         onOpenFocusMode={() => {}}
+        onOpenNodeReader={() => {}}
       />
       );
       <main

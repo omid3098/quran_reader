@@ -154,6 +154,8 @@ export interface QuranWord {
   text_simple?: string; // sometimes provided
   root?: string; // The raw Arabic root e.g. "كتب"
   lemma?: string; // The lemma/base form of the word
+  hasFamiliarRoot?: boolean; // KB has a note for this word's root
+  hasFamiliarLemma?: boolean; // KB has a note for this word's lemma
 }
 
 export interface RootWordForm {
@@ -171,6 +173,7 @@ export interface RootAnalysis {
     text: string; // full verse text
     wordIndex?: number; // position of the matched word (for truncation)
   }[];
+  allVerseKeys?: string[]; // All matching verse keys (no text), for grouping without the 50-item limit
   debugInfo?: {
     selectedText: string;
     normalizedText: string;
@@ -213,10 +216,111 @@ export interface UrlVerseParams {
   surahId: number | null;
   verseNumber: number | null;
   isValid: boolean;
+  viewMode?: "default" | "node";
 }
 
 export interface ShareButtonProps {
   surahId: number;
   verseNumber: number;
   className?: string;
+}
+
+// --- Node Reader Types ---
+
+export interface WordNodeData {
+  [key: string]: unknown;
+  type: "word";
+  word: string;
+  wordIndex: number;
+  verseKey: string;
+  root?: string;
+  lemma?: string;
+  hasFamiliarRoot?: boolean;
+  hasFamiliarLemma?: boolean;
+}
+
+export interface PhraseVerseNodeData {
+  [key: string]: unknown;
+  type: "phraseVerse";
+  verseKey: string;
+  matchType: PhraseMatchType;
+  patternKeys: string[];
+}
+
+export interface SurahGroup {
+  surahId: number;
+  surahName: string;
+  verseKeys: string[];
+}
+
+export type NodeReaderNodeData = WordNodeData | PhraseVerseNodeData;
+
+// --- Phrase Match Types ---
+
+export type PhraseMatchType = "lemma" | "root";
+
+export interface PhraseMatch {
+  matchType: PhraseMatchType;
+  keys: string[]; // lemma strings or root strings depending on matchType
+  wordIndices: number[]; // indices in the current verse that form this phrase
+  otherOccurrences: {
+    verse: string;
+    words: number[];
+  }[];
+}
+
+// --- Knowledge Base Types ---
+
+export interface KnowledgeBase {
+  _meta: { author: string; version: number };
+  roots: Record<string, { note: string; discoveredIn?: string }>;
+  lemmas: Record<string, { root?: string; note: string; discoveredIn?: string }>;
+  connections: KBConnection[];
+  patterns: KBPattern[];
+}
+
+export interface KBConnection {
+  from: { verse: string; words: number[] | null };
+  to: { verse: string; words: number[] | null };
+  reason: string;
+}
+
+export interface NoteBacklink {
+  sourceVerseKey: string; // The verse whose note contains the reference
+  targetVerseKey: string; // The verse being referenced
+  excerpt: string; // Short text excerpt for context
+}
+
+export interface KBPattern {
+  id: string;
+  title: string;
+  note: string;
+  discoveredIn?: string;
+  relatedRoots?: string[];
+}
+
+export type PropertiesPanelSelection =
+  | { type: "verse"; verseKey: string; chapter: Chapter }
+  | {
+      type: "word";
+      data: WordNodeData;
+      phraseMatches?: PhraseMatch[];
+      rootNote?: string;
+      lemmaNote?: string;
+      rootAnalysis?: RootAnalysis;
+      surahGroups?: SurahGroup[];
+    }
+  | {
+      type: "phraseVerse";
+      verseKey: string;
+      matchType: PhraseMatchType;
+      patternKeys: string[];
+    }
+  | null;
+
+export interface CanvasSnapshot {
+  nodes: import("@xyflow/react").Node[];
+  edges: import("@xyflow/react").Edge[];
+  childrenMap: Map<string, string[]>;
+  propertiesSelection: PropertiesPanelSelection;
 }

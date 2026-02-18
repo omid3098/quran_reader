@@ -25,8 +25,21 @@ export function parseUrlPath(pathname: string): UrlVerseParams {
   // Split into segments
   const segments = withoutBase.split("/");
 
+  // Check for view mode prefix
+  let viewMode: "default" | "node" = "default";
+  let dataSegments = segments;
+  if (segments[0] === "node") {
+    viewMode = "node";
+    dataSegments = segments.slice(1);
+  }
+
+  // Empty after stripping view mode prefix
+  if (dataSegments.length === 0 || !dataSegments[0]) {
+    return { surahId: null, verseNumber: null, isValid: false, viewMode };
+  }
+
   // Parse surah ID
-  const surahId = parseInt(segments[0], 10);
+  const surahId = parseInt(dataSegments[0], 10);
 
   // Validate surah ID
   if (isNaN(surahId) || surahId < 1 || surahId > 114) {
@@ -35,8 +48,8 @@ export function parseUrlPath(pathname: string): UrlVerseParams {
 
   // Parse verse number if provided
   let verseNumber: number | null = null;
-  if (segments.length >= 2) {
-    verseNumber = parseInt(segments[1], 10);
+  if (dataSegments.length >= 2) {
+    verseNumber = parseInt(dataSegments[1], 10);
 
     // Validate verse number
     if (isNaN(verseNumber) || verseNumber < 1) {
@@ -48,6 +61,7 @@ export function parseUrlPath(pathname: string): UrlVerseParams {
     surahId,
     verseNumber,
     isValid: true,
+    viewMode,
   };
 }
 
@@ -124,6 +138,16 @@ export function isValidReference(
  * Get the base path configured in vite.config.ts
  * @returns The base path
  */
+/**
+ * Build URL path for the node reader view
+ * @param surahId - The surah ID (1-114)
+ * @param verseNumber - The verse number
+ * @returns URL path (e.g., "/quran_reader/node/2/255")
+ */
+export function buildNodePath(surahId: number, verseNumber: number): string {
+  return `${BASE_PATH}/node/${surahId}/${verseNumber}`;
+}
+
 export function getBasePath(): string {
   return BASE_PATH;
 }

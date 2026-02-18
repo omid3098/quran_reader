@@ -38,6 +38,7 @@ describe("Header", () => {
     theme: "light" as const,
     onToggleTheme: vi.fn(),
     onOpenFocusMode: vi.fn(),
+    onOpenNodeReader: vi.fn(),
   };
 
   beforeEach(() => {

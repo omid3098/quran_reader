@@ -445,6 +445,63 @@ export const getVerses = async (
   }
 };
 
+const verseByKeyCache = new Map<string, Verse>();
+
+/** Fetch a single verse by key (e.g. "27:40") with translations. */
+export const getVerseByKey = async (
+  verseKey: string,
+  translationIds: string[] = ["en.sahih"]
+): Promise<Verse | null> => {
+  const cacheKey = `${verseKey}|${translationIds.join(",")}`;
+  if (verseByKeyCache.has(cacheKey)) return verseByKeyCache.get(cacheKey)!;
+
+  try {
+    // API expects global ayah number or "surah:ayah" format
+    const ids = ["quran-uthmani", "quran-simple", ...translationIds].join(",");
+    const response = await fetch(`${BASE_URL}/ayah/${verseKey}/editions/${ids}`);
+    if (!response.ok) return null;
+
+    const data = await response.json();
+    const editions: {
+      edition?: { identifier: string; name: string; direction?: string };
+      text: string;
+      numberInSurah: number;
+      number: number;
+    }[] = Array.isArray(data.data) ? data.data : [data.data];
+
+    const uthmani = editions.find((e) => e.edition?.identifier === "quran-uthmani");
+    const simple = editions.find((e) => e.edition?.identifier === "quran-simple");
+    if (!uthmani) return null;
+
+    const translationEditions = editions.filter(
+      (e) => e.edition?.identifier !== "quran-uthmani" && e.edition?.identifier !== "quran-simple"
+    );
+
+    const verse: Verse = {
+      id: uthmani.number,
+      verse_key: verseKey,
+      text_uthmani: sanitizeQuranText(uthmani.text),
+      text_simple: sanitizeQuranText((simple || uthmani).text),
+      translations: translationEditions.map((e) => {
+        const preferred = PREFERRED_TRANSLATIONS.find((p) => p.id === e.edition?.identifier);
+        return {
+          id: e.edition?.identifier || "",
+          resource_id: e.edition?.identifier || "",
+          text: e.text,
+          direction: e.edition?.direction,
+          resource_name: preferred?.name || e.edition?.name,
+        };
+      }),
+    };
+
+    verseByKeyCache.set(cacheKey, verse);
+    return verse;
+  } catch (error) {
+    console.error(`Error fetching verse ${verseKey}:`, error);
+    return null;
+  }
+};
+
 // Remove a leading basmala so we don't duplicate it when we render the header.
 // Handles different diacritics/letter shapes from both uthmani and simple scripts.
 const stripLeadingBismillah = (text: string): string => {

@@ -118,7 +118,7 @@ open-quran-reader-2/
 │   │   └── components/   # Unit tests for components
 │   ├── e2e/              # Playwright E2E tests
 │   └── setup.ts          # Test setup and mocks
-├── openspec/             # Change proposal specs
+├── docs/                 # Design decisions and architectural docs
 ├── types.ts              # Shared TypeScript interfaces
 ├── App.tsx               # Main application component
 └── index.tsx             # Application entry point

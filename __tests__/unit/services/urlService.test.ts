@@ -60,6 +60,7 @@ describe("urlService", () => {
         surahId: 2,
         verseNumber: 255,
         isValid: true,
+        viewMode: "default",
       });
     });
 
@@ -69,6 +70,7 @@ describe("urlService", () => {
         surahId: 2,
         verseNumber: null,
         isValid: true,
+        viewMode: "default",
       });
     });
 
@@ -131,6 +133,7 @@ describe("urlService", () => {
         surahId: 2,
         verseNumber: 255,
         isValid: true,
+        viewMode: "default",
       });
     });
 
@@ -150,6 +153,7 @@ describe("urlService", () => {
         surahId: 1,
         verseNumber: 1,
         isValid: true,
+        viewMode: "default",
       });
     });
 
@@ -159,6 +163,7 @@ describe("urlService", () => {
         surahId: 114,
         verseNumber: null,
         isValid: true,
+        viewMode: "default",
       });
     });
   });
