@@ -33,6 +33,7 @@ import { useResizablePanel } from "../../hooks/useResizablePanel";
 interface PropertiesPanelProps {
   selection: PropertiesPanelSelection;
   verse: Verse;
+  totalWords: number;
   verseFamiliarity?: VerseFamiliarityInfo;
   noteBacklinks?: NoteBacklink[];
   onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
@@ -42,6 +43,7 @@ interface PropertiesPanelProps {
 function PropertiesPanelComponent({
   selection,
   verse,
+  totalWords,
   verseFamiliarity,
   noteBacklinks,
   onNavigateToVerse,
@@ -58,15 +60,53 @@ function PropertiesPanelComponent({
 
   const hasSelection = selection && selection.type !== "verse";
 
+  // Build dynamic header content based on selection
+  const connectionCount = verseFamiliarity?.connections.length ?? 0;
+  const backlinkCount = noteBacklinks?.length ?? 0;
+
   return (
     <div
       ref={containerRef}
       className="w-80 md:w-96 border-r border-slate-800 bg-slate-900/50 flex flex-col"
     >
-      {/* Header */}
-      <div className="p-4 border-b border-slate-800 flex items-center gap-2 text-emerald-500 bg-slate-900/50">
-        <Info size={18} />
-        <h2 className="font-bold text-sm tracking-tight">Properties</h2>
+      {/* Header — dynamic based on selection */}
+      <div className="px-4 py-3 border-b border-slate-800 flex items-center gap-2 bg-slate-900/50 min-h-[48px]">
+        <Info size={16} className="flex-shrink-0 text-emerald-500" />
+        {selection?.type === "word" ? (
+          <>
+            <span className="font-quran text-lg text-slate-100 flex-1 truncate" dir="rtl">
+              {selection.data.word}
+            </span>
+            <span className="text-xs text-slate-500 font-mono flex-shrink-0">
+              {selection.data.wordIndex + 1}/{totalWords}
+            </span>
+          </>
+        ) : selection?.type === "root" ? (
+          <span className="font-quran text-lg text-indigo-300">
+            {selection.data.root.split("").join(" ")}
+          </span>
+        ) : selection?.type === "phraseVerse" ? (
+          <>
+            <span className="text-sm font-mono text-slate-300">{selection.verseKey}</span>
+            <span className="text-slate-600">·</span>
+            <span className="font-quran text-sm text-slate-400 truncate" dir="rtl">
+              {selection.patternKeys.join(" ")}
+            </span>
+          </>
+        ) : (
+          <>
+            <span className="font-bold text-sm tracking-tight text-emerald-500">
+              {verse.verse_key}
+            </span>
+            {(connectionCount > 0 || backlinkCount > 0) && (
+              <span className="text-xs text-slate-500 ml-auto flex-shrink-0">
+                {connectionCount > 0 && `${connectionCount} conn`}
+                {connectionCount > 0 && backlinkCount > 0 && " · "}
+                {backlinkCount > 0 && `${backlinkCount} backlink${backlinkCount > 1 ? "s" : ""}`}
+              </span>
+            )}
+          </>
+        )}
       </div>
 
       {/* Properties content (resizable top section) */}
@@ -434,12 +474,6 @@ function WordInfo({
 
   return (
     <>
-      <div className="border border-slate-700/50 rounded-lg p-4">
-        <div className="text-xs text-slate-500 tracking-wider mb-1">Word</div>
-        <div className="font-quran text-3xl text-slate-100 dir-rtl" dir="rtl">
-          {data.word}
-        </div>
-      </div>
       {data.root && (
         <div className="border border-slate-700/50 rounded-lg p-4">
           <div className="text-xs text-slate-500 tracking-wider mb-1">Root</div>
@@ -462,13 +496,6 @@ function WordInfo({
           />
         </div>
       )}
-      <div className="border border-slate-700/50 rounded-lg p-4">
-        <div className="text-xs text-slate-500 tracking-wider mb-1">Position</div>
-        <div className="text-sm text-slate-400">
-          Word {data.wordIndex + 1} in {data.verseKey}
-        </div>
-      </div>
-
       {/* Phrase Matches — grouped by match type */}
       {phraseMatches && phraseMatches.length > 0 && (
         <>

@@ -136,6 +136,7 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
       <PropertiesPanel
         selection={propertiesSelection}
         verse={verse}
+        totalWords={words.length}
         verseFamiliarity={verseFamiliarity}
         noteBacklinks={noteBacklinks}
         onNavigateToVerse={onNavigateToVerse}
