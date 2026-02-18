@@ -20,6 +20,13 @@ import type { PartialBlock } from "@blocknote/core";
 import { loadLocalRootData } from "../../services/analysisService";
 import { loadKnowledgeBase } from "../../services/knowledgeBaseService";
 import { annotateWordsWithFamiliarity } from "../../services/familiarityService";
+import {
+  computeVerseFamiliarity,
+  type VerseFamiliarityInfo,
+} from "../../services/verseFamiliarityService";
+import { CanvasLegend } from "./CanvasLegend";
+import { getBacklinksForVerse } from "../../services/noteBacklinksService";
+import type { NoteBacklink } from "../../types";
 
 interface NodeReaderProps {
   verse: Verse;
@@ -65,6 +72,11 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
   const canvasCacheRef = useRef<Map<string, CanvasSnapshot>>(new Map());
   const canvasAreaRef = useRef<HTMLDivElement>(null);
   const [promptModalOpen, setPromptModalOpen] = useState(false);
+  const [verseFamiliarity, setVerseFamiliarity] = useState<VerseFamiliarityInfo>({
+    hasConnections: false,
+    connections: [],
+  });
+  const [noteBacklinks, setNoteBacklinks] = useState<NoteBacklink[]>([]);
 
   // Build word list from actual verse text + root data
   useEffect(() => {
@@ -87,6 +99,8 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
       // Annotate words with familiarity flags from the Knowledge Base
       const annotatedWords = annotateWordsWithFamiliarity(builtWords, kb);
       setWords(annotatedWords);
+      setVerseFamiliarity(computeVerseFamiliarity(verse.verse_key, kb));
+      setNoteBacklinks(getBacklinksForVerse(verse.verse_key));
       setLoading(false);
     });
     return () => {
@@ -122,6 +136,8 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
       <PropertiesPanel
         selection={propertiesSelection}
         verse={verse}
+        verseFamiliarity={verseFamiliarity}
+        noteBacklinks={noteBacklinks}
         onNavigateToVerse={onNavigateToVerse}
         onTogglePhraseOnCanvas={(match, show) => togglePhraseRef.current?.(match, show)}
       />
@@ -174,11 +190,16 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
               </ReactFlowProvider>
             )}
             {/* Floating Verse Key Indicator */}
-            <div className="absolute bottom-4 left-4 pointer-events-none select-none z-20">
+            <div className="absolute bottom-4 left-4 pointer-events-none select-none z-20 flex items-center gap-2">
               <span className="text-4xl font-black font-sans text-white opacity-20">
                 {verse.verse_key}
               </span>
+              {(verseFamiliarity.hasConnections || noteBacklinks.length > 0) && (
+                <span className="inline-block w-2.5 h-2.5 rounded-full bg-yellow-400/50" />
+              )}
             </div>
+            {/* Color Legend */}
+            <CanvasLegend />
           </div>
           {/* Bottom Panel */}
           <BottomPanel

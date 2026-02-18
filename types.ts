@@ -293,6 +293,12 @@ export interface KBConnection {
   reason: string;
 }
 
+export interface NoteBacklink {
+  sourceVerseKey: string; // The verse whose note contains the reference
+  targetVerseKey: string; // The verse being referenced
+  excerpt: string; // Short text excerpt for context
+}
+
 export interface KBPattern {
   id: string;
   title: string;

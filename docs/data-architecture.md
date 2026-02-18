@@ -95,7 +95,9 @@ When we have per-root and per-lemma notes, word-in-context analysis (like "innam
 - [x] Build quran-phrases.json generation script — `public/quran-phrases.json` (4.5MB)
 - [x] Define TypeScript types for KB structure — `types.ts`
 - [x] Create KB CRUD service — `knowledgeBaseService.ts` (roots, lemmas)
-- [ ] Create empty initial KB file
-- [ ] Integrate KB reading into NodeReader
-- [ ] Implement connection queries (bidirectional lookup)
-- [ ] Integrate KB writing (save connections, notes from NodeReader)
+- [x] Implement connection CRUD — `saveConnection`, `deleteConnection`, `getConnectionsForVerse` in `knowledgeBaseService.ts`
+- [x] Integrate KB reading into NodeReader — word familiarity + verse familiarity on verse load
+- [x] Implement connection queries (bidirectional lookup) — `verseFamiliarityService.ts`
+- [x] Integrate KB writing — ConnectionSaveField in PropertiesPanel (save/delete connections from phrase verse nodes)
+- [x] Note backlinks — `noteBacklinksService.ts` scans notes for `[x:y]` verse refs, shows "Mentioned in Notes" in PropertiesPanel
+- [ ] Create empty initial KB file (auto-created on first save via `ensureKB()`)

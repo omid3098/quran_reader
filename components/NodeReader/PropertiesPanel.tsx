@@ -1,13 +1,31 @@
 import React, { memo, useState, useCallback, useEffect, useRef } from "react";
-import { Info, ChevronDown, Link2, Pencil, Check, X, Plus, MousePointer } from "lucide-react";
+import {
+  Info,
+  ChevronDown,
+  Link2,
+  Pencil,
+  Check,
+  X,
+  Plus,
+  MousePointer,
+  Trash2,
+} from "lucide-react";
 import type {
   PropertiesPanelSelection,
   PhraseMatch,
   PhraseMatchType,
   Verse,
   SurahGroup,
+  NoteBacklink,
 } from "../../types";
-import { saveRootNote, saveLemmaNote } from "../../services/knowledgeBaseService";
+import type { VerseFamiliarityInfo } from "../../services/verseFamiliarityService";
+import {
+  saveRootNote,
+  saveLemmaNote,
+  saveConnection,
+  deleteConnection,
+  getConnectionsForVerse,
+} from "../../services/knowledgeBaseService";
 import { getVerseByKey } from "../../services/quranService";
 import { TranslationTabs } from "./TranslationTabs";
 import { useResizablePanel } from "../../hooks/useResizablePanel";
@@ -15,6 +33,8 @@ import { useResizablePanel } from "../../hooks/useResizablePanel";
 interface PropertiesPanelProps {
   selection: PropertiesPanelSelection;
   verse: Verse;
+  verseFamiliarity?: VerseFamiliarityInfo;
+  noteBacklinks?: NoteBacklink[];
   onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
   onTogglePhraseOnCanvas?: (match: PhraseMatch, show: boolean) => void;
 }
@@ -22,6 +42,8 @@ interface PropertiesPanelProps {
 function PropertiesPanelComponent({
   selection,
   verse,
+  verseFamiliarity,
+  noteBacklinks,
   onNavigateToVerse,
   onTogglePhraseOnCanvas,
 }: PropertiesPanelProps) {
@@ -52,16 +74,78 @@ function PropertiesPanelComponent({
         className="overflow-y-auto custom-scrollbar p-5 space-y-4"
         style={{ height: `${propertiesPercent}%` }}
       >
-        {!hasSelection && (
-          <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
-            <MousePointer size={24} className="text-slate-600" />
-            <p className="text-sm text-center leading-relaxed">
-              Click a word on the canvas
-              <br />
-              to see its properties
-            </p>
+        {!hasSelection && verseFamiliarity?.hasConnections && (
+          <div className="space-y-3">
+            <div className="text-xs text-yellow-500 tracking-wider flex items-center gap-1.5">
+              <Link2 size={14} /> Connections ({verseFamiliarity.connections.length})
+            </div>
+            {verseFamiliarity.connections.map((conn, i) => {
+              const otherVerse =
+                conn.from.verse === verse.verse_key ? conn.to.verse : conn.from.verse;
+              const [surahStr, verseStr] = otherVerse.split(":");
+              return (
+                <div
+                  key={i}
+                  className="border border-yellow-700/50 rounded-lg p-3 bg-yellow-950/10"
+                >
+                  <button
+                    onClick={() =>
+                      onNavigateToVerse(parseInt(surahStr, 10), parseInt(verseStr, 10))
+                    }
+                    className="text-xs text-yellow-400 tracking-wider hover:underline flex items-center gap-1 mb-1.5"
+                  >
+                    <Link2 size={12} />
+                    {otherVerse}
+                  </button>
+                  <p className="text-sm text-yellow-200/80 font-vazir leading-relaxed" dir="rtl">
+                    {conn.reason}
+                  </p>
+                </div>
+              );
+            })}
           </div>
         )}
+        {!hasSelection && noteBacklinks && noteBacklinks.length > 0 && (
+          <div className="space-y-3">
+            <div className="text-xs text-yellow-500 tracking-wider flex items-center gap-1.5">
+              <Link2 size={14} /> Mentioned in Notes ({noteBacklinks.length})
+            </div>
+            {noteBacklinks.map((backlink, i) => {
+              const [surahStr, verseStr] = backlink.sourceVerseKey.split(":");
+              return (
+                <div
+                  key={i}
+                  className="border border-yellow-700/50 rounded-lg p-3 bg-yellow-950/10"
+                >
+                  <button
+                    onClick={() =>
+                      onNavigateToVerse(parseInt(surahStr, 10), parseInt(verseStr, 10))
+                    }
+                    className="text-xs text-yellow-400 tracking-wider hover:underline flex items-center gap-1 mb-1.5"
+                  >
+                    <Link2 size={12} />
+                    {backlink.sourceVerseKey}
+                  </button>
+                  <p className="text-sm text-yellow-200/60 font-vazir leading-relaxed" dir="rtl">
+                    {backlink.excerpt}
+                  </p>
+                </div>
+              );
+            })}
+          </div>
+        )}
+        {!hasSelection &&
+          !verseFamiliarity?.hasConnections &&
+          (!noteBacklinks || noteBacklinks.length === 0) && (
+            <div className="flex flex-col items-center justify-center h-full text-slate-500 gap-3">
+              <MousePointer size={24} className="text-slate-600" />
+              <p className="text-sm text-center leading-relaxed">
+                Click a word on the canvas
+                <br />
+                to see its properties
+              </p>
+            </div>
+          )}
         {selection?.type === "word" && (
           <WordInfo
             data={selection.data}
@@ -83,6 +167,7 @@ function PropertiesPanelComponent({
         {selection?.type === "phraseVerse" && (
           <PhraseVerseInfo
             verseKey={selection.verseKey}
+            currentVerseKey={verse.verse_key}
             matchType={selection.matchType}
             patternKeys={selection.patternKeys}
             translationIds={verse.translations.map((t) => t.resource_id)}
@@ -107,12 +192,14 @@ function PropertiesPanelComponent({
 
 function PhraseVerseInfo({
   verseKey,
+  currentVerseKey,
   matchType,
   patternKeys,
   translationIds,
   onNavigateToVerse,
 }: {
   verseKey: string;
+  currentVerseKey: string;
   matchType: PhraseMatchType;
   patternKeys: string[];
   translationIds: string[];
@@ -170,7 +257,151 @@ function PhraseVerseInfo({
       ) : (
         <div className="text-sm text-slate-500 text-center py-4">Could not load verse</div>
       )}
+
+      {/* Connection save */}
+      <ConnectionSaveField
+        currentVerseKey={currentVerseKey}
+        targetVerseKey={verseKey}
+        matchType={matchType}
+        patternKeys={patternKeys}
+      />
     </>
+  );
+}
+
+function ConnectionSaveField({
+  currentVerseKey,
+  targetVerseKey,
+  matchType,
+  patternKeys,
+}: {
+  currentVerseKey: string;
+  targetVerseKey: string;
+  matchType: PhraseMatchType;
+  patternKeys: string[];
+}) {
+  const [status, setStatus] = useState<"loading" | "none" | "exists" | "editing">("loading");
+  const [reason, setReason] = useState("");
+  const [existingConn, setExistingConn] = useState<{
+    from: string;
+    to: string;
+    reason: string;
+  } | null>(null);
+
+  // Check for existing connection on mount
+  useEffect(() => {
+    setStatus("loading");
+    getConnectionsForVerse(currentVerseKey).then((connections) => {
+      const existing = connections.find(
+        (c) =>
+          (c.from.verse === currentVerseKey && c.to.verse === targetVerseKey) ||
+          (c.from.verse === targetVerseKey && c.to.verse === currentVerseKey)
+      );
+      if (existing) {
+        setExistingConn({
+          from: existing.from.verse,
+          to: existing.to.verse,
+          reason: existing.reason,
+        });
+        setStatus("exists");
+      } else {
+        setExistingConn(null);
+        setStatus("none");
+      }
+    });
+  }, [currentVerseKey, targetVerseKey]);
+
+  const handleStartEditing = useCallback(() => {
+    setReason(`${matchType} match: ${patternKeys.join(" ")}`);
+    setStatus("editing");
+  }, [matchType, patternKeys]);
+
+  const handleSave = useCallback(async () => {
+    const trimmed = reason.trim();
+    if (!trimmed) return;
+    await saveConnection({
+      from: { verse: currentVerseKey, words: null },
+      to: { verse: targetVerseKey, words: null },
+      reason: trimmed,
+    });
+    setExistingConn({ from: currentVerseKey, to: targetVerseKey, reason: trimmed });
+    setStatus("exists");
+  }, [reason, currentVerseKey, targetVerseKey]);
+
+  const handleDelete = useCallback(async () => {
+    if (existingConn) {
+      await deleteConnection(existingConn.from, existingConn.to);
+    }
+    setExistingConn(null);
+    setStatus("none");
+  }, [existingConn]);
+
+  const handleCancel = useCallback(() => {
+    setStatus(existingConn ? "exists" : "none");
+  }, [existingConn]);
+
+  if (status === "loading") return null;
+
+  if (status === "editing") {
+    return (
+      <div className="border border-yellow-700/50 rounded-lg p-3 bg-yellow-950/10">
+        <div className="text-xs text-yellow-500 tracking-wider mb-2">Save Connection</div>
+        <textarea
+          value={reason}
+          onChange={(e) => setReason(e.target.value)}
+          className="w-full rounded border border-yellow-700/50 bg-yellow-950/20 text-sm text-yellow-100 font-vazir p-2 focus:outline-none focus:border-yellow-500 resize-y min-h-[60px]"
+          dir="rtl"
+          placeholder="Connection reason..."
+          autoFocus
+        />
+        <div className="flex gap-1.5 mt-1.5">
+          <button
+            onClick={handleSave}
+            className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-yellow-700/30 text-yellow-300 hover:bg-yellow-700/50 transition-colors"
+          >
+            <Check size={12} /> Save
+          </button>
+          <button
+            onClick={handleCancel}
+            className="flex items-center gap-1 px-2 py-1 rounded text-xs bg-slate-700/30 text-slate-400 hover:bg-slate-700/50 transition-colors"
+          >
+            <X size={12} /> Cancel
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (status === "exists") {
+    return (
+      <div className="border border-yellow-700/50 rounded-lg p-3 bg-yellow-950/10 group">
+        <div className="flex items-center justify-between mb-1">
+          <div className="text-xs text-yellow-500 tracking-wider flex items-center gap-1">
+            <Link2 size={12} /> Connected
+          </div>
+          <button
+            onClick={handleDelete}
+            className="opacity-0 group-hover:opacity-100 p-1 rounded text-red-500/60 hover:text-red-400 transition-all"
+            title="Remove connection"
+          >
+            <Trash2 size={12} />
+          </button>
+        </div>
+        <p className="text-sm text-yellow-200/80 font-vazir leading-relaxed" dir="rtl">
+          {existingConn?.reason}
+        </p>
+      </div>
+    );
+  }
+
+  // status === "none"
+  return (
+    <button
+      onClick={handleStartEditing}
+      className="flex items-center gap-1.5 text-xs text-yellow-600/50 hover:text-yellow-500 transition-colors"
+    >
+      <Plus size={12} /> Save connection to {currentVerseKey}
+    </button>
   );
 }
 

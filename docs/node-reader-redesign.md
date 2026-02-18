@@ -133,17 +133,14 @@ The review produced a clear three-zone layout:
 
 ### Items Still TBD
 
-| Item                      | What's undecided                              | Depends on                                           |
-| ------------------------- | --------------------------------------------- | ---------------------------------------------------- |
-| Root/lemma display (#3-4) | Exact visual treatment when clicking a word   | Canvas layout experiments                            |
-| Backlinks indicator (#13) | Exact UI for "this verse has been referenced" | Implementing KB connections first                    |
-| Patterns (#14)            | Which of three approaches to use              | Usage experience after notes + connections are built |
-| Color palette (#18)       | Specific colors for match types               | Design system decisions                              |
-| Legend placement (#18)    | Where to put the color legend                 | Overall toolbar/chrome design                        |
+| Item                      | What's undecided                            | Depends on                                           |
+| ------------------------- | ------------------------------------------- | ---------------------------------------------------- |
+| Root/lemma display (#3-4) | Exact visual treatment when clicking a word | Canvas layout experiments                            |
+| Patterns (#14)            | Which of three approaches to use            | Usage experience after notes + connections are built |
 
 ## Current Status & Next Steps
 
-**Status:** Foundation tasks complete. Word-level familiarity indicators implemented. Building features.
+**Status:** Foundation tasks complete. All familiarity features (word + verse + note backlinks) implemented. Connection UI and color legend done. Building features.
 
 **Foundation tasks:**
 
@@ -154,25 +151,27 @@ The review produced a clear three-zone layout:
 **Feature tasks:**
 
 4. ~~**Familiarity indicators on word nodes (#12)**~~ — Done. Pure helper in `services/familiarityService.ts` checks KB for root/lemma notes. `WordNode` shows a subtle yellow dot (`bg-yellow-400/40`, 6px) when familiar. KB loaded in parallel with root data on verse load (zero overhead — both cached). Single dot per word (root-vs-lemma detail available on click in PropertiesPanel). Flags not updated in real-time after saving a note — appears on next verse load.
-5. **Familiarity indicators at verse level (#13)** — Deferred. Depends on KB connections UI (no `saveConnection` or connection creation UI exists yet).
-6. **Prompt Builder (#11)** — **← NEXT**
-7. **Multi-branch support (Problem #2)**
-8. **Systematic color palette + legend (#18)**
+5. ~~**Prompt Builder (#11)**~~ — Done. Pure `buildPromptText()` in `services/promptBuilderService.ts` assembles all study context (verse, translations, word analysis, KB root/lemma notes, phrase cross-references, KB connections, verse/surah notes, condensed analysis framework) into a Markdown prompt. `gatherPromptContext()` async helper collects data from KB + phrases services. Lazy-loaded `PromptBuilderModal` with spinner → prompt display → copy button. Sparkles button in nav bar. All sections always included (no toggles); empty sections omitted automatically.
+6. ~~**Connection UI + Verse familiarity (#13)**~~ — Done. KB connection CRUD (`saveConnection`, `deleteConnection`, `getConnectionsForVerse`) in `knowledgeBaseService.ts`. `ConnectionSaveField` in `PropertiesPanel.tsx` — appears on PhraseVerseInfo with pre-filled reason, save/delete/yellow "Connected" state. `verseFamiliarityService.ts` pure function checks KB connections. Yellow dot on floating verse key when connections exist. Connections list in PropertiesPanel default view (no selection) with clickable verse links.
+7. ~~**Note Backlinks**~~ — Done. `noteBacklinksService.ts` scans all verse notes for `[x:y]` references using `blocksToText()` + regex. `computeBacklinks()` pure function, `getBacklinksForVerse()` reads from localStorage. "Mentioned in Notes" section in PropertiesPanel default view with excerpts. Yellow dot on verse key also triggered by backlinks.
+8. ~~**Systematic color palette + legend (#18)**~~ — Done. `colorPalette.ts` centralizes `NODE_READER_COLORS` (lemmaMatch=amber, rootMatch=teal, rootAnalysis=indigo, selected=emerald, userData=yellow). Memoized `CanvasLegend` component, absolute bottom-right corner, pointer-events-none. Tests for data integrity.
+9. **Multi-branch support (Problem #2)** — **← NEXT**
+10. **Patterns (#14)** — Deferred
 
 **Design decisions still TBD** (deferred intentionally, resolve when dependencies are met):
 
 - Root/lemma display treatment (#3-4) → after layout is built, experiment on canvas
-- Backlinks indicator (#13) → after KB connections are implemented
 - Patterns (#14) → after notes + connections are in use
-- Color palette (#18) → during or after layout work
 
 ## Resolved Questions
 
 - **Familiarity indicator threshold** (was Open Question #3): Every KB note triggers the indicator. Empty notes are auto-deleted by `saveRootNote`/`saveLemmaNote`, so any existing entry is substantial. No threshold needed.
+- **Prompt Builder scope** (was Open Question #2): All sections always included — no toggles for v1. Empty sections are omitted automatically. The user decided "everything always" is the right default.
+- **Backlinks indicator (#13)**: Yellow dot on floating verse key + connections list in PropertiesPanel default view. Two sources: manual KB connections + automatic note backlinks (`[x:y]` references parsed from notes).
+- **Color palette (#18)**: Centralized in `colorPalette.ts`. Legend placed at bottom-right corner of canvas, `pointer-events-none`, semi-transparent dark background. Colors: amber=lemma match, teal=root match, indigo=root analysis, emerald=selected, yellow=user data.
 
 ## Open Questions
 
 1. **Bottom panel tabs interaction**: When switching verses, should the bottom panel remember which tab was active? Should translations auto-open on verse change?
-2. **Prompt Builder scope**: What exactly gets included? Should the user be able to configure which data sources are included in the generated prompt?
-3. **Multi-branch support**: The single-branch constraint (Problem #2) wasn't directly addressed in the data review. It's still a problem — comparing two roots side-by-side is a core need. How many simultaneous branches to allow?
-4. **Canvas state persistence**: Problem #6 (ephemeral state) also wasn't directly addressed. What should be saved and restored between sessions?
+2. **Multi-branch support**: The single-branch constraint (Problem #2) wasn't directly addressed in the data review. It's still a problem — comparing two roots side-by-side is a core need. How many simultaneous branches to allow?
+3. **Canvas state persistence**: Problem #6 (ephemeral state) also wasn't directly addressed. What should be saved and restored between sessions?

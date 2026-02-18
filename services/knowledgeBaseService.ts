@@ -1,4 +1,4 @@
-import type { KnowledgeBase } from "../types";
+import type { KnowledgeBase, KBConnection } from "../types";
 
 const STORAGE_KEY = "luminaKnowledgeBase";
 
@@ -116,6 +116,34 @@ export async function saveLemmaNote(
     };
   }
   saveKnowledgeBase(kb);
+}
+
+/** Save a new connection. Deduplicates by from.verse + to.verse. */
+export async function saveConnection(connection: KBConnection): Promise<void> {
+  const kb = ensureKB(await loadKnowledgeBase());
+  const exists = kb.connections.some(
+    (c) => c.from.verse === connection.from.verse && c.to.verse === connection.to.verse
+  );
+  if (!exists) {
+    kb.connections.push(connection);
+    saveKnowledgeBase(kb);
+  }
+}
+
+/** Delete a connection by matching from+to verse keys. */
+export async function deleteConnection(fromVerse: string, toVerse: string): Promise<void> {
+  const kb = ensureKB(await loadKnowledgeBase());
+  kb.connections = kb.connections.filter(
+    (c) => !(c.from.verse === fromVerse && c.to.verse === toVerse)
+  );
+  saveKnowledgeBase(kb);
+}
+
+/** Get all connections where this verse appears as from or to. */
+export async function getConnectionsForVerse(verseKey: string): Promise<KBConnection[]> {
+  const kb = await loadKnowledgeBase();
+  if (!kb) return [];
+  return kb.connections.filter((c) => c.from.verse === verseKey || c.to.verse === verseKey);
 }
 
 /** Clear the cache (useful for testing). */
