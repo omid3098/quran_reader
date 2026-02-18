@@ -63,6 +63,34 @@ describe("familiarityService", () => {
       const result = computeWordFamiliarity(undefined, "تست", kbWithEmptyNote);
       expect(result).toEqual({ hasFamiliarRoot: false, hasFamiliarLemma: false });
     });
+
+    it("detects familiar particle via normalizedText fallback", () => {
+      const kbWithParticle: KnowledgeBase = {
+        ...SAMPLE_KB,
+        lemmas: { ...SAMPLE_KB.lemmas, انما: { note: "Restrictive particle" } },
+      };
+      const result = computeWordFamiliarity(undefined, undefined, kbWithParticle, "انما");
+      expect(result).toEqual({ hasFamiliarRoot: false, hasFamiliarLemma: true });
+    });
+
+    it("ignores normalizedText when root or lemma already exist", () => {
+      const kbWithParticle: KnowledgeBase = {
+        ...SAMPLE_KB,
+        lemmas: { ...SAMPLE_KB.lemmas, انما: { note: "Restrictive particle" } },
+      };
+      // Has a root, so normalizedText should be ignored
+      const result = computeWordFamiliarity("رحم", undefined, kbWithParticle, "انما");
+      expect(result).toEqual({ hasFamiliarRoot: true, hasFamiliarLemma: false });
+    });
+
+    it("ignores normalizedText when lemma exists", () => {
+      const kbWithParticle: KnowledgeBase = {
+        ...SAMPLE_KB,
+        lemmas: { ...SAMPLE_KB.lemmas, انما: { note: "Restrictive particle" } },
+      };
+      const result = computeWordFamiliarity(undefined, "رَحِيم", kbWithParticle, "انما");
+      expect(result).toEqual({ hasFamiliarRoot: false, hasFamiliarLemma: true });
+    });
   });
 
   describe("annotateWordsWithFamiliarity", () => {
@@ -110,6 +138,26 @@ describe("familiarityService", () => {
       // All returned as-is (same references)
       expect(result[0]).toBe(words[0]);
       expect(result[1]).toBe(words[1]);
+    });
+
+    it("annotates particles (no root/lemma) via normalized text fallback", () => {
+      const kbWithParticle: KnowledgeBase = {
+        ...SAMPLE_KB,
+        lemmas: { ...SAMPLE_KB.lemmas, انما: { note: "Restrictive particle" } },
+      };
+      const words: QuranWord[] = [
+        { id: 0, position: 1, text_uthmani: "إِنَّمَا" }, // particle — no root, no lemma
+        { id: 1, position: 2, text_uthmani: "ٱلرَّحِيمِ", root: "رحم", lemma: "رَحِيم" },
+      ];
+      const result = annotateWordsWithFamiliarity(words, kbWithParticle);
+
+      // Word 0: particle — should be familiar via normalized text "انما"
+      expect(result[0].hasFamiliarLemma).toBe(true);
+      expect(result[0].hasFamiliarRoot).toBe(false);
+
+      // Word 1: normal word — familiar via both root and lemma
+      expect(result[1].hasFamiliarRoot).toBe(true);
+      expect(result[1].hasFamiliarLemma).toBe(true);
     });
   });
 });

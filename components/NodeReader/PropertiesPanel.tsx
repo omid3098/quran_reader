@@ -28,6 +28,7 @@ import {
   getConnectionsForVerse,
 } from "../../services/knowledgeBaseService";
 import { getVerseByKey } from "../../services/quranService";
+import { normalizeArabic } from "../../services/analysisService";
 import { TranslationTabs } from "./TranslationTabs";
 import { useResizablePanel } from "../../hooks/useResizablePanel";
 
@@ -39,6 +40,7 @@ interface PropertiesPanelProps {
   noteBacklinks?: NoteBacklink[];
   onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
   onTogglePhraseOnCanvas?: (match: PhraseMatch, show: boolean) => void;
+  onKBNoteChanged?: () => void;
   fontSize?: number;
 }
 
@@ -50,6 +52,7 @@ function PropertiesPanelComponent({
   noteBacklinks,
   onNavigateToVerse,
   onTogglePhraseOnCanvas,
+  onKBNoteChanged,
   fontSize,
 }: PropertiesPanelProps) {
   const containerRef = useRef<HTMLDivElement>(null);
@@ -191,10 +194,12 @@ function PropertiesPanelComponent({
             phraseMatches={selection.phraseMatches}
             rootNote={selection.rootNote}
             lemmaNote={selection.lemmaNote}
+            wordNote={selection.wordNote}
             rootAnalysis={selection.rootAnalysis}
             surahGroups={selection.surahGroups}
             onTogglePhraseOnCanvas={onTogglePhraseOnCanvas}
             onNavigateToVerse={onNavigateToVerse}
+            onKBNoteChanged={onKBNoteChanged}
           />
         )}
         {selection?.type === "phraseVerse" && (
@@ -448,32 +453,46 @@ function WordInfo({
   phraseMatches,
   rootNote: initialRootNote,
   lemmaNote: initialLemmaNote,
+  wordNote: initialWordNote,
   rootAnalysis,
   surahGroups,
   onTogglePhraseOnCanvas,
   onNavigateToVerse,
+  onKBNoteChanged,
 }: {
   data: NonNullable<Extract<PropertiesPanelSelection, { type: "word" }>["data"]>;
   phraseMatches?: PhraseMatch[];
   rootNote?: string;
   lemmaNote?: string;
+  wordNote?: string;
   rootAnalysis?: RootAnalysis;
   surahGroups?: SurahGroup[];
   onTogglePhraseOnCanvas?: (match: PhraseMatch, show: boolean) => void;
   onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
+  onKBNoteChanged?: () => void;
 }) {
   const handleSaveRootNote = useCallback(
     (note: string) => {
       if (data.root) saveRootNote(data.root, note, data.verseKey);
+      onKBNoteChanged?.();
     },
-    [data.root, data.verseKey]
+    [data.root, data.verseKey, onKBNoteChanged]
   );
 
   const handleSaveLemmaNote = useCallback(
     (note: string) => {
       if (data.lemma) saveLemmaNote(data.lemma, note, data.root, data.verseKey);
+      onKBNoteChanged?.();
     },
-    [data.lemma, data.root, data.verseKey]
+    [data.lemma, data.root, data.verseKey, onKBNoteChanged]
+  );
+
+  const handleSaveWordNote = useCallback(
+    (note: string) => {
+      saveLemmaNote(normalizeArabic(data.word), note, undefined, data.verseKey);
+      onKBNoteChanged?.();
+    },
+    [data.word, data.verseKey, onKBNoteChanged]
   );
 
   return (
@@ -504,6 +523,17 @@ function WordInfo({
             label="Lemma note"
             initialNote={initialLemmaNote}
             onSave={handleSaveLemmaNote}
+          />
+        </div>
+      )}
+      {!data.root && !data.lemma && (
+        <div className="border border-slate-700/50 rounded-lg p-4">
+          <div className="text-xs text-slate-500 tracking-wider mb-1">Word</div>
+          <div className="font-quran text-lg text-slate-300">{data.word}</div>
+          <KBNoteField
+            label="Word note"
+            initialNote={initialWordNote}
+            onSave={handleSaveWordNote}
           />
         </div>
       )}

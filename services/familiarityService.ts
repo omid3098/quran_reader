@@ -1,4 +1,5 @@
 import type { KnowledgeBase, QuranWord } from "../types";
+import { normalizeArabic } from "./analysisService";
 
 export interface FamiliarityFlags {
   hasFamiliarRoot: boolean;
@@ -12,12 +13,15 @@ export interface FamiliarityFlags {
 export function computeWordFamiliarity(
   root: string | undefined,
   lemma: string | undefined,
-  kb: KnowledgeBase | null
+  kb: KnowledgeBase | null,
+  normalizedText?: string
 ): FamiliarityFlags {
   if (!kb) return { hasFamiliarRoot: false, hasFamiliarLemma: false };
   return {
     hasFamiliarRoot: !!root && !!kb.roots[root]?.note,
-    hasFamiliarLemma: !!lemma && !!kb.lemmas[lemma]?.note,
+    hasFamiliarLemma:
+      (!!lemma && !!kb.lemmas[lemma]?.note) ||
+      (!!normalizedText && !root && !lemma && !!kb.lemmas[normalizedText]?.note),
   };
 }
 
@@ -32,7 +36,8 @@ export function annotateWordsWithFamiliarity(
 ): QuranWord[] {
   if (!kb) return words;
   return words.map((w) => {
-    const flags = computeWordFamiliarity(w.root, w.lemma, kb);
+    const normalized = !w.root && !w.lemma ? normalizeArabic(w.text_uthmani) : undefined;
+    const flags = computeWordFamiliarity(w.root, w.lemma, kb, normalized);
     if (!flags.hasFamiliarRoot && !flags.hasFamiliarLemma) return w;
     return { ...w, ...flags };
   });

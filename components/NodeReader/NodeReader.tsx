@@ -18,7 +18,7 @@ import type {
 } from "../../types";
 import type { PartialBlock } from "@blocknote/core";
 import { loadLocalRootData } from "../../services/analysisService";
-import { loadKnowledgeBase } from "../../services/knowledgeBaseService";
+import { loadKnowledgeBase, clearKnowledgeBaseCache } from "../../services/knowledgeBaseService";
 import { annotateWordsWithFamiliarity } from "../../services/familiarityService";
 import {
   computeVerseFamiliarity,
@@ -73,6 +73,8 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
   const togglePhraseRef = useRef<TogglePhraseOnCanvas | null>(null);
   const canvasCacheRef = useRef<Map<string, CanvasSnapshot>>(new Map());
   const canvasAreaRef = useRef<HTMLDivElement>(null);
+  const rawWordsRef = useRef<QuranWord[]>([]);
+  const updateWordFamiliarityRef = useRef<((words: QuranWord[]) => void) | null>(null);
   const [promptModalOpen, setPromptModalOpen] = useState(false);
   const [verseFamiliarity, setVerseFamiliarity] = useState<VerseFamiliarityInfo>({
     hasConnections: false,
@@ -98,6 +100,8 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
         root: rawEntries[i]?.r || undefined,
         lemma: rawEntries[i]?.l || undefined,
       }));
+      // Keep raw words for re-annotation after KB changes
+      rawWordsRef.current = builtWords;
       // Annotate words with familiarity flags from the Knowledge Base
       const annotatedWords = annotateWordsWithFamiliarity(builtWords, kb);
       setWords(annotatedWords);
@@ -132,6 +136,16 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
     setPropertiesSelection(sel);
   }, []);
 
+  /** Refresh familiarity dots after a KB note is saved. */
+  const handleKBNoteChanged = useCallback(() => {
+    clearKnowledgeBaseCache();
+    loadKnowledgeBase().then((kb) => {
+      const annotated = annotateWordsWithFamiliarity(rawWordsRef.current, kb);
+      setWords(annotated);
+      updateWordFamiliarityRef.current?.(annotated);
+    });
+  }, []);
+
   return (
     <div className="fixed inset-0 z-[100] flex bg-slate-950" data-testid="node-reader">
       {/* Left Panel (Properties + Webcam zone) */}
@@ -143,6 +157,7 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
         noteBacklinks={noteBacklinks}
         onNavigateToVerse={onNavigateToVerse}
         onTogglePhraseOnCanvas={(match, show) => togglePhraseRef.current?.(match, show)}
+        onKBNoteChanged={handleKBNoteChanged}
         fontSize={fontSize}
       />
 
@@ -188,6 +203,7 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
                   getSurahName={getSurahName}
                   onSelectionChange={handleSelectionChange}
                   togglePhraseRef={togglePhraseRef}
+                  updateWordFamiliarityRef={updateWordFamiliarityRef}
                   onNavigateToVerse={onNavigateToVerse}
                   canvasCacheRef={canvasCacheRef}
                 />

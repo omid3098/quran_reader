@@ -307,6 +307,7 @@ export type PropertiesPanelSelection =
       phraseMatches?: PhraseMatch[];
       rootNote?: string;
       lemmaNote?: string;
+      wordNote?: string;
       rootAnalysis?: RootAnalysis;
       surahGroups?: SurahGroup[];
     }

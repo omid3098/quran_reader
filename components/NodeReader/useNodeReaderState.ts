@@ -10,8 +10,9 @@ import type {
   Chapter,
   SurahGroup,
   CanvasSnapshot,
+  QuranWord,
 } from "../../types";
-import { findVersesByRoot } from "../../services/analysisService";
+import { findVersesByRoot, normalizeArabic } from "../../services/analysisService";
 import { findPhrasesForWord } from "../../services/phrasesService";
 import { getRootNote, getLemmaNote } from "../../services/knowledgeBaseService";
 import { layoutPhraseVerseNodes, estimateWordNodeWidth } from "./nodeLayout";
@@ -84,12 +85,17 @@ export function useNodeReaderState({
     (wordData: WordNodeData) => {
       setPropertiesSelection({ type: "word", data: wordData });
 
+      // For particles (no root/lemma), use normalized surface form as KB key
+      const isParticle = !wordData.root && !wordData.lemma;
+      const particleKey = isParticle ? normalizeArabic(wordData.word) : null;
+
       Promise.all([
         findPhrasesForWord(wordData.verseKey, wordData.wordIndex),
         wordData.root ? getRootNote(wordData.root) : null,
         wordData.lemma ? getLemmaNote(wordData.lemma) : null,
         wordData.root ? findVersesByRoot(wordData.root) : null,
-      ]).then(([phraseMatches, rootNote, lemmaResult, rootAnalysis]) => {
+        particleKey ? getLemmaNote(particleKey) : null,
+      ]).then(([phraseMatches, rootNote, lemmaResult, rootAnalysis, wordNoteResult]) => {
         // Build surah groups from root analysis
         let surahGroups: SurahGroup[] | undefined;
         if (rootAnalysis) {
@@ -114,6 +120,7 @@ export function useNodeReaderState({
           ...(phraseMatches.length > 0 ? { phraseMatches } : {}),
           ...(rootNote ? { rootNote } : {}),
           ...(lemmaResult?.note ? { lemmaNote: lemmaResult.note } : {}),
+          ...(wordNoteResult?.note ? { wordNote: wordNoteResult.note } : {}),
           ...(rootAnalysis ? { rootAnalysis } : {}),
           ...(surahGroups ? { surahGroups } : {}),
         };
@@ -249,6 +256,34 @@ export function useNodeReaderState({
     [nodes, edges, propertiesSelection]
   );
 
+  /** Update familiarity flags on existing word nodes without rebuilding the canvas. */
+  const updateWordFamiliarity = useCallback(
+    (updatedWords: QuranWord[]) => {
+      setNodes((prev) =>
+        prev.map((node) => {
+          if (!node.id.startsWith("word-")) return node;
+          const d = node.data as unknown as WordNodeData;
+          const word = updatedWords[d.wordIndex];
+          if (!word) return node;
+          if (
+            d.hasFamiliarRoot === word.hasFamiliarRoot &&
+            d.hasFamiliarLemma === word.hasFamiliarLemma
+          )
+            return node;
+          return {
+            ...node,
+            data: {
+              ...node.data,
+              hasFamiliarRoot: word.hasFamiliarRoot,
+              hasFamiliarLemma: word.hasFamiliarLemma,
+            },
+          };
+        })
+      );
+    },
+    [setNodes]
+  );
+
   return {
     nodes,
     edges,
@@ -261,5 +296,6 @@ export function useNodeReaderState({
     restoreCanvas,
     togglePhraseOnCanvas,
     getSnapshot,
+    updateWordFamiliarity,
   };
 }

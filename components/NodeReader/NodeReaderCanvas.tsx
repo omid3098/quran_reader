@@ -23,6 +23,7 @@ interface NodeReaderCanvasProps {
   getSurahName: (surahId: number) => string | undefined;
   onSelectionChange: (selection: PropertiesPanelSelection) => void;
   togglePhraseRef: React.MutableRefObject<TogglePhraseOnCanvas | null>;
+  updateWordFamiliarityRef: React.MutableRefObject<((words: QuranWord[]) => void) | null>;
   onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
   canvasCacheRef: React.MutableRefObject<Map<string, CanvasSnapshot>>;
 }
@@ -34,6 +35,7 @@ export function NodeReaderCanvas({
   getSurahName,
   onSelectionChange,
   togglePhraseRef,
+  updateWordFamiliarityRef,
   onNavigateToVerse,
   canvasCacheRef,
 }: NodeReaderCanvasProps) {
@@ -65,6 +67,7 @@ export function NodeReaderCanvas({
     restoreCanvas,
     togglePhraseOnCanvas,
     getSnapshot,
+    updateWordFamiliarity,
   } = useNodeReaderState({
     initialNodes,
     chapter,
@@ -92,10 +95,11 @@ export function NodeReaderCanvas({
     [onNavigateToVerse]
   );
 
-  // Expose togglePhraseOnCanvas to parent via ref
+  // Expose togglePhraseOnCanvas and updateWordFamiliarity to parent via refs
   useEffect(() => {
     togglePhraseRef.current = togglePhraseOnCanvas;
-  }, [togglePhraseOnCanvas, togglePhraseRef]);
+    updateWordFamiliarityRef.current = updateWordFamiliarity;
+  }, [togglePhraseOnCanvas, togglePhraseRef, updateWordFamiliarity, updateWordFamiliarityRef]);
 
   // Sync properties selection to parent
   useEffect(() => {
