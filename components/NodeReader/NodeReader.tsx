@@ -1,10 +1,12 @@
-import React, { useState, useEffect, useCallback, useRef } from "react";
+import React, { useState, useEffect, useCallback, useRef, Suspense, lazy } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
-import { X, Play, Pause, SkipBack, SkipForward, Repeat } from "lucide-react";
+import { X, Play, Pause, SkipBack, SkipForward, Repeat, Sparkles } from "lucide-react";
 import { NodeReaderCanvas, type TogglePhraseOnCanvas } from "./NodeReaderCanvas";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { BottomPanel } from "./BottomPanel";
 import { Spinner } from "../Spinner";
+
+const LazyPromptBuilderModal = lazy(() => import("./PromptBuilderModal"));
 import type {
   Verse,
   Chapter,
@@ -62,6 +64,7 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
   const togglePhraseRef = useRef<TogglePhraseOnCanvas | null>(null);
   const canvasCacheRef = useRef<Map<string, CanvasSnapshot>>(new Map());
   const canvasAreaRef = useRef<HTMLDivElement>(null);
+  const [promptModalOpen, setPromptModalOpen] = useState(false);
 
   // Build word list from actual verse text + root data
   useEffect(() => {
@@ -139,8 +142,13 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
             <span className="text-slate-600 mx-2">·</span>
             <span className="text-sm font-vazir text-slate-400">{chapter.name_arabic}</span>
           </div>
-          {/* Spacer to balance the exit button */}
-          <div className="w-9" />
+          <button
+            onClick={() => setPromptModalOpen(true)}
+            className="p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
+            aria-label="Build prompt"
+          >
+            <Sparkles size={18} />
+          </button>
         </div>
 
         {/* Canvas + Bottom Panel */}
@@ -225,6 +233,20 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
           </button>
         </div>
       </div>
+
+      {/* Prompt Builder Modal (lazy loaded) */}
+      {promptModalOpen && (
+        <Suspense fallback={null}>
+          <LazyPromptBuilderModal
+            verse={verse}
+            chapter={chapter}
+            words={words}
+            verseNote={verseNote}
+            surahNote={surahNote}
+            onClose={() => setPromptModalOpen(false)}
+          />
+        </Suspense>
+      )}
     </div>
   );
 };
