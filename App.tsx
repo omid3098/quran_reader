@@ -49,20 +49,18 @@ import {
   Verse,
   AppSettings,
   BackupData,
-  NoteExportTuple,
   SelectionContext,
   RootAnalysis,
   UserLanguage,
   VerseRef,
   BreadcrumbEntry,
 } from "./types";
-import { parseBackupData, mergeParsedBackupData } from "./services/backupService";
+import { parseBackupData, mergeParsedBackupData, buildBackupData } from "./services/backupService";
 import {
   loadKnowledgeBase,
   importKnowledgeBase,
   clearKnowledgeBaseCache,
 } from "./services/knowledgeBaseService";
-import { blocksToText } from "./components/RichNoteEditor";
 import { PartialBlock } from "@blocknote/core";
 import { Spinner } from "./components/Spinner";
 import { useHideOnScroll } from "./hooks/useHideOnScroll";
@@ -1197,40 +1195,7 @@ const App: React.FC = () => {
 
   // --- Import/Export Handlers ---
   const handleExportNotes = async () => {
-    const richNotes = Object.values(notes).map((note) => ({
-      key: note.verseKey,
-      blocks: note.blocks,
-      updatedAt: note.updatedAt,
-      createdAt: note.createdAt,
-    }));
-
-    const legacyNotes = Object.values(notes).map((note) => {
-      const text = blocksToText(note.blocks);
-      return [note.verseKey, text, note.updatedAt] as NoteExportTuple;
-    });
-
-    const surahNotesArray = Object.values(surahNotes).map((note) => ({
-      surahId: note.surahId,
-      blocks: note.blocks,
-      updatedAt: note.updatedAt,
-      createdAt: note.createdAt,
-    }));
-
-    const kb = await loadKnowledgeBase();
-
-    const exportData: BackupData = {
-      v: 2,
-      bookmarks: [],
-      notes: richNotes,
-      surahNotes: surahNotesArray,
-      legacyNotes,
-      ...(kb ? { knowledgeBase: kb } : {}),
-      meta: {
-        editor: "blocknote",
-        schemaVersion: "1",
-      },
-      exportedAt: new Date().toISOString(),
-    };
+    const exportData = await buildBackupData(notes, surahNotes);
 
     const blob = new Blob([JSON.stringify(exportData)], { type: "application/json" });
     const url = URL.createObjectURL(blob);
@@ -1311,6 +1276,45 @@ const App: React.FC = () => {
       setSyncingOmidNotes(false);
     }
   };
+
+  // --- Sync Bridge: auto-send backup when opened with ?sync=PORT ---
+  const syncSentRef = useRef(false);
+  useEffect(() => {
+    if (syncSentRef.current) return;
+    const params = new URLSearchParams(window.location.search);
+    const syncPort = params.get("sync");
+    if (!syncPort) return;
+
+    // Validate port: must be a number in valid range
+    const port = Number(syncPort);
+    if (!Number.isInteger(port) || port < 1024 || port > 65535) return;
+
+    // Notes are loaded synchronously from localStorage by useNotes,
+    // so they are available on first render. Guard against empty state
+    // in case localStorage is genuinely empty.
+    const hasData = Object.keys(notes).length > 0 || Object.keys(surahNotes).length > 0;
+    if (!hasData) return;
+
+    syncSentRef.current = true;
+
+    const doSync = async () => {
+      try {
+        const backup = await buildBackupData(notes, surahNotes);
+        // Only send to localhost — never to a remote server
+        await fetch(`http://127.0.0.1:${port}/backup`, {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify(backup),
+        });
+      } catch (err) {
+        console.error("Sync bridge failed:", err);
+      }
+      // Clean the URL so it doesn't re-trigger
+      window.history.replaceState({}, "", window.location.pathname);
+    };
+
+    doSync();
+  }, [notes, surahNotes]);
 
   // --- Language Selection Handler ---
   const handleLanguageSelect = (language: UserLanguage) => {

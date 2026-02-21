@@ -1,11 +1,16 @@
-import { describe, it, expect } from "vitest";
+import { describe, it, expect, vi } from "vitest";
 import {
   mergeParsedBackupData,
   mergeKnowledgeBases,
   parseBackupData,
+  buildBackupData,
 } from "@/services/backupService";
 import type { PartialBlock } from "@blocknote/core";
-import type { BackupDataV1, BackupDataV2, KnowledgeBase } from "@/types";
+import type { BackupDataV1, BackupDataV2, KnowledgeBase, VerseNote, SurahNote } from "@/types";
+
+vi.mock("@/services/knowledgeBaseService", () => ({
+  loadKnowledgeBase: vi.fn().mockResolvedValue(null),
+}));
 
 describe("backupService", () => {
   it("parses v1 backups with verse, surah notes, and bookmark", () => {
@@ -361,5 +366,49 @@ describe("mergeKnowledgeBases", () => {
     const result = mergeKnowledgeBases(current, incoming);
     expect(result.patterns).toHaveLength(2);
     expect(result.patterns.find((p) => p.id === "p1")?.title).toBe("Updated");
+  });
+});
+
+describe("buildBackupData", () => {
+  it("produces valid BackupDataV2 from notes and surahNotes", async () => {
+    const notes: Record<string, VerseNote> = {
+      "1:1": {
+        verseKey: "1:1",
+        blocks: [{ type: "paragraph", content: "Test note" } as PartialBlock],
+        updatedAt: "2024-01-01T00:00:00Z",
+        createdAt: "2024-01-01T00:00:00Z",
+      },
+    };
+
+    const surahNotes: Record<number, SurahNote> = {
+      1: {
+        surahId: 1,
+        blocks: [{ type: "paragraph", content: "Surah note" } as PartialBlock],
+        updatedAt: "2024-01-02T00:00:00Z",
+        createdAt: "2024-01-02T00:00:00Z",
+      },
+    };
+
+    const result = await buildBackupData(notes, surahNotes);
+
+    expect(result.v).toBe(2);
+    expect(result.notes).toHaveLength(1);
+    expect(result.notes[0].key).toBe("1:1");
+    expect(result.surahNotes).toHaveLength(1);
+    expect(result.surahNotes[0].surahId).toBe(1);
+    expect(result.legacyNotes).toHaveLength(1);
+    expect(result.legacyNotes![0][0]).toBe("1:1");
+    expect(result.exportedAt).toBeDefined();
+    expect(result.meta?.editor).toBe("blocknote");
+  });
+
+  it("handles empty notes gracefully", async () => {
+    const result = await buildBackupData({}, {});
+
+    expect(result.v).toBe(2);
+    expect(result.notes).toHaveLength(0);
+    expect(result.surahNotes).toHaveLength(0);
+    expect(result.legacyNotes).toHaveLength(0);
+    expect(result.exportedAt).toBeDefined();
   });
 });

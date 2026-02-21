@@ -1,4 +1,5 @@
-import { textToBlocks } from "./noteContent";
+import { textToBlocks, blocksToText } from "./noteContent";
+import { loadKnowledgeBase } from "./knowledgeBaseService";
 import {
   BackupData,
   BackupDataV1,
@@ -196,6 +197,50 @@ export const parseBackupData = (
     return parseV2(raw as BackupDataV2);
   }
   return parseV1(raw as BackupDataV1 & { surahNotes?: SurahNoteExport[] });
+};
+
+/**
+ * Build a BackupDataV2 object from current notes state.
+ * Used by both the file export handler and the sync bridge.
+ */
+export const buildBackupData = async (
+  notes: Record<string, VerseNote>,
+  surahNotes: Record<number, SurahNote>
+): Promise<BackupDataV2> => {
+  const richNotes = Object.values(notes).map((note) => ({
+    key: note.verseKey,
+    blocks: note.blocks,
+    updatedAt: note.updatedAt,
+    createdAt: note.createdAt,
+  }));
+
+  const legacyNotes = Object.values(notes).map((note) => {
+    const text = blocksToText(note.blocks);
+    return [note.verseKey, text, note.updatedAt] as NoteExportTuple;
+  });
+
+  const surahNotesArray = Object.values(surahNotes).map((note) => ({
+    surahId: note.surahId,
+    blocks: note.blocks,
+    updatedAt: note.updatedAt,
+    createdAt: note.createdAt,
+  }));
+
+  const kb = await loadKnowledgeBase();
+
+  return {
+    v: 2,
+    bookmarks: [],
+    notes: richNotes,
+    surahNotes: surahNotesArray,
+    legacyNotes,
+    ...(kb ? { knowledgeBase: kb } : {}),
+    meta: {
+      editor: "blocknote",
+      schemaVersion: "1",
+    },
+    exportedAt: new Date().toISOString(),
+  };
 };
 
 export const mergeParsedBackupData = (
