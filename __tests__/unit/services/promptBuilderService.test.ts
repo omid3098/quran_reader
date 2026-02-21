@@ -1,5 +1,10 @@
 import { describe, it, expect } from "vitest";
-import { buildPromptText, type PromptContext } from "../../../services/promptBuilderService";
+import {
+  buildPromptText,
+  collectSampleNotes,
+  type PromptContext,
+} from "../../../services/promptBuilderService";
+import type { VerseNote } from "../../../types";
 
 function makeContext(overrides: Partial<PromptContext> = {}): PromptContext {
   return {
@@ -25,6 +30,7 @@ function makeContext(overrides: Partial<PromptContext> = {}): PromptContext {
     connections: [],
     verseNoteText: "",
     surahNoteText: "",
+    sampleNotes: [],
     ...overrides,
   };
 }
@@ -168,6 +174,41 @@ describe("promptBuilderService", () => {
       expect(result).toContain("Persian");
     });
 
+    it("includes sample notes section when present", () => {
+      const result = buildPromptText(
+        makeContext({
+          sampleNotes: [
+            { verseKey: "2:254", text: "نوت آیه ۲۵۴" },
+            { verseKey: "2:253", text: "نوت آیه ۲۵۳" },
+          ],
+        })
+      );
+      expect(result).toContain("Sample Notes from Your Recent Analysis");
+      expect(result).toContain("### [2:254]");
+      expect(result).toContain("نوت آیه ۲۵۴");
+      expect(result).toContain("### [2:253]");
+      expect(result).toContain("نوت آیه ۲۵۳");
+    });
+
+    it("omits sample notes section when empty", () => {
+      const result = buildPromptText(makeContext({ sampleNotes: [] }));
+      expect(result).not.toContain("Sample Notes");
+    });
+
+    it("includes style hint in instruction when sample notes present", () => {
+      const result = buildPromptText(
+        makeContext({
+          sampleNotes: [{ verseKey: "2:254", text: "some note" }],
+        })
+      );
+      expect(result).toContain("same depth, tone, and style");
+    });
+
+    it("omits style hint when no sample notes", () => {
+      const result = buildPromptText(makeContext({ sampleNotes: [] }));
+      expect(result).not.toContain("same depth, tone, and style");
+    });
+
     it("produces a non-trivial prompt with all sections populated", () => {
       const result = buildPromptText(
         makeContext({
@@ -189,6 +230,88 @@ describe("promptBuilderService", () => {
       expect(result).toContain("My verse note");
       expect(result).toContain("My surah note");
       expect(result).toContain("Analysis Framework");
+    });
+  });
+
+  describe("collectSampleNotes", () => {
+    function makeNote(verseKey: string, text: string): VerseNote {
+      return {
+        verseKey,
+        blocks: [{ type: "paragraph", content: [{ type: "text", text }] }],
+        updatedAt: new Date().toISOString(),
+        createdAt: new Date().toISOString(),
+      };
+    }
+
+    it("returns notes from connected verses first", () => {
+      const allNotes: Record<string, VerseNote> = {
+        "3:2": makeNote("3:2", "Connected note"),
+        "2:254": makeNote("2:254", "Previous ayah note"),
+      };
+      const connections = [{ from: "2:255", to: "3:2", reason: "test" }];
+      const result = collectSampleNotes("2:255", connections, allNotes);
+      expect(result[0].verseKey).toBe("3:2");
+      expect(result[0].text).toBe("Connected note");
+    });
+
+    it("falls back to previous ayahs when no connections have notes", () => {
+      const allNotes: Record<string, VerseNote> = {
+        "2:253": makeNote("2:253", "Note 253"),
+        "2:254": makeNote("2:254", "Note 254"),
+      };
+      const result = collectSampleNotes("2:255", [], allNotes);
+      expect(result).toHaveLength(2);
+      expect(result[0].verseKey).toBe("2:254");
+      expect(result[1].verseKey).toBe("2:253");
+    });
+
+    it("limits to 3 sample notes", () => {
+      const allNotes: Record<string, VerseNote> = {};
+      for (let i = 1; i <= 10; i++) {
+        allNotes[`2:${i}`] = makeNote(`2:${i}`, `Note ${i}`);
+      }
+      const result = collectSampleNotes("2:11", [], allNotes);
+      expect(result).toHaveLength(3);
+    });
+
+    it("skips current verse", () => {
+      const allNotes: Record<string, VerseNote> = {
+        "2:255": makeNote("2:255", "Current verse note"),
+        "2:254": makeNote("2:254", "Previous note"),
+      };
+      const result = collectSampleNotes("2:255", [], allNotes);
+      expect(result).toHaveLength(1);
+      expect(result[0].verseKey).toBe("2:254");
+    });
+
+    it("deduplicates across connections and backlinks", () => {
+      const allNotes: Record<string, VerseNote> = {
+        "3:2": makeNote("3:2", "Note with [2:255] ref"),
+      };
+      // 3:2 appears as both a connection AND would be a backlink
+      const connections = [{ from: "2:255", to: "3:2", reason: "test" }];
+      const result = collectSampleNotes("2:255", connections, allNotes);
+      expect(result).toHaveLength(1);
+    });
+
+    it("returns empty when no notes exist", () => {
+      const result = collectSampleNotes("2:255", [], {});
+      expect(result).toHaveLength(0);
+    });
+
+    it("skips verses with empty notes", () => {
+      const allNotes: Record<string, VerseNote> = {
+        "2:254": {
+          verseKey: "2:254",
+          blocks: [],
+          updatedAt: new Date().toISOString(),
+          createdAt: new Date().toISOString(),
+        },
+        "2:253": makeNote("2:253", "Real note"),
+      };
+      const result = collectSampleNotes("2:255", [], allNotes);
+      expect(result).toHaveLength(1);
+      expect(result[0].verseKey).toBe("2:253");
     });
   });
 });

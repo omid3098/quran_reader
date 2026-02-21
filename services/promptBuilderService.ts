@@ -1,8 +1,9 @@
 import type { PartialBlock } from "@blocknote/core";
-import type { Verse, Chapter, QuranWord } from "../types";
+import type { Verse, Chapter, QuranWord, VerseNote } from "../types";
 import { blocksToText } from "./noteContent";
 import { loadKnowledgeBase } from "./knowledgeBaseService";
 import { findPhrasesForVerse } from "./phrasesService";
+import { computeBacklinks } from "./noteBacklinksService";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -22,6 +23,7 @@ export interface PromptContext {
   connections: { from: string; to: string; reason: string }[];
   verseNoteText: string;
   surahNoteText: string;
+  sampleNotes: { verseKey: string; text: string }[];
 }
 
 // ---------------------------------------------------------------------------
@@ -43,6 +45,59 @@ Use these principles when analyzing the verse:
 5. **Process Orientation** — Many Quranic concepts that we treat as labels actually describe ongoing processes. "Muslim" means "one who submits" — submitting is continuous, not a one-time status.
 
 6. **Principle of Uncertainty** — Any conclusion is one possible reading among many. Say "it seems" or "my reading is" — not as formality, but because we mean it.`;
+
+// ---------------------------------------------------------------------------
+// collectSampleNotes — pure helper: finds up to MAX_SAMPLES notes from linked ayahs
+// ---------------------------------------------------------------------------
+
+const MAX_SAMPLE_NOTES = 3;
+
+export function collectSampleNotes(
+  verseKey: string,
+  connections: PromptContext["connections"],
+  allNotes: Record<string, VerseNote>
+): { verseKey: string; text: string }[] {
+  const samples: { verseKey: string; text: string }[] = [];
+  const used = new Set<string>([verseKey]);
+
+  const tryAdd = (key: string): boolean => {
+    if (used.has(key)) return false;
+    used.add(key);
+    const note = allNotes[key];
+    if (!note?.blocks?.length) return false;
+    const text = blocksToText(note.blocks);
+    if (!text.trim()) return false;
+    samples.push({ verseKey: key, text });
+    return true;
+  };
+
+  // Priority 1: verses connected via KB connections
+  for (const c of connections) {
+    if (samples.length >= MAX_SAMPLE_NOTES) return samples;
+    const other = c.from === verseKey ? c.to : c.from;
+    tryAdd(other);
+  }
+
+  // Priority 2: verses that reference this verse via [x:y] backlinks
+  if (samples.length < MAX_SAMPLE_NOTES) {
+    const backlinks = computeBacklinks(verseKey, allNotes);
+    for (const bl of backlinks) {
+      if (samples.length >= MAX_SAMPLE_NOTES) break;
+      tryAdd(bl.sourceVerseKey);
+    }
+  }
+
+  // Fallback: previous ayahs in same surah (scan backwards)
+  if (samples.length < MAX_SAMPLE_NOTES) {
+    const [surahStr, ayahStr] = verseKey.split(":");
+    const currentAyah = parseInt(ayahStr, 10);
+    for (let ayah = currentAyah - 1; ayah >= 1 && samples.length < MAX_SAMPLE_NOTES; ayah--) {
+      tryAdd(`${surahStr}:${ayah}`);
+    }
+  }
+
+  return samples;
+}
 
 // ---------------------------------------------------------------------------
 // buildPromptText — pure, sync, no side effects
@@ -110,12 +165,22 @@ export function buildPromptText(ctx: PromptContext): string {
     sections.push(`## Your Notes on ${ctx.chapterName}\n\n${ctx.surahNoteText}`);
   }
 
+  // Sample notes from linked ayahs
+  if (ctx.sampleNotes.length > 0) {
+    const items = ctx.sampleNotes.map((s) => `### [${s.verseKey}]\n\n${s.text}`).join("\n\n");
+    sections.push(`## Sample Notes from Your Recent Analysis\n\n${items}`);
+  }
+
   // Analysis framework
   sections.push(ANALYSIS_FRAMEWORK);
 
   // Final instruction
+  const styleHint =
+    ctx.sampleNotes.length > 0
+      ? " Write your analysis in the same depth, tone, and style as the sample notes shown above."
+      : "";
   sections.push(
-    "---\nPlease analyze this verse considering all the context above. Respond in Persian."
+    `---\nPlease analyze this verse considering all the context above.${styleHint} Respond in Persian.`
   );
 
   return sections.join("\n\n");
@@ -194,6 +259,16 @@ export async function gatherPromptContext(
   const verseNoteText = verseNoteBlocks ? blocksToText(verseNoteBlocks) : "";
   const surahNoteText = surahNoteBlocks ? blocksToText(surahNoteBlocks) : "";
 
+  // Collect sample notes from linked/nearby ayahs
+  let allStoredNotes: Record<string, VerseNote> = {};
+  try {
+    const stored = localStorage.getItem("luminaNotes");
+    if (stored) allStoredNotes = JSON.parse(stored) as Record<string, VerseNote>;
+  } catch {
+    /* ignore parse errors */
+  }
+  const sampleNotes = collectSampleNotes(verse.verse_key, connections, allStoredNotes);
+
   // Translations
   const translations = (verse.translations || []).map((t) => ({
     name: t.resource_name || "Translation",
@@ -214,5 +289,6 @@ export async function gatherPromptContext(
     connections,
     verseNoteText,
     surahNoteText,
+    sampleNotes,
   };
 }
