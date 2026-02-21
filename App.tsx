@@ -1253,8 +1253,9 @@ const App: React.FC = () => {
 
       const json = await response.json();
       const parsed = parseBackupData(json as BackupData);
+      const currentKb = await loadKnowledgeBase();
       const merged = mergeParsedBackupData(
-        { notes, surahNotes, bookmark: bookmarkedVerse },
+        { notes, surahNotes, bookmark: bookmarkedVerse, knowledgeBase: currentKb },
         parsed
       );
 
@@ -1262,6 +1263,10 @@ const App: React.FC = () => {
       setAllSurahNotes(merged.surahNotes);
       if (merged.bookmark) {
         setBookmarkedVerse(merged.bookmark);
+      }
+      if (merged.knowledgeBase) {
+        importKnowledgeBase(merged.knowledgeBase);
+        clearKnowledgeBaseCache();
       }
 
       const now = new Date().toISOString();
