@@ -146,6 +146,11 @@ export async function getConnectionsForVerse(verseKey: string): Promise<KBConnec
   return kb.connections.filter((c) => c.from.verse === verseKey || c.to.verse === verseKey);
 }
 
+/** Import a knowledge base (replaces current KB and clears cache). */
+export function importKnowledgeBase(kb: KnowledgeBase): void {
+  saveKnowledgeBase(kb);
+}
+
 /** Clear the cache (useful for testing). */
 export function clearKnowledgeBaseCache(): void {
   knowledgeBase = null;

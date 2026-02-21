@@ -1,7 +1,11 @@
 import { describe, it, expect } from "vitest";
-import { mergeParsedBackupData, parseBackupData } from "@/services/backupService";
+import {
+  mergeParsedBackupData,
+  mergeKnowledgeBases,
+  parseBackupData,
+} from "@/services/backupService";
 import type { PartialBlock } from "@blocknote/core";
-import type { BackupDataV1, BackupDataV2 } from "@/types";
+import type { BackupDataV1, BackupDataV2, KnowledgeBase } from "@/types";
 
 describe("backupService", () => {
   it("parses v1 backups with verse, surah notes, and bookmark", () => {
@@ -179,5 +183,183 @@ describe("backupService", () => {
 
   it("throws on invalid data", () => {
     expect(() => parseBackupData({} as unknown as BackupDataV1)).toThrow();
+  });
+
+  it("parses v2 backup with knowledgeBase data", () => {
+    const kb: KnowledgeBase = {
+      _meta: { author: "test", version: 1 },
+      roots: { كتب: { note: "to write", discoveredIn: "2:2" } },
+      lemmas: { كِتَاب: { note: "book", root: "كتب" } },
+      connections: [
+        { from: { verse: "2:2", words: [1] }, to: { verse: "2:3", words: null }, reason: "theme" },
+      ],
+      patterns: [],
+    };
+
+    const backup: BackupDataV2 = {
+      v: 2,
+      bookmarks: [],
+      notes: [],
+      surahNotes: [],
+      knowledgeBase: kb,
+      exportedAt: "2024-06-01T00:00:00Z",
+    };
+
+    const parsed = parseBackupData(backup);
+
+    expect(parsed.knowledgeBase).toBeDefined();
+    expect(parsed.knowledgeBase?.roots["كتب"].note).toBe("to write");
+    expect(parsed.knowledgeBase?.lemmas["كِتَاب"].note).toBe("book");
+    expect(parsed.knowledgeBase?.connections).toHaveLength(1);
+  });
+
+  it("parses v2 backup without knowledgeBase (backward compat)", () => {
+    const backup: BackupDataV2 = {
+      v: 2,
+      bookmarks: [],
+      notes: [],
+      surahNotes: [],
+      exportedAt: "2024-06-01T00:00:00Z",
+    };
+
+    const parsed = parseBackupData(backup);
+    expect(parsed.knowledgeBase).toBeUndefined();
+  });
+
+  it("merges incoming KB over current KB", () => {
+    const current = {
+      notes: {},
+      surahNotes: {},
+      knowledgeBase: {
+        _meta: { author: "user", version: 1 },
+        roots: {
+          كتب: { note: "old note" },
+          قرأ: { note: "to read" },
+        },
+        lemmas: {},
+        connections: [
+          {
+            from: { verse: "1:1", words: null },
+            to: { verse: "1:2", words: null },
+            reason: "existing",
+          },
+        ],
+        patterns: [],
+      } as KnowledgeBase,
+    };
+
+    const incoming = {
+      notes: {},
+      surahNotes: {},
+      knowledgeBase: {
+        _meta: { author: "user", version: 1 },
+        roots: { كتب: { note: "updated note" } },
+        lemmas: { كِتَاب: { note: "book" } },
+        connections: [
+          {
+            from: { verse: "1:1", words: null },
+            to: { verse: "1:2", words: null },
+            reason: "updated",
+          },
+          { from: { verse: "2:1", words: null }, to: { verse: "2:2", words: null }, reason: "new" },
+        ],
+        patterns: [],
+      } as KnowledgeBase,
+    };
+
+    const merged = mergeParsedBackupData(current, incoming);
+
+    expect(merged.knowledgeBase?.roots["كتب"].note).toBe("updated note");
+    expect(merged.knowledgeBase?.roots["قرأ"].note).toBe("to read");
+    expect(merged.knowledgeBase?.lemmas["كِتَاب"].note).toBe("book");
+    expect(merged.knowledgeBase?.connections).toHaveLength(2);
+  });
+
+  it("keeps current KB when incoming has no KB", () => {
+    const currentKb: KnowledgeBase = {
+      _meta: { author: "user", version: 1 },
+      roots: { كتب: { note: "keep" } },
+      lemmas: {},
+      connections: [],
+      patterns: [],
+    };
+
+    const merged = mergeParsedBackupData(
+      { notes: {}, surahNotes: {}, knowledgeBase: currentKb },
+      { notes: {}, surahNotes: {} }
+    );
+
+    expect(merged.knowledgeBase?.roots["كتب"].note).toBe("keep");
+  });
+});
+
+describe("mergeKnowledgeBases", () => {
+  it("returns incoming when current is null", () => {
+    const incoming: KnowledgeBase = {
+      _meta: { author: "user", version: 1 },
+      roots: { كتب: { note: "write" } },
+      lemmas: {},
+      connections: [],
+      patterns: [],
+    };
+
+    const result = mergeKnowledgeBases(null, incoming);
+    expect(result.roots["كتب"].note).toBe("write");
+  });
+
+  it("deduplicates connections by from+to verse", () => {
+    const current: KnowledgeBase = {
+      _meta: { author: "user", version: 1 },
+      roots: {},
+      lemmas: {},
+      connections: [
+        { from: { verse: "1:1", words: null }, to: { verse: "1:2", words: null }, reason: "old" },
+      ],
+      patterns: [],
+    };
+
+    const incoming: KnowledgeBase = {
+      _meta: { author: "user", version: 1 },
+      roots: {},
+      lemmas: {},
+      connections: [
+        {
+          from: { verse: "1:1", words: null },
+          to: { verse: "1:2", words: null },
+          reason: "updated",
+        },
+        { from: { verse: "2:1", words: null }, to: { verse: "2:2", words: null }, reason: "new" },
+      ],
+      patterns: [],
+    };
+
+    const result = mergeKnowledgeBases(current, incoming);
+    expect(result.connections).toHaveLength(2);
+    expect(result.connections.find((c) => c.from.verse === "1:1")?.reason).toBe("updated");
+  });
+
+  it("deduplicates patterns by id", () => {
+    const current: KnowledgeBase = {
+      _meta: { author: "user", version: 1 },
+      roots: {},
+      lemmas: {},
+      connections: [],
+      patterns: [{ id: "p1", title: "Old", note: "old note" }],
+    };
+
+    const incoming: KnowledgeBase = {
+      _meta: { author: "user", version: 1 },
+      roots: {},
+      lemmas: {},
+      connections: [],
+      patterns: [
+        { id: "p1", title: "Updated", note: "new note" },
+        { id: "p2", title: "New", note: "brand new" },
+      ],
+    };
+
+    const result = mergeKnowledgeBases(current, incoming);
+    expect(result.patterns).toHaveLength(2);
+    expect(result.patterns.find((p) => p.id === "p1")?.title).toBe("Updated");
   });
 });

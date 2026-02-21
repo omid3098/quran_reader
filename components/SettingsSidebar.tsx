@@ -34,8 +34,8 @@ interface SettingsSidebarProps {
   onClose: () => void;
   settings: AppSettings;
   onUpdateSettings: (newSettings: Partial<AppSettings>) => void;
-  onExportNotes: () => void;
-  onImportNotes: (data: BackupData) => void;
+  onExportNotes: () => void | Promise<void>;
+  onImportNotes: (data: BackupData) => void | Promise<void>;
   notes: Record<string, VerseNote>;
   surahNotes?: Record<number, SurahNote>;
   onJumpToNote: (verseKey: string) => void;
@@ -131,7 +131,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
     if (!file) return;
 
     const reader = new FileReader();
-    reader.onload = (e) => {
+    reader.onload = async (e) => {
       try {
         const json = e.target?.result as string;
         const data = JSON.parse(json);
@@ -139,7 +139,7 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
         // Basic validation
         if (data && Array.isArray(data.notes)) {
           try {
-            onImportNotes(data as BackupData);
+            await onImportNotes(data as BackupData);
             alert("Notes imported successfully!");
           } catch (err) {
             console.error(err);

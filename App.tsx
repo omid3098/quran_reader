@@ -57,6 +57,11 @@ import {
   BreadcrumbEntry,
 } from "./types";
 import { parseBackupData, mergeParsedBackupData } from "./services/backupService";
+import {
+  loadKnowledgeBase,
+  importKnowledgeBase,
+  clearKnowledgeBaseCache,
+} from "./services/knowledgeBaseService";
 import { blocksToText } from "./components/RichNoteEditor";
 import { PartialBlock } from "@blocknote/core";
 import { Spinner } from "./components/Spinner";
@@ -1191,7 +1196,7 @@ const App: React.FC = () => {
   }, [bookmarkedVerse, currentChapter, chapters, verses, handleChapterSelect]);
 
   // --- Import/Export Handlers ---
-  const handleExportNotes = () => {
+  const handleExportNotes = async () => {
     const richNotes = Object.values(notes).map((note) => ({
       key: note.verseKey,
       blocks: note.blocks,
@@ -1211,12 +1216,15 @@ const App: React.FC = () => {
       createdAt: note.createdAt,
     }));
 
+    const kb = await loadKnowledgeBase();
+
     const exportData: BackupData = {
       v: 2,
       bookmarks: [],
       notes: richNotes,
       surahNotes: surahNotesArray,
       legacyNotes,
+      ...(kb ? { knowledgeBase: kb } : {}),
       meta: {
         editor: "blocknote",
         schemaVersion: "1",
@@ -1235,7 +1243,7 @@ const App: React.FC = () => {
     URL.revokeObjectURL(url);
   };
 
-  const handleImportNotes = (
+  const handleImportNotes = async (
     data: BackupData & {
       surahNotes?: {
         surahId: number;
@@ -1246,12 +1254,20 @@ const App: React.FC = () => {
     }
   ) => {
     const parsed = parseBackupData(data);
-    const merged = mergeParsedBackupData({ notes, surahNotes, bookmark: bookmarkedVerse }, parsed);
+    const currentKb = await loadKnowledgeBase();
+    const merged = mergeParsedBackupData(
+      { notes, surahNotes, bookmark: bookmarkedVerse, knowledgeBase: currentKb },
+      parsed
+    );
 
     setAllNotes(merged.notes);
     setAllSurahNotes(merged.surahNotes);
     if (merged.bookmark) {
       setBookmarkedVerse(merged.bookmark);
+    }
+    if (merged.knowledgeBase) {
+      importKnowledgeBase(merged.knowledgeBase);
+      clearKnowledgeBaseCache();
     }
   };
 
