@@ -41,16 +41,20 @@ interface LayoutResult {
 export function layoutWordNodes(
   words: QuranWord[],
   verseKey: string,
-  canvasWidth: number
+  canvasWidth: number,
+  scriptType: "uthmani" | "simple" = "uthmani"
 ): LayoutResult {
   if (words.length === 0) return { nodes: [] };
 
   const nodes: PositionedNode<WordNodeData>[] = [];
 
+  const getDisplayText = (w: QuranWord) =>
+    scriptType === "simple" ? (w.text_simple ?? w.text_uthmani) : w.text_uthmani;
+
   // Calculate total width to right-align within canvas
   let totalWidth = 0;
   for (const w of words) {
-    totalWidth += estimateWordNodeWidth(w.text_uthmani) + WORD_GAP_X;
+    totalWidth += estimateWordNodeWidth(getDisplayText(w)) + WORD_GAP_X;
   }
   totalWidth -= WORD_GAP_X; // no trailing gap
 
@@ -60,7 +64,8 @@ export function layoutWordNodes(
   const rowY = CANVAS_PADDING;
 
   for (let i = 0; i < words.length; i++) {
-    const wordWidth = estimateWordNodeWidth(words[i].text_uthmani);
+    const displayText = getDisplayText(words[i]);
+    const wordWidth = estimateWordNodeWidth(displayText);
     const x = cursorX - wordWidth;
 
     nodes.push({
@@ -69,7 +74,7 @@ export function layoutWordNodes(
       position: { x, y: rowY },
       data: {
         type: "word",
-        word: words[i].text_uthmani,
+        word: displayText,
         wordIndex: i,
         verseKey,
         root: words[i].root,

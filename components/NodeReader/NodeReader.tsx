@@ -46,6 +46,7 @@ interface NodeReaderProps {
   onSaveSurahNote: (surahId: number, blocks: PartialBlock[]) => void;
   theme: "light" | "dark";
   fontSize?: number;
+  scriptType: "uthmani" | "simple";
 }
 
 export const NodeReader: React.FC<NodeReaderProps> = ({
@@ -66,6 +67,7 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
   onSaveSurahNote,
   theme,
   fontSize,
+  scriptType,
 }) => {
   const [words, setWords] = useState<QuranWord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -89,14 +91,15 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
     Promise.all([loadLocalRootData(), loadKnowledgeBase()]).then(([rootData, kb]) => {
       if (cancelled) return;
       // Split the actual verse text — this is the authoritative word list
-      const verseWords = verse.text_uthmani.split(" ");
+      const uthmaniWords = verse.text_uthmani.split(" ");
+      const simpleWords = verse.text_simple.split(" ");
       // Raw root entries (may contain nulls for particles)
       const rawEntries = rootData?.[verse.verse_key] || [];
-      const builtWords: QuranWord[] = verseWords.map((word, i) => ({
+      const builtWords: QuranWord[] = uthmaniWords.map((word, i) => ({
         id: i,
         position: i + 1,
         text_uthmani: word,
-        text_simple: word,
+        text_simple: simpleWords[i] ?? word,
         root: rawEntries[i]?.r || undefined,
         lemma: rawEntries[i]?.l || undefined,
       }));
@@ -112,7 +115,7 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
     return () => {
       cancelled = true;
     };
-  }, [verse.verse_key, verse.text_uthmani]);
+  }, [verse.verse_key, verse.text_uthmani, verse.text_simple]);
 
   // Keyboard navigation — skip when inside an editable element
   useEffect(() => {
@@ -206,6 +209,7 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
                   updateWordFamiliarityRef={updateWordFamiliarityRef}
                   onNavigateToVerse={onNavigateToVerse}
                   canvasCacheRef={canvasCacheRef}
+                  scriptType={scriptType}
                 />
               </ReactFlowProvider>
             )}

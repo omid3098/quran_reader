@@ -26,6 +26,7 @@ interface NodeReaderCanvasProps {
   updateWordFamiliarityRef: React.MutableRefObject<((words: QuranWord[]) => void) | null>;
   onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
   canvasCacheRef: React.MutableRefObject<Map<string, CanvasSnapshot>>;
+  scriptType: "uthmani" | "simple";
 }
 
 export function NodeReaderCanvas({
@@ -38,6 +39,7 @@ export function NodeReaderCanvas({
   updateWordFamiliarityRef,
   onNavigateToVerse,
   canvasCacheRef,
+  scriptType,
 }: NodeReaderCanvasProps) {
   const containerRef = useRef<HTMLDivElement>(null);
   const { fitView } = useReactFlow();
@@ -52,8 +54,8 @@ export function NodeReaderCanvas({
   // Compute initial word nodes
   const initialNodes = useMemo(() => {
     const width = containerRef.current?.clientWidth ?? 800;
-    return layoutWordNodes(words, verseKey, width).nodes as Node[];
-  }, [words, verseKey]);
+    return layoutWordNodes(words, verseKey, width, scriptType).nodes as Node[];
+  }, [words, verseKey, scriptType]);
 
   const {
     nodes,

@@ -1611,6 +1611,7 @@ const App: React.FC = () => {
             onSaveSurahNote={saveSurahNote}
             theme={settings.theme}
             fontSize={settings.fontSize}
+            scriptType={settings.scriptType}
           />
         </Suspense>
       )}
