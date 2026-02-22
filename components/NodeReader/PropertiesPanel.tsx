@@ -540,7 +540,7 @@ function WordInfo({
       {/* Phrase Matches — grouped by match type */}
       {phraseMatches && phraseMatches.length > 0 && (
         <>
-          {(["lemma", "root"] as PhraseMatchType[]).map((type) => {
+          {(["lemma", "root", "surface"] as PhraseMatchType[]).map((type) => {
             const grouped = phraseMatches.filter((m) => m.matchType === type);
             if (grouped.length === 0) return null;
             return (
@@ -829,11 +829,26 @@ const PHRASE_SECTION_STYLES: Record<
     divider: "divide-teal-900/30",
     hoverBg: "hover:bg-teal-900/10",
   },
+  surface: {
+    border: "border-violet-800/50",
+    bg: "bg-violet-950/10",
+    icon: "text-violet-500",
+    label: "Shared Surface Patterns",
+    text: "text-violet-200",
+    textMuted: "text-violet-500/60",
+    btnText: "text-violet-400",
+    btnBg: "bg-violet-950/50",
+    btnBorder: "border-violet-800/50",
+    btnHover: "hover:border-violet-500 hover:bg-violet-900/30",
+    divider: "divide-violet-900/30",
+    hoverBg: "hover:bg-violet-900/10",
+  },
 };
 
 const TOGGLE_STYLES = {
   lemma: { track: "bg-amber-600", knob: "bg-amber-200" },
   root: { track: "bg-teal-600", knob: "bg-teal-200" },
+  surface: { track: "bg-violet-600", knob: "bg-violet-200" },
 } as const;
 
 function PhraseToggle({ on, matchType }: { on: boolean; matchType: PhraseMatchType }) {
@@ -866,12 +881,14 @@ function PhraseMatchesSection({
   const s = PHRASE_SECTION_STYLES[matchType];
 
   // Reset toggles when matches change (new word selected)
-  const matchesKeyRef = useRef("");
-  const newKey = matches.map((m) => m.keys.join(",")).join("|");
-  if (newKey !== matchesKeyRef.current) {
-    matchesKeyRef.current = newKey;
-    if (toggledSet.size > 0) setToggledSet(new Set());
-  }
+  const matchesKey = matches.map((m) => m.keys.join(",")).join("|");
+  const prevMatchesKeyRef = useRef(matchesKey);
+  useEffect(() => {
+    if (matchesKey !== prevMatchesKeyRef.current) {
+      prevMatchesKeyRef.current = matchesKey;
+      setToggledSet(new Set());
+    }
+  }, [matchesKey]);
 
   const handleToggle = useCallback(
     (idx: number, match: PhraseMatch) => {

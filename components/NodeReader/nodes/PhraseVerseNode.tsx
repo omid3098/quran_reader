@@ -1,8 +1,19 @@
 import { memo } from "react";
 import { Handle, Position, type NodeProps } from "@xyflow/react";
-import type { PhraseVerseNodeData } from "../../../types";
+import type { PhraseMatchType, PhraseVerseNodeData } from "../../../types";
 
-const STYLES = {
+const STYLES: Record<
+  PhraseMatchType,
+  {
+    border: string;
+    borderSelected: string;
+    bg: string;
+    bgSelected: string;
+    shadow: string;
+    text: string;
+    handle: string;
+  }
+> = {
   lemma: {
     border: "border-amber-700",
     borderSelected: "border-amber-500",
@@ -21,7 +32,16 @@ const STYLES = {
     text: "text-teal-200",
     handle: "!bg-teal-500",
   },
-} as const;
+  surface: {
+    border: "border-violet-700",
+    borderSelected: "border-violet-500",
+    bg: "bg-violet-950/40",
+    bgSelected: "bg-violet-900/40",
+    shadow: "shadow-violet-500/10",
+    text: "text-violet-200",
+    handle: "!bg-violet-500",
+  },
+};
 
 function PhraseVerseNodeComponent({ data, selected }: NodeProps) {
   const d = data as unknown as PhraseVerseNodeData;

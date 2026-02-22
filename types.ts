@@ -258,7 +258,7 @@ export type NodeReaderNodeData = WordNodeData | PhraseVerseNodeData;
 
 // --- Phrase Match Types ---
 
-export type PhraseMatchType = "lemma" | "root";
+export type PhraseMatchType = "lemma" | "root" | "surface";
 
 export interface PhraseMatch {
   matchType: PhraseMatchType;

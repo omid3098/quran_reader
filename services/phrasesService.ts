@@ -37,11 +37,13 @@ const caches: Record<
 > = {
   lemma: { index: null, loading: null },
   root: { index: null, loading: null },
+  surface: { index: null, loading: null },
 };
 
 const FILE_MAP: Record<PhraseMatchType, string> = {
   lemma: "quran-phrases.json",
   root: "quran-root-phrases.json",
+  surface: "quran-surface-phrases.json",
 };
 
 /**
@@ -116,23 +118,26 @@ function loadIndex(matchType: PhraseMatchType): Promise<VerseWordIndex | null> {
   return cache.loading;
 }
 
-/** Load both lemma and root indices in parallel */
+/** Load all phrase indices in parallel */
 export async function loadPhraseIndex(): Promise<VerseWordIndex | null> {
-  const [lemma, root] = await Promise.all([loadIndex("lemma"), loadIndex("root")]);
-  // Return the lemma index for backward compat; merged lookups use both
-  return lemma || root;
+  const [lemma, root, surface] = await Promise.all([
+    loadIndex("lemma"),
+    loadIndex("root"),
+    loadIndex("surface"),
+  ]);
+  // Return the lemma index for backward compat; merged lookups use all
+  return lemma || root || surface;
 }
 
-/** Merge matches from both indices for a specific (verse, wordIndex) */
+/** Merge matches from all indices for a specific (verse, wordIndex) */
 function mergeMatches(
-  lemmaIndex: VerseWordIndex | null,
-  rootIndex: VerseWordIndex | null,
+  indices: (VerseWordIndex | null)[],
   verseKey: string,
   wordIndex: number
 ): PhraseMatch[] {
   const results: PhraseMatch[] = [];
 
-  for (const idx of [lemmaIndex, rootIndex]) {
+  for (const idx of indices) {
     if (!idx) continue;
     const verseMap = idx.get(verseKey);
     if (!verseMap) continue;
@@ -144,28 +149,31 @@ function mergeMatches(
 }
 
 /**
- * Remove root matches that are fully redundant with a lemma match.
- * A root match is redundant only when:
- *   1. Its wordIndices are a subset of (or equal to) a lemma match's wordIndices, AND
- *   2. ALL of its otherOccurrences (connected verses) are also found in that lemma match.
- * If the root match connects to even one verse that no lemma match covers, keep it.
+ * Remove lower-priority matches that are fully redundant with a higher-priority match.
+ * Priority: lemma > root > surface.
+ * A match is redundant only when:
+ *   1. Its wordIndices are a subset of (or equal to) a higher-priority match's wordIndices, AND
+ *   2. ALL of its otherOccurrences (connected verses) are also found in that match.
+ * If the match connects to even one verse that no higher-priority match covers, keep it.
  */
-function deduplicateRootMatches(matches: PhraseMatch[]): PhraseMatch[] {
-  const lemmaMatches = matches.filter((m) => m.matchType === "lemma");
-  if (lemmaMatches.length === 0) return matches;
+const MATCH_PRIORITY: Record<PhraseMatchType, number> = { lemma: 2, root: 1, surface: 0 };
 
+function deduplicateLowerPriorityMatches(matches: PhraseMatch[]): PhraseMatch[] {
   return matches.filter((m) => {
-    if (m.matchType === "lemma") return true;
+    const higherMatches = matches.filter(
+      (h) => MATCH_PRIORITY[h.matchType] > MATCH_PRIORITY[m.matchType]
+    );
+    if (higherMatches.length === 0) return true;
 
-    // Check if any lemma match fully covers this root match
-    return !lemmaMatches.some((lemma) => {
+    // Check if any higher-priority match fully covers this match
+    return !higherMatches.some((higher) => {
       // 1. Word indices must be covered
-      const indicesCovered = m.wordIndices.every((idx) => lemma.wordIndices.includes(idx));
+      const indicesCovered = m.wordIndices.every((idx) => higher.wordIndices.includes(idx));
       if (!indicesCovered) return false;
 
       // 2. All connected verses must also be covered
-      const lemmaVerses = new Set(lemma.otherOccurrences.map((o) => o.verse));
-      return m.otherOccurrences.every((o) => lemmaVerses.has(o.verse));
+      const higherVerses = new Set(higher.otherOccurrences.map((o) => o.verse));
+      return m.otherOccurrences.every((o) => higherVerses.has(o.verse));
     });
   });
 }
@@ -204,43 +212,44 @@ function deduplicateSubphrases(matches: PhraseMatch[]): PhraseMatch[] {
 
 /**
  * Find all phrase matches for a specific word in a verse.
- * Returns matches from both lemma and root indices.
- * Root matches already covered by lemma matches are excluded.
+ * Returns matches from lemma, root, and surface indices.
+ * Lower-priority matches covered by higher-priority ones are excluded.
  * Sub-phrases with no unique verse connections are excluded.
- * Sorted by phrase length (longest first), then lemma before root.
+ * Sorted by phrase length (longest first), then by priority (lemma > root > surface).
  */
 export async function findPhrasesForWord(
   verseKey: string,
   wordIndex: number
 ): Promise<PhraseMatch[]> {
-  const [lemmaIdx, rootIdx] = await Promise.all([loadIndex("lemma"), loadIndex("root")]);
-  const matches = mergeMatches(lemmaIdx, rootIdx, verseKey, wordIndex);
+  const indices = await Promise.all([loadIndex("lemma"), loadIndex("root"), loadIndex("surface")]);
+  const matches = mergeMatches(indices, verseKey, wordIndex);
   if (matches.length === 0) return [];
 
-  const deduped = deduplicateSubphrases(deduplicateRootMatches(matches));
+  const deduped = deduplicateSubphrases(deduplicateLowerPriorityMatches(matches));
 
   return deduped.sort((a, b) => {
     const lenDiff = b.keys.length - a.keys.length;
     if (lenDiff !== 0) return lenDiff;
-    if (a.matchType !== b.matchType) return a.matchType === "lemma" ? -1 : 1;
+    const priDiff = MATCH_PRIORITY[b.matchType] - MATCH_PRIORITY[a.matchType];
+    if (priDiff !== 0) return priDiff;
     return 0;
   });
 }
 
 /**
  * Find all phrase matches for a verse (all words).
- * Returns a merged map of wordIndex → PhraseMatch[] from both indices.
- * Root matches covered by lemma matches are excluded.
+ * Returns a merged map of wordIndex → PhraseMatch[] from all indices.
+ * Lower-priority matches covered by higher-priority ones are excluded.
  */
 export async function findPhrasesForVerse(
   verseKey: string
 ): Promise<Map<number, PhraseMatch[]> | null> {
-  const [lemmaIdx, rootIdx] = await Promise.all([loadIndex("lemma"), loadIndex("root")]);
-  if (!lemmaIdx && !rootIdx) return null;
+  const indices = await Promise.all([loadIndex("lemma"), loadIndex("root"), loadIndex("surface")]);
+  if (indices.every((idx) => !idx)) return null;
 
   const merged = new Map<number, PhraseMatch[]>();
 
-  for (const idx of [lemmaIdx, rootIdx]) {
+  for (const idx of indices) {
     if (!idx) continue;
     const verseMap = idx.get(verseKey);
     if (!verseMap) continue;
@@ -254,9 +263,9 @@ export async function findPhrasesForVerse(
     }
   }
 
-  // Deduplicate root matches covered by lemma, then sub-phrases per word
+  // Deduplicate lower-priority matches, then sub-phrases per word
   for (const [wordIdx, matches] of merged) {
-    merged.set(wordIdx, deduplicateSubphrases(deduplicateRootMatches(matches)));
+    merged.set(wordIdx, deduplicateSubphrases(deduplicateLowerPriorityMatches(matches)));
   }
 
   return merged.size > 0 ? merged : null;

@@ -15,6 +15,11 @@ export const NODE_READER_COLORS: Record<string, ColorEntry> = {
     swatch: "bg-teal-500",
     description: "Shared root",
   },
+  surfaceMatch: {
+    label: "Surface Pattern",
+    swatch: "bg-violet-500",
+    description: "Shared word pattern",
+  },
   rootAnalysis: {
     label: "Root",
     swatch: "bg-indigo-500",

@@ -421,7 +421,7 @@ const normalizeForSearch = (text: string): string => {
     .trim();
 };
 
-// Search for exact phrase using local data
+// Search for exact phrase using actual verse text (includes all words including particles)
 export const searchPhrase = async (
   phrase: string
 ): Promise<{ count: number; verses: { verse_key: string; text: string }[] }> => {
@@ -438,22 +438,17 @@ export const searchPhrase = async (
     const normalizedPhrase = normalizeForSearch(cleanPhrase);
     if (!normalizedPhrase) return { count: 0, verses: [] };
 
-    // Use local root data to search through all verses
-    const rootData = await loadLocalRootData();
-    if (!rootData) return { count: 0, verses: [] };
-
     const results: { verse_key: string; text: string }[] = [];
 
-    for (const [verseKey, words] of Object.entries(rootData)) {
-      // Reconstruct verse text from word entries
-      const verseText = words
-        .filter((w): w is { r: string; l: string; t: string } => w !== null)
-        .map((w) => w.t)
-        .join(" ");
-
-      const normalizedVerse = normalizeForSearch(verseText);
-      if (normalizedVerse.includes(normalizedPhrase)) {
-        results.push({ verse_key: verseKey, text: sanitizeQuranText(verseText) });
+    // Search using actual verse text from per-surah files (includes particles)
+    for (let surah = 1; surah <= 114; surah++) {
+      const surahData = await loadSurahText(surah);
+      for (const verse of surahData.verses) {
+        const verseKey = `${surah}:${verse.numberInSurah}`;
+        const normalizedVerse = normalizeForSearch(verse.text_uthmani);
+        if (normalizedVerse.includes(normalizedPhrase)) {
+          results.push({ verse_key: verseKey, text: sanitizeQuranText(verse.text_uthmani) });
+        }
       }
     }
 

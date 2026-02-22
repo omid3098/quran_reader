@@ -111,6 +111,7 @@ interface PhraseVerseLayoutResult {
 const PHRASE_EDGE_STYLES: Record<PhraseMatchType, { stroke: string; strokeDasharray: string }> = {
   lemma: { stroke: "#f59e0b", strokeDasharray: "5 3" },
   root: { stroke: "#14b8a6", strokeDasharray: "5 3" },
+  surface: { stroke: "#8b5cf6", strokeDasharray: "5 3" },
 };
 
 /**
