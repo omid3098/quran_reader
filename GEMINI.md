@@ -5,11 +5,10 @@ Design decisions, workflows, and architectural context live in `docs/`. **Before
 Key docs:
 
 - `docs/index.md` — Master index with status of each topic
-- `docs/study-workflow.md` — How the user actually studies (spiral, not linear)
 - `docs/analysis-framework.md` — The 11-step Quran analysis framework
 - `docs/data-architecture.md` — Three-layer data model (computed, KB, narrative)
 - `docs/node-reader-redesign.md` — NodeReader UX: problems, FSCR scoring, open questions
-- `docs/sample-notes.md` — Patterns from real study notes
+- `docs/note-style-guide.md` — Writing voice, note structure, formatting patterns (imported into Prompt Builder)
 
 ## Project Overview
 

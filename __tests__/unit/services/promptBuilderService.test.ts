@@ -119,9 +119,9 @@ describe("promptBuilderService", () => {
       expect(result).toContain("37:35");
     });
 
-    it("omits cross-references section when none exist", () => {
+    it("omits cross-references data section when none exist", () => {
       const result = buildPromptText(makeContext());
-      expect(result).not.toContain("Cross-References");
+      expect(result).not.toContain("## Cross-References (Shared Patterns)");
     });
 
     it("includes KB connections", () => {
@@ -162,16 +162,19 @@ describe("promptBuilderService", () => {
       expect(result).not.toContain("Your Notes on");
     });
 
-    it("includes analysis framework section", () => {
+    it("includes note style guide section", () => {
       const result = buildPromptText(makeContext());
-      expect(result).toContain("Analysis Framework");
-      // Should contain key concepts from the framework
-      expect(result).toContain("root etymology");
+      expect(result).toContain("Note Style Guide");
+      // Should contain key concepts from the style guide
+      expect(result).toContain("Two-Part Note Architecture");
     });
 
-    it("ends with instruction to analyze in Persian", () => {
+    it("ends with instruction requesting three-part output", () => {
       const result = buildPromptText(makeContext());
-      expect(result).toContain("Persian");
+      expect(result).toContain("بخش ۱");
+      expect(result).toContain("بخش ۲");
+      expect(result).toContain("بخش ۳");
+      expect(result).toContain("فارسی محاوره‌ای");
     });
 
     it("includes sample notes section when present", () => {
@@ -195,20 +198,6 @@ describe("promptBuilderService", () => {
       expect(result).not.toContain("Sample Notes");
     });
 
-    it("includes style hint in instruction when sample notes present", () => {
-      const result = buildPromptText(
-        makeContext({
-          sampleNotes: [{ verseKey: "2:254", text: "some note" }],
-        })
-      );
-      expect(result).toContain("same depth, tone, and style");
-    });
-
-    it("omits style hint when no sample notes", () => {
-      const result = buildPromptText(makeContext({ sampleNotes: [] }));
-      expect(result).not.toContain("same depth, tone, and style");
-    });
-
     it("produces a non-trivial prompt with all sections populated", () => {
       const result = buildPromptText(
         makeContext({
@@ -229,7 +218,7 @@ describe("promptBuilderService", () => {
       expect(result).toContain("Connections");
       expect(result).toContain("My verse note");
       expect(result).toContain("My surah note");
-      expect(result).toContain("Analysis Framework");
+      expect(result).toContain("Note Style Guide");
     });
   });
 

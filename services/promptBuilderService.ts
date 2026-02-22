@@ -4,6 +4,7 @@ import { blocksToText } from "./noteContent";
 import { loadKnowledgeBase } from "./knowledgeBaseService";
 import { findPhrasesForVerse } from "./phrasesService";
 import { computeBacklinks } from "./noteBacklinksService";
+import noteStyleGuide from "@/docs/note-style-guide.md?raw";
 
 // ---------------------------------------------------------------------------
 // Public types
@@ -27,24 +28,8 @@ export interface PromptContext {
 }
 
 // ---------------------------------------------------------------------------
-// Condensed analysis framework (~250 words)
+// Style guide — imported from docs/note-style-guide.md at build time
 // ---------------------------------------------------------------------------
-
-const ANALYSIS_FRAMEWORK = `## Analysis Framework
-
-Use these principles when analyzing the verse:
-
-1. **Definition Source Hierarchy** — The Quran's own contextual usage and root etymology take precedence over conventional or theological definitions. No two words are exact synonyms; subtle differences must be extracted from the text itself.
-
-2. **Networked Thinking** — Each verse is part of a unified text. Search for every other place a word or concept appears. How is it used there? Does another verse add a condition, exception, or example?
-
-3. **Principle of Optimality** — Every word is there for a reason. Nothing is filler. If something seems redundant, ask "why is this here?" and "what am I missing?"
-
-4. **Grammar and Syntax Check** — Before interpreting meaning, verify the structural level: verb forms, particles, pronoun references, sentence structure. These are language mechanics, not interpretation.
-
-5. **Process Orientation** — Many Quranic concepts that we treat as labels actually describe ongoing processes. "Muslim" means "one who submits" — submitting is continuous, not a one-time status.
-
-6. **Principle of Uncertainty** — Any conclusion is one possible reading among many. Say "it seems" or "my reading is" — not as formality, but because we mean it.`;
 
 // ---------------------------------------------------------------------------
 // collectSampleNotes — pure helper: finds up to MAX_SAMPLES notes from linked ayahs
@@ -171,17 +156,32 @@ export function buildPromptText(ctx: PromptContext): string {
     sections.push(`## Sample Notes from Your Recent Analysis\n\n${items}`);
   }
 
-  // Analysis framework
-  sections.push(ANALYSIS_FRAMEWORK);
+  // Style guide (includes analytical principles, voice, structure, formatting)
+  sections.push(`## Note Style Guide\n\n${noteStyleGuide}`);
 
   // Final instruction
-  const styleHint =
-    ctx.sampleNotes.length > 0
-      ? " Write your analysis in the same depth, tone, and style as the sample notes shown above."
-      : "";
-  sections.push(
-    `---\nPlease analyze this verse considering all the context above.${styleHint} Respond in Persian.`
-  );
+  sections.push(`---
+## Instructions
+
+با استفاده از تمام context بالا و مطابق با style guide، یک نوت تفسیری برای این آیه بنویس.
+
+**خروجی باید سه بخش داشته باشه:**
+
+### بخش ۱ — نوت ساده (برای مخاطب عام)
+مخاطبی که عربی نمی‌دونه باید بتونه بفهمه. بدون jargon توضیح‌داده‌نشده. مثال‌های روزمره. context آیات قبلی و بعدی.
+
+### --- (جداکننده)
+
+### بخش ۲ — نوت فنی (برای علاقه‌مندان به عمق زبانی)
+تحلیل نحوی و صرفی. ریشه‌ها با cross-reference. خوانش‌های متعدد. جداول ساختاری.
+
+### --- (جداکننده)
+
+### بخش ۳ — جدول ریشه‌ها و لِمّاها (مستقل از نوت)
+جدول با ستون‌های: کلمه | لِمّا | ریشه | معنی ریشه | توضیح مختصر
+برای تمام کلمات معنادار آیه (حروف اضافه و ربط رو رد کن).
+
+زبان: فارسی محاوره‌ای.`);
 
   return sections.join("\n\n");
 }

@@ -89,7 +89,7 @@ After going through the steps above, look at what traditional commentaries have 
 
 ## Relevance to the Tool
 
-The NodeReader should support this framework, but **not enforce its linear ordering**. The [actual workflow](study-workflow.md) is a spiral. The tool's job is to make the data available when the user needs it, not to dictate the sequence.
+The NodeReader should support this framework, but **not enforce its linear ordering**. The actual workflow is a spiral (word catches attention → root → cross-references → insight → note → next word). The tool's job is to make the data available when the user needs it, not to dictate the sequence.
 
 Key tool-relevant sections:
 
