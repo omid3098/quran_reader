@@ -6,3 +6,4 @@ test-results
 bun.lock
 *.min.js
 *.min.css
+public/data/

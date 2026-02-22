@@ -20,12 +20,20 @@
 
 ### Layer 1: Shared Computed Data
 
-Computed once, used by everyone.
+Computed once, used by everyone. All files live in `public/` or `public/data/` as static JSON, loaded at runtime via `fetch()`.
 
-| File                 | Status        | Content                                     |
-| -------------------- | ------------- | ------------------------------------------- |
-| `quran-roots.json`   | Exists        | Root, lemma, text per word per verse        |
-| `quran-phrases.json` | Built (4.5MB) | Repeated lemma/root sequences across verses |
+| File                              | Status        | Content                                                              |
+| --------------------------------- | ------------- | -------------------------------------------------------------------- |
+| `quran-roots.json`                | Exists        | Root, lemma, text per word per verse                                 |
+| `quran-phrases.json`              | Built (4.5MB) | Repeated lemma/root sequences across verses                          |
+| `data/chapters.json`              | Built (~15KB) | 114 chapter metadata (name, verse count, revelation place)           |
+| `data/quran/1.json`–`114.json`    | Built (~3MB)  | Per-surah Quran text (Uthmani + Simple), pre-sanitized at build time |
+| `data/translations/*.json`        | Built (16)    | Bundled translations (13 Persian + 3 English), ~1.5MB each           |
+| `data/translations-registry.json` | Built (~20KB) | Catalog of all available translations (bundled + downloadable)       |
+
+**Data generation:** `bun run generate-quran-data` fetches from `api.alquran.cloud` once and writes static JSON files. Text sanitization (`sanitizeQuranText()`) applied at generation time so runtime doesn't need to.
+
+**Translation strategy:** Persian + English translations bundled as static files. All other translations downloadable on-demand via Settings, stored in IndexedDB (not localStorage — size limits).
 
 **quran-phrases.json decisions:**
 
@@ -84,15 +92,36 @@ When we have per-root and per-lemma notes, word-in-context analysis (like "innam
 
 ## Decisions Log
 
-| Question                | Decision          | Reason                                            |
-| ----------------------- | ----------------- | ------------------------------------------------- |
-| KB file structure       | Single large JSON | Load once into memory, fast access                |
-| quran-phrases.json      | Build it          | First step, automated, independent of personal KB |
-| per-word-in-verse notes | Not needed        | Covered by root+lemma notes + BlockNote per-verse |
+| Question                       | Decision                                     | Reason                                                                |
+| ------------------------------ | -------------------------------------------- | --------------------------------------------------------------------- |
+| KB file structure              | Single large JSON                            | Load once into memory, fast access                                    |
+| quran-phrases.json             | Build it                                     | First step, automated, independent of personal KB                     |
+| per-word-in-verse notes        | Not needed                                   | Covered by root+lemma notes + BlockNote per-verse                     |
+| Core data loading              | Local-first (bundled static JSON)            | Eliminates API latency, enables offline reading, data is small (~3MB) |
+| Translation strategy           | Persian+English bundled, others downloadable | Covers primary audience; others available on-demand via IndexedDB     |
+| Downloaded translation storage | IndexedDB                                    | localStorage has ~5-10MB limit; single translation is ~1.5MB          |
+| Text sanitization timing       | At generation time                           | Runtime doesn't need to re-sanitize; cleaner data layer               |
+| Per-surah file splitting       | 114 separate files                           | Matches lazy-per-chapter loading pattern; only loads what's needed    |
 
 ## Implementation Status
 
+**Local-first data layer:**
+
+- [x] Build data generation script — `scripts/generate-quran-data.ts` (chapters, quran text, translations, registry)
+- [x] Generate static data files — `public/data/` (chapters, 114 surah files, 16 translations, registry)
+- [x] Create local data service — `services/localDataService.ts` (in-memory caching, deduplication)
+- [x] Create IndexedDB storage — `services/translationStorageService.ts` (downloaded translation persistence)
+- [x] Create translation download service — `services/translationDownloadService.ts` (on-demand download + IndexedDB storage)
+- [x] Migrate quranService.ts to local data — all API calls replaced with `localDataService` calls
+- [x] Migrate analysisService.ts to local data — `batchFetchVerseTexts()` and `searchPhrase()` now use local data
+- [x] Translation download UI in SettingsSidebar — bundled indicator, download button with progress, delete for downloaded
+
+**Computed data:**
+
 - [x] Build quran-phrases.json generation script — `public/quran-phrases.json` (4.5MB)
+
+**Personal KB:**
+
 - [x] Define TypeScript types for KB structure — `types.ts`
 - [x] Create KB CRUD service — `knowledgeBaseService.ts` (roots, lemmas)
 - [x] Implement connection CRUD — `saveConnection`, `deleteConnection`, `getConnectionsForVerse` in `knowledgeBaseService.ts`

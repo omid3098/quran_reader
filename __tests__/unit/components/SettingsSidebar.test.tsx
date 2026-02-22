@@ -6,6 +6,7 @@ import type { AppSettings, VerseNote } from "@/types";
 // Mock the quranService
 vi.mock("@/services/quranService", () => ({
   RECITERS: [{ id: "alafasy", name: "Mishary Rashid Alafasy", subfolder: "Alafasy_64kbps" }],
+  PREFERRED_TRANSLATIONS: [],
   getAvailableTranslations: vi.fn().mockResolvedValue([
     {
       id: "en.sahih",
@@ -22,6 +23,38 @@ vi.mock("@/services/quranService", () => ({
       language_name: "Persian",
     },
   ]),
+}));
+
+// Mock localDataService
+vi.mock("@/services/localDataService", () => ({
+  loadTranslationRegistry: vi.fn().mockResolvedValue({
+    _meta: { source: "test", generated: "2024-01-01" },
+    bundled: [
+      {
+        id: "en.sahih",
+        name: "Saheeh International",
+        author_name: "Saheeh",
+        language_name: "English",
+        direction: "ltr",
+        slug: "en.sahih",
+        bundled: true,
+      },
+    ],
+    downloadable: [],
+  }),
+  evictTranslationCache: vi.fn(),
+}));
+
+// Mock translation download/storage services
+vi.mock("@/services/translationDownloadService", () => ({
+  downloadTranslation: vi.fn(),
+  getDownloadedTranslationIds: vi.fn().mockResolvedValue([]),
+}));
+
+vi.mock("@/services/translationStorageService", () => ({
+  deleteTranslation: vi.fn(),
+  getTranslation: vi.fn().mockResolvedValue(null),
+  getDownloadedTranslationIds: vi.fn().mockResolvedValue([]),
 }));
 
 describe("SettingsSidebar", () => {

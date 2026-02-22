@@ -1,30 +1,6 @@
 import { QuranWord, RootAnalysis, RootWordForm } from "../types";
 import { sanitizeQuranText } from "./textSanitizer";
-
-// API response types
-interface QuranApiWord {
-  id?: number;
-  position?: number;
-  char_type_name: string;
-  text_uthmani?: string;
-  text_simple?: string;
-  root?: { arabic?: string };
-  lemma?: { arabic?: string };
-}
-
-interface SearchResult {
-  verse_key: string;
-  text: string;
-}
-
-interface AlQuranCloudMatch {
-  surah: { number: number };
-  numberInSurah: number;
-  text: string;
-}
-
-const API_V4_BASE = "https://api.quran.com/api/v4";
-const API_CLOUD_BASE = "https://api.alquran.cloud/v1";
+import { loadSurahText } from "./localDataService";
 
 // Standard Mashriqi Abjad Values
 const ABJAD_MAP: Record<string, number> = {
@@ -99,25 +75,7 @@ let rootDataLoading: Promise<LocalRootData | null> | null = null;
 // Verse text cache for concordance display
 const verseTextCache: Map<string, string> = new Map();
 
-// Fetch verse text from API (with caching)
-const fetchVerseText = async (verseKey: string): Promise<string> => {
-  if (verseTextCache.has(verseKey)) {
-    return verseTextCache.get(verseKey)!;
-  }
-
-  try {
-    const response = await fetch(`https://api.alquran.cloud/v1/ayah/${verseKey}/quran-uthmani`);
-    if (!response.ok) return "";
-    const data = await response.json();
-    const text = sanitizeQuranText(data.data?.text || "");
-    verseTextCache.set(verseKey, text);
-    return text;
-  } catch {
-    return "";
-  }
-};
-
-// Batch fetch verse texts for multiple verse keys (grouped by surah for efficiency)
+// Batch load verse texts for multiple verse keys (grouped by surah for efficiency)
 const batchFetchVerseTexts = async (verseKeys: string[]): Promise<Map<string, string>> => {
   const results = new Map<string, string>();
 
@@ -129,40 +87,32 @@ const batchFetchVerseTexts = async (verseKeys: string[]): Promise<Map<string, st
     bySurah.get(surah)!.push(key);
   }
 
-  // Fetch each surah's verses
-  const fetchPromises = Array.from(bySurah.entries()).map(async ([surahNum, keys]) => {
+  // Load each surah's data locally
+  const loadPromises = Array.from(bySurah.entries()).map(async ([surahNum, keys]) => {
     // Check cache first
     const uncachedKeys = keys.filter((k) => !verseTextCache.has(k));
     if (uncachedKeys.length === 0) {
-      // All cached
       keys.forEach((k) => results.set(k, verseTextCache.get(k)!));
       return;
     }
 
     try {
-      const response = await fetch(`https://api.alquran.cloud/v1/surah/${surahNum}/quran-uthmani`);
-      if (!response.ok) return;
-      const data = await response.json();
+      const surahText = await loadSurahText(surahNum);
 
       // Cache all verses from this surah
-      for (const ayah of data.data?.ayahs || []) {
-        const key = `${surahNum}:${ayah.numberInSurah}`;
-        const sanitized = sanitizeQuranText(ayah.text);
-        verseTextCache.set(key, sanitized);
+      for (const v of surahText.verses) {
+        const key = `${surahNum}:${v.numberInSurah}`;
+        verseTextCache.set(key, v.text_uthmani);
         if (keys.includes(key)) {
-          results.set(key, sanitized);
+          results.set(key, v.text_uthmani);
         }
       }
     } catch {
-      // Fallback: fetch individually for failed surahs
-      for (const key of keys) {
-        const text = await fetchVerseText(key);
-        if (text) results.set(key, text);
-      }
+      // Surah data not available
     }
   });
 
-  await Promise.all(fetchPromises);
+  await Promise.all(loadPromises);
   return results;
 };
 
@@ -356,15 +306,10 @@ export const findRootForWord = async (word: string): Promise<string | null> => {
 // Get word data from local root database
 export const getVerseWordData = async (verseKey: string): Promise<QuranWord[]> => {
   const data = await loadLocalRootData();
-  if (!data) {
-    // Fallback to API if local data not available
-    return getVerseWordDataFromAPI(verseKey);
-  }
+  if (!data) return [];
 
   const verseData = data[verseKey];
-  if (!verseData) {
-    return getVerseWordDataFromAPI(verseKey);
-  }
+  if (!verseData) return [];
 
   // Convert local data format to QuranWord format
   return verseData
@@ -379,37 +324,12 @@ export const getVerseWordData = async (verseKey: string): Promise<QuranWord[]> =
     .filter((w) => w.text_uthmani); // Filter out null entries
 };
 
-// Fallback: Fetch from API (original implementation)
-const getVerseWordDataFromAPI = async (verseKey: string): Promise<QuranWord[]> => {
-  try {
-    const response = await fetch(
-      `${API_V4_BASE}/verses/by_key/${verseKey}?words=true&word_fields=root,lemma,text_uthmani,text_simple`
-    );
-    if (!response.ok) return [];
-    const data = await response.json();
-    return (data.verse?.words || [])
-      .filter((w: QuranApiWord) => w.char_type_name !== "end")
-      .map((w: QuranApiWord, index: number) => ({
-        id: w.id ?? index,
-        position: w.position ?? index + 1,
-        text_uthmani: w.text_uthmani || "",
-        text_simple: w.text_simple || w.text_uthmani || "",
-        root: w.root?.arabic,
-        lemma: w.lemma?.arabic,
-      }));
-  } catch (error) {
-    console.error("Error fetching word data:", error);
-    return [];
-  }
-};
-
 // Search for verses containing a specific root using local data
 export const findVersesByRoot = async (root: string): Promise<RootAnalysis> => {
   const data = await loadLocalRootData();
 
   if (!data) {
-    // Fallback to API search
-    return findVersesByRootFromAPI(root);
+    return { root, occurrences: 0, verses: [], wordForms: [] };
   }
 
   const normalizedSearchRoot = normalizeArabic(root);
@@ -486,33 +406,22 @@ export const findVersesByRoot = async (root: string): Promise<RootAnalysis> => {
   };
 };
 
-// Fallback: Search from API (original implementation)
-const findVersesByRootFromAPI = async (root: string): Promise<RootAnalysis> => {
-  try {
-    const response = await fetch(
-      `${API_V4_BASE}/search?q=${encodeURIComponent(root)}&size=20&language=en`
-    );
-    if (!response.ok) throw new Error("Search failed");
-    const data = await response.json();
-
-    const matches = data.search.results.map((r: SearchResult) => ({
-      verse_key: r.verse_key,
-      text: sanitizeQuranText(r.text),
-    }));
-
-    return {
-      root,
-      occurrences: data.search.total_results || matches.length,
-      verses: matches,
-      wordForms: [],
-    };
-  } catch (error) {
-    console.error("Error finding root:", error);
-    return { root, occurrences: 0, verses: [], wordForms: [] };
-  }
+// Normalize text for phrase search (keep spaces, remove diacritics, normalize letters)
+const normalizeForSearch = (text: string): string => {
+  return text
+    .normalize("NFKD")
+    .replace(/\u0640/g, "") // tatweel
+    .replace(/[\u0610-\u061A\u064B-\u065F\u0670\u06D6-\u06ED]/g, "") // tashkeel
+    .replace(/[ٱإأآ]/g, "ا")
+    .replace(/[ى]/g, "ي")
+    .replace(/[ئ]/g, "ي")
+    .replace(/[ؤ]/g, "و")
+    .replace(/[ة]/g, "ه")
+    .replace(/\s+/g, " ")
+    .trim();
 };
 
-// Search for exact phrase
+// Search for exact phrase using local data
 export const searchPhrase = async (
   phrase: string
 ): Promise<{ count: number; verses: { verse_key: string; text: string }[] }> => {
@@ -526,23 +435,36 @@ export const searchPhrase = async (
 
     if (!cleanPhrase) return { count: 0, verses: [] };
 
-    const response = await fetch(
-      `${API_CLOUD_BASE}/search/${encodeURIComponent(cleanPhrase)}/all/quran-simple-clean`
-    );
+    const normalizedPhrase = normalizeForSearch(cleanPhrase);
+    if (!normalizedPhrase) return { count: 0, verses: [] };
 
-    if (!response.ok) return { count: 0, verses: [] };
+    // Use local root data to search through all verses
+    const rootData = await loadLocalRootData();
+    if (!rootData) return { count: 0, verses: [] };
 
-    const data = await response.json();
+    const results: { verse_key: string; text: string }[] = [];
 
-    if (!data.data || !data.data.matches) return { count: 0, verses: [] };
+    for (const [verseKey, words] of Object.entries(rootData)) {
+      // Reconstruct verse text from word entries
+      const verseText = words
+        .filter((w): w is { r: string; l: string; t: string } => w !== null)
+        .map((w) => w.t)
+        .join(" ");
 
-    return {
-      count: data.data.count,
-      verses: data.data.matches.map((m: AlQuranCloudMatch) => ({
-        verse_key: `${m.surah.number}:${m.numberInSurah}`,
-        text: sanitizeQuranText(m.text),
-      })),
-    };
+      const normalizedVerse = normalizeForSearch(verseText);
+      if (normalizedVerse.includes(normalizedPhrase)) {
+        results.push({ verse_key: verseKey, text: sanitizeQuranText(verseText) });
+      }
+    }
+
+    // Sort by verse order
+    results.sort((a, b) => {
+      const [aS, aV] = a.verse_key.split(":").map(Number);
+      const [bS, bV] = b.verse_key.split(":").map(Number);
+      return aS !== bS ? aS - bS : aV - bV;
+    });
+
+    return { count: results.length, verses: results };
   } catch (error) {
     console.error("Error searching phrase:", error);
     return { count: 0, verses: [] };

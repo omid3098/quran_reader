@@ -1,4 +1,4 @@
-import { describe, it, expect, vi, beforeEach, afterEach } from "vitest";
+import { describe, it, expect, vi, beforeEach } from "vitest";
 import {
   getChapters,
   getVerses,
@@ -6,19 +6,41 @@ import {
   getAvailableTranslations,
   RECITERS,
   PREFERRED_TRANSLATIONS,
+  getVerseByKey,
 } from "@/services/quranService";
 
-// Mock fetch globally
-const mockFetch = vi.fn();
-global.fetch = mockFetch;
+// Mock localDataService
+vi.mock("@/services/localDataService", () => ({
+  loadChapters: vi.fn(),
+  loadSurahText: vi.fn(),
+  loadTranslation: vi.fn(),
+  loadTranslationRegistry: vi.fn(),
+  evictTranslationCache: vi.fn(),
+}));
+
+// Mock translationStorageService (used by localDataService)
+vi.mock("@/services/translationStorageService", () => ({
+  getTranslation: vi.fn().mockResolvedValue(null),
+  saveTranslation: vi.fn(),
+  deleteTranslation: vi.fn(),
+  getDownloadedTranslationIds: vi.fn().mockResolvedValue([]),
+}));
+
+import {
+  loadChapters,
+  loadSurahText,
+  loadTranslation,
+  loadTranslationRegistry,
+} from "@/services/localDataService";
+
+const mockLoadChapters = vi.mocked(loadChapters);
+const mockLoadSurahText = vi.mocked(loadSurahText);
+const mockLoadTranslation = vi.mocked(loadTranslation);
+const mockLoadTranslationRegistry = vi.mocked(loadTranslationRegistry);
 
 describe("quranService", () => {
   beforeEach(() => {
-    mockFetch.mockClear();
-  });
-
-  afterEach(() => {
-    vi.resetAllMocks();
+    vi.clearAllMocks();
   });
 
   describe("RECITERS", () => {
@@ -57,137 +79,74 @@ describe("quranService", () => {
   });
 
   describe("getChapters", () => {
-    it("should fetch and transform chapters correctly", async () => {
-      const mockResponse = {
-        data: [
-          {
-            number: 1,
-            revelationType: "Meccan",
-            revelationOrder: 5,
-            englishName: "Al-Fatiha",
-            name: "الفاتحة",
-            numberOfAyahs: 7,
-            englishNameTranslation: "The Opening",
-          },
-          {
-            number: 2,
-            revelationType: "Medinan",
-            revelationOrder: 87,
-            englishName: "Al-Baqara",
-            name: "البقرة",
-            numberOfAyahs: 286,
-            englishNameTranslation: "The Cow",
-          },
-        ],
-      };
+    it("should load chapters from local data", async () => {
+      const mockChapters = [
+        {
+          id: 1,
+          revelation_place: "meccan",
+          revelation_order: 5,
+          bismillah_pre: false,
+          name_simple: "Al-Fatiha",
+          name_complex: "Al-Fatiha",
+          name_arabic: "الفاتحة",
+          verses_count: 7,
+          translated_name: { language_name: "English", name: "The Opening" },
+        },
+        {
+          id: 2,
+          revelation_place: "medinan",
+          revelation_order: 87,
+          bismillah_pre: true,
+          name_simple: "Al-Baqara",
+          name_complex: "Al-Baqarah",
+          name_arabic: "البقرة",
+          verses_count: 286,
+          translated_name: { language_name: "English", name: "The Cow" },
+        },
+      ];
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      });
+      mockLoadChapters.mockResolvedValueOnce(mockChapters);
 
       const chapters = await getChapters();
 
       expect(chapters).toHaveLength(2);
-      expect(chapters[0]).toEqual({
-        id: 1,
-        revelation_place: "meccan",
-        revelation_order: 5,
-        bismillah_pre: false, // Fatiha doesn't have prefixed bismillah
-        name_simple: "Al-Fatiha",
-        name_complex: "Al-Fatiha",
-        name_arabic: "الفاتحة",
-        verses_count: 7,
-        translated_name: {
-          language_name: "English",
-          name: "The Opening",
-        },
-      });
+      expect(chapters[0]).toEqual(mockChapters[0]);
     });
 
-    it("should return empty array on fetch error", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-      });
+    it("should return fallback chapters on error", async () => {
+      mockLoadChapters.mockRejectedValueOnce(new Error("Load failed"));
 
       const chapters = await getChapters();
       expect(chapters.length).toBeGreaterThan(0);
       expect(chapters[0].id).toBe(1);
-    });
-
-    it("should return empty array on network error", async () => {
-      mockFetch.mockRejectedValueOnce(new Error("Network error"));
-
-      const chapters = await getChapters();
-      expect(chapters.length).toBeGreaterThan(0);
-      expect(chapters[0].id).toBe(1);
-    });
-
-    it("should set bismillah_pre correctly for different surahs", async () => {
-      const mockResponse = {
-        data: [
-          {
-            number: 1,
-            revelationType: "Meccan",
-            englishName: "Al-Fatiha",
-            name: "الفاتحة",
-            numberOfAyahs: 7,
-            englishNameTranslation: "The Opening",
-          },
-          {
-            number: 2,
-            revelationType: "Medinan",
-            englishName: "Al-Baqara",
-            name: "البقرة",
-            numberOfAyahs: 286,
-            englishNameTranslation: "The Cow",
-          },
-          {
-            number: 9,
-            revelationType: "Medinan",
-            englishName: "At-Tawba",
-            name: "التوبة",
-            numberOfAyahs: 129,
-            englishNameTranslation: "The Repentance",
-          },
-        ],
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
-      });
-
-      const chapters = await getChapters();
-
-      expect(chapters[0].bismillah_pre).toBe(false); // Fatiha
-      expect(chapters[1].bismillah_pre).toBe(true); // Al-Baqara
-      expect(chapters[2].bismillah_pre).toBe(false); // At-Tawba (no bismillah)
     });
   });
 
   describe("getAvailableTranslations", () => {
-    it("should fetch and merge translations with preferred ones", async () => {
-      const mockResponse = {
-        data: [
+    it("should load translations from registry and merge with preferred", async () => {
+      mockLoadTranslationRegistry.mockResolvedValueOnce({
+        _meta: { source: "test", generated: "2024-01-01" },
+        bundled: [
           {
-            identifier: "en.sahih",
+            id: "en.sahih",
             name: "Sahih International",
-            englishName: "Sahih",
-            language: "en",
+            author_name: "Sahih",
+            language_name: "English",
+            direction: "ltr",
+            slug: "en.sahih",
+            bundled: true as const,
           },
           {
-            identifier: "fa.fooladvand",
+            id: "fa.fooladvand",
             name: "Fooladvand",
-            englishName: "Fooladvand",
-            language: "fa",
+            author_name: "Fooladvand",
+            language_name: "Persian",
+            direction: "rtl",
+            slug: "fa.fooladvand",
+            bundled: true as const,
           },
         ],
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
+        downloadable: [],
       });
 
       const translations = await getAvailableTranslations();
@@ -197,47 +156,47 @@ describe("quranService", () => {
       const languageNames = translations.map((t) => t.language_name);
       const sortedNames = [...languageNames].sort();
       expect(languageNames).toEqual(sortedNames);
+
+      // Persian translation should have preferred name
+      const fa = translations.find((t) => t.id === "fa.fooladvand");
+      expect(fa?.name).toBe("فولادوند");
     });
 
-    it("should return preferred translations on fetch error", async () => {
-      mockFetch.mockRejectedValueOnce(new Error("Network error"));
+    it("should return preferred translations on error", async () => {
+      mockLoadTranslationRegistry.mockRejectedValueOnce(new Error("Load failed"));
 
       const translations = await getAvailableTranslations();
-
       expect(translations.length).toBe(PREFERRED_TRANSLATIONS.length);
     });
   });
 
   describe("getVerses", () => {
-    it("should fetch and transform verses correctly", async () => {
-      const mockResponse = {
-        data: [
+    it("should load verses from local data and merge translations", async () => {
+      mockLoadSurahText.mockResolvedValueOnce({
+        surahId: 1,
+        verses: [
           {
-            edition: { identifier: "quran-uthmani" },
-            ayahs: [
-              { number: 1, numberInSurah: 1, text: "بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ" },
-            ],
-          },
-          {
-            edition: { identifier: "quran-simple" },
-            ayahs: [{ number: 1, numberInSurah: 1, text: "بسم الله الرحمن الرحيم" }],
-          },
-          {
-            edition: { identifier: "en.sahih", name: "Sahih International", direction: "ltr" },
-            ayahs: [
-              {
-                number: 1,
-                numberInSurah: 1,
-                text: "In the name of Allah, the Entirely Merciful, the Especially Merciful.",
-              },
-            ],
+            id: 1,
+            numberInSurah: 1,
+            text_uthmani: "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ",
+            text_simple: "بسم الله الرحمن الرحيم",
           },
         ],
-      };
+      });
 
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
+      mockLoadTranslation.mockResolvedValueOnce({
+        _meta: {
+          id: "en.sahih",
+          name: "Sahih International",
+          author_name: "Sahih",
+          language_name: "English",
+          direction: "ltr",
+          slug: "en.sahih",
+          generated: "2024-01-01",
+        },
+        verses: {
+          "1:1": "In the name of Allah, the Entirely Merciful, the Especially Merciful.",
+        },
       });
 
       const verses = await getVerses(1, ["en.sahih"]);
@@ -249,44 +208,63 @@ describe("quranService", () => {
       expect(verses[0]).toHaveProperty("text_simple");
       expect(verses[0]).toHaveProperty("translations");
       expect(verses[0].translations).toHaveLength(1);
+      expect(verses[0].translations[0].text).toContain("In the name of Allah");
     });
 
-    it("should return empty array on fetch error", async () => {
-      mockFetch.mockResolvedValueOnce({
-        ok: false,
-      });
+    it("should return fallback verses on error", async () => {
+      mockLoadSurahText.mockRejectedValueOnce(new Error("Load failed"));
 
       const verses = await getVerses(1);
       expect(verses.length).toBeGreaterThan(0);
       expect(verses[0].verse_key).toBe("1:1");
     });
 
-    it("should use default translation when none specified", async () => {
-      const mockResponse = {
-        data: [
-          {
-            edition: { identifier: "quran-uthmani" },
-            ayahs: [{ number: 1, numberInSurah: 1, text: "test" }],
-          },
-          {
-            edition: { identifier: "quran-simple" },
-            ayahs: [{ number: 1, numberInSurah: 1, text: "test" }],
-          },
-          {
-            edition: { identifier: "en.sahih", name: "Sahih", direction: "ltr" },
-            ayahs: [{ number: 1, numberInSurah: 1, text: "test translation" }],
-          },
-        ],
-      };
-
-      mockFetch.mockResolvedValueOnce({
-        ok: true,
-        json: () => Promise.resolve(mockResponse),
+    it("should handle missing translations gracefully", async () => {
+      mockLoadSurahText.mockResolvedValueOnce({
+        surahId: 1,
+        verses: [{ id: 1, numberInSurah: 1, text_uthmani: "test", text_simple: "test" }],
       });
 
-      await getVerses(1);
+      mockLoadTranslation.mockResolvedValueOnce(null); // Translation not available
 
-      expect(mockFetch).toHaveBeenCalledWith(expect.stringContaining("en.sahih"));
+      const verses = await getVerses(1, ["non.existent"]);
+      expect(verses).toHaveLength(1);
+      expect(verses[0].translations).toHaveLength(0);
+    });
+  });
+
+  describe("getVerseByKey", () => {
+    it("should load a single verse by key", async () => {
+      mockLoadSurahText.mockResolvedValueOnce({
+        surahId: 2,
+        verses: [
+          { id: 8, numberInSurah: 1, text_uthmani: "الم", text_simple: "الم" },
+          { id: 9, numberInSurah: 2, text_uthmani: "ذلك الكتاب", text_simple: "ذلك الكتاب" },
+        ],
+      });
+
+      mockLoadTranslation.mockResolvedValueOnce({
+        _meta: {
+          id: "en.sahih",
+          name: "Sahih International",
+          author_name: "Sahih",
+          language_name: "English",
+          direction: "ltr",
+          slug: "en.sahih",
+          generated: "2024-01-01",
+        },
+        verses: { "2:2": "This is the Book" },
+      });
+
+      const verse = await getVerseByKey("2:2", ["en.sahih"]);
+      expect(verse).not.toBeNull();
+      expect(verse!.verse_key).toBe("2:2");
+      expect(verse!.text_uthmani).toBe("ذلك الكتاب");
+    });
+
+    it("should return null for invalid verse key", async () => {
+      const verse = await getVerseByKey("invalid", ["en.sahih"]);
+      expect(verse).toBeNull();
     });
   });
 

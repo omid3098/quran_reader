@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef, useMemo } from "react";
+import React, { useState, useEffect, useRef, useMemo, useCallback } from "react";
 import {
   X,
   Type,
@@ -17,6 +17,9 @@ import {
   PenTool,
   NotebookPen,
   Globe,
+  Check,
+  CloudDownload,
+  Trash2,
 } from "lucide-react";
 import {
   AppSettings,
@@ -27,6 +30,13 @@ import {
   SurahNote,
 } from "../types";
 import { RECITERS, getAvailableTranslations } from "../services/quranService";
+import { loadTranslationRegistry } from "../services/localDataService";
+import {
+  downloadTranslation,
+  getDownloadedTranslationIds,
+} from "../services/translationDownloadService";
+import { deleteTranslation } from "../services/translationStorageService";
+import { evictTranslationCache } from "../services/localDataService";
 import { Spinner } from "./Spinner";
 
 interface SettingsSidebarProps {
@@ -75,6 +85,12 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
   const [reciterSearch, setReciterSearch] = useState("");
   const fileInputRef = useRef<HTMLInputElement>(null);
 
+  // Translation download state
+  const [bundledIds, setBundledIds] = useState<Set<string>>(new Set());
+  const [downloadedIds, setDownloadedIds] = useState<Set<string>>(new Set());
+  const [downloadingId, setDownloadingId] = useState<string | null>(null);
+  const [downloadProgress, setDownloadProgress] = useState(0);
+
   const noteSummary = useMemo(() => {
     const noteEntries = Object.entries(notes || {}) as [string, VerseNote][];
     const list = noteEntries.map(([verseKey, note]) => ({
@@ -100,18 +116,82 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
     onClose();
   };
 
-  // Load translations on mount
+  // Load translations and download status on mount
   useEffect(() => {
     const loadTranslations = async () => {
       setLoadingTranslations(true);
-      const data = await getAvailableTranslations();
+      const [data, registry, downloaded] = await Promise.all([
+        getAvailableTranslations(),
+        loadTranslationRegistry().catch(() => null),
+        getDownloadedTranslationIds().catch(() => [] as string[]),
+      ]);
       setAvailableTranslations(data);
+      if (registry) {
+        setBundledIds(new Set(registry.bundled.map((b) => b.id)));
+      }
+      setDownloadedIds(new Set(downloaded));
       setLoadingTranslations(false);
     };
     loadTranslations();
   }, []);
 
+  const isTranslationAvailable = useCallback(
+    (id: string) => bundledIds.has(id) || downloadedIds.has(id),
+    [bundledIds, downloadedIds]
+  );
+
+  const handleDownloadTranslation = useCallback(
+    async (id: string) => {
+      if (downloadingId) return; // One download at a time
+      setDownloadingId(id);
+      setDownloadProgress(0);
+      try {
+        await downloadTranslation(id, (percent) => setDownloadProgress(percent));
+        setDownloadedIds((prev) => new Set([...prev, id]));
+        // Auto-enable after download
+        const currentIds = settings.translationIds || [];
+        if (!currentIds.includes(id)) {
+          onUpdateSettings({ translationIds: [...currentIds, id] });
+        }
+      } catch (err) {
+        console.error("Failed to download translation:", err);
+      } finally {
+        setDownloadingId(null);
+        setDownloadProgress(0);
+      }
+    },
+    [downloadingId, settings.translationIds, onUpdateSettings]
+  );
+
+  const handleDeleteTranslation = useCallback(
+    async (id: string) => {
+      try {
+        await deleteTranslation(id);
+        evictTranslationCache(id);
+        setDownloadedIds((prev) => {
+          const next = new Set(prev);
+          next.delete(id);
+          return next;
+        });
+        // Remove from active translations
+        const currentIds = settings.translationIds || [];
+        if (currentIds.includes(id)) {
+          onUpdateSettings({ translationIds: currentIds.filter((tid) => tid !== id) });
+        }
+      } catch (err) {
+        console.error("Failed to delete translation:", err);
+      }
+    },
+    [settings.translationIds, onUpdateSettings]
+  );
+
   const toggleTranslation = (id: string) => {
+    // If translation not available, trigger download instead of toggle
+    if (!isTranslationAvailable(id)) {
+      handleDownloadTranslation(id);
+      return;
+    }
+
     const currentIds = settings.translationIds || [];
     let newIds;
     if (currentIds.includes(id)) {
@@ -455,24 +535,57 @@ export const SettingsSidebar: React.FC<SettingsSidebarProps> = ({
                             </h4>
                             {groupedTranslations[lang].map((trans) => {
                               const isSelected = settings.translationIds.includes(trans.id);
+                              const isBundled = bundledIds.has(trans.id);
+                              const isDownloaded = downloadedIds.has(trans.id);
+                              const available = isBundled || isDownloaded;
+                              const isDownloading = downloadingId === trans.id;
                               const isRtlLang = ["Persian", "Urdu", "Arabic"].includes(lang);
                               return (
-                                <button
-                                  key={trans.id}
-                                  onClick={() => toggleTranslation(trans.id)}
-                                  className="w-full text-left px-3 py-2 rounded-lg text-sm transition-all flex items-start gap-3 hover:bg-slate-50 dark:hover:bg-slate-800"
-                                >
-                                  <div
-                                    className={`shrink-0 mt-0.5 ${isSelected ? "text-emerald-600 dark:text-emerald-500" : "text-slate-400 dark:text-slate-600"}`}
+                                <div key={trans.id} className="flex items-center gap-1">
+                                  <button
+                                    onClick={() => toggleTranslation(trans.id)}
+                                    disabled={isDownloading}
+                                    className="flex-1 text-left px-3 py-2 rounded-lg text-sm transition-all flex items-start gap-3 hover:bg-slate-50 dark:hover:bg-slate-800 disabled:opacity-60"
                                   >
-                                    {isSelected ? <CheckSquare size={16} /> : <Square size={16} />}
-                                  </div>
-                                  <span
-                                    className={`text-sm leading-snug ${isSelected ? "text-slate-800 dark:text-white font-medium" : "text-slate-500 dark:text-slate-400"} ${isRtlLang ? "font-vazir" : "font-sans"}`}
-                                  >
-                                    {trans.name}
-                                  </span>
-                                </button>
+                                    <div
+                                      className={`shrink-0 mt-0.5 ${isSelected ? "text-emerald-600 dark:text-emerald-500" : "text-slate-400 dark:text-slate-600"}`}
+                                    >
+                                      {isDownloading ? (
+                                        <Spinner className="w-4 h-4" />
+                                      ) : !available ? (
+                                        <CloudDownload size={16} className="text-blue-400" />
+                                      ) : isSelected ? (
+                                        <CheckSquare size={16} />
+                                      ) : (
+                                        <Square size={16} />
+                                      )}
+                                    </div>
+                                    <span
+                                      className={`text-sm leading-snug flex-1 ${isSelected ? "text-slate-800 dark:text-white font-medium" : "text-slate-500 dark:text-slate-400"} ${isRtlLang ? "font-vazir" : "font-sans"}`}
+                                    >
+                                      {trans.name}
+                                      {isDownloading && (
+                                        <span className="ml-2 text-xs text-blue-500">
+                                          {downloadProgress}%
+                                        </span>
+                                      )}
+                                    </span>
+                                    {isBundled && (
+                                      <span className="shrink-0 mt-1" aria-label="Bundled">
+                                        <Check size={12} className="text-emerald-400" />
+                                      </span>
+                                    )}
+                                  </button>
+                                  {isDownloaded && !isBundled && (
+                                    <button
+                                      onClick={() => handleDeleteTranslation(trans.id)}
+                                      className="shrink-0 p-1.5 rounded-md text-slate-400 hover:text-red-500 hover:bg-red-50 dark:hover:bg-red-900/20 transition-colors"
+                                      title="Delete downloaded translation"
+                                    >
+                                      <Trash2 size={14} />
+                                    </button>
+                                  )}
+                                </div>
                               );
                             })}
                           </div>

@@ -1,36 +1,11 @@
 import { Chapter, Verse, Reciter, TranslationResource } from "../types";
-import { sanitizeQuranText } from "./textSanitizer";
-
-// API response types for alquran.cloud
-interface SurahResponse {
-  number: number;
-  revelationType: string;
-  revelationOrder?: number;
-  englishName: string;
-  name: string;
-  numberOfAyahs: number;
-  englishNameTranslation: string;
-}
-
-interface TranslationResponse {
-  identifier: string;
-  name: string;
-  englishName: string;
-  language: string;
-}
-
-interface EditionResponse {
-  edition?: { identifier: string; name: string; direction?: string };
-  ayahs: AyahResponse[];
-}
-
-interface AyahResponse {
-  number: number;
-  numberInSurah: number;
-  text: string;
-}
-
-const BASE_URL = "https://api.alquran.cloud/v1";
+import {
+  loadChapters,
+  loadSurahText,
+  loadTranslation,
+  loadTranslationRegistry,
+  type TranslationData,
+} from "./localDataService";
 
 const FALLBACK_CHAPTERS: Chapter[] = [
   {
@@ -67,7 +42,7 @@ const FALLBACK_VERSES: Verse[] = [
   {
     id: 1,
     verse_key: "1:1",
-    text_uthmani: "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ",
+    text_uthmani: "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ",
     text_simple: "بسم الله الرحمن الرحيم",
     translations: [
       {
@@ -81,7 +56,7 @@ const FALLBACK_VERSES: Verse[] = [
   {
     id: 2,
     verse_key: "1:2",
-    text_uthmani: "ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ",
+    text_uthmani: "ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ",
     text_simple: "الحمد لله رب العالمين",
     translations: [
       {
@@ -95,7 +70,7 @@ const FALLBACK_VERSES: Verse[] = [
   {
     id: 3,
     verse_key: "1:3",
-    text_uthmani: "ٱلرَّحْمَٰنِ ٱلرَّحِيمِ",
+    text_uthmani: "ٱلرَّحْمَٰنِ ٱلرَّحِيمِ",
     text_simple: "الرحمن الرحيم",
     translations: [
       {
@@ -109,7 +84,7 @@ const FALLBACK_VERSES: Verse[] = [
   {
     id: 4,
     verse_key: "1:4",
-    text_uthmani: "مَٰلِكِ يَوْمِ ٱلدِّينِ",
+    text_uthmani: "مَٰلِكِ يَوْمِ ٱلدِّينِ",
     text_simple: "مالك يوم الدين",
     translations: [
       {
@@ -123,7 +98,7 @@ const FALLBACK_VERSES: Verse[] = [
   {
     id: 5,
     verse_key: "1:5",
-    text_uthmani: "إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ",
+    text_uthmani: "إِيَّاكَ نَعْبُدُ وَإِيَّاكَ نَسْتَعِينُ",
     text_simple: "إياك نعبد وإياك نستعين",
     translations: [
       {
@@ -137,7 +112,7 @@ const FALLBACK_VERSES: Verse[] = [
   {
     id: 6,
     verse_key: "1:6",
-    text_uthmani: "ٱهْدِنَا ٱلصِّرَٰطَ ٱلْمُسْتَقِيمَ",
+    text_uthmani: "ٱهْدِنَا ٱلصِّرَٰطَ ٱلْمُسْتَقِيمَ",
     text_simple: "اهدنا الصراط المستقيم",
     translations: [
       {
@@ -152,7 +127,7 @@ const FALLBACK_VERSES: Verse[] = [
     id: 7,
     verse_key: "1:7",
     text_uthmani:
-      "صِرَٰطَ ٱلَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ ٱلْمَغْضُوبِ عَلَيْهِمْ وَلَا ٱلضَّآلِّينَ",
+      "صِرَٰطَ ٱلَّذِينَ أَنْعَمْتَ عَلَيْهِمْ غَيْرِ ٱلْمَغْضُوبِ عَلَيْهِمْ وَلَا ٱلضَّآلِّينَ",
     text_simple: "صراط الذين أنعمت عليهم غير المغضوب عليهم ولا الضالين",
     translations: [
       {
@@ -316,62 +291,39 @@ export const PREFERRED_TRANSLATIONS: Partial<TranslationResource>[] = [
   },
 ];
 
+// ---------------------------------------------------------------------------
+// Data access (local-first)
+// ---------------------------------------------------------------------------
+
 export const getChapters = async (): Promise<Chapter[]> => {
   try {
-    const response = await fetch(`${BASE_URL}/surah`);
-    if (!response.ok) throw new Error("Failed to fetch chapters");
-    const data = await response.json();
-
-    const chapters = data.data.map((s: SurahResponse) => ({
-      id: s.number,
-      revelation_place: s.revelationType.toLowerCase(),
-      revelation_order: s.revelationOrder || 0,
-      bismillah_pre: s.number !== 1 && s.number !== 9, // All except Fatiha and Tawbah
-      name_simple: s.englishName,
-      name_complex: s.englishName,
-      name_arabic: sanitizeQuranText(s.name),
-      verses_count: s.numberOfAyahs,
-      translated_name: {
-        language_name: "English",
-        name: s.englishNameTranslation,
-      },
-    }));
-
-    return chapters.length > 0 ? chapters : FALLBACK_CHAPTERS;
+    return await loadChapters();
   } catch (error) {
-    console.error(error);
+    console.error("Error loading chapters:", error);
     return FALLBACK_CHAPTERS;
   }
 };
 
 export const getAvailableTranslations = async (): Promise<TranslationResource[]> => {
   try {
-    const response = await fetch(`${BASE_URL}/edition?type=translation`);
-    if (!response.ok) throw new Error("Failed to fetch translations");
-    const data = await response.json();
+    const registry = await loadTranslationRegistry();
+    const all = [...registry.bundled, ...registry.downloadable];
 
-    const apiTranslations: TranslationResource[] = data.data.map((t: TranslationResponse) => ({
-      id: t.identifier,
-      name: t.name,
-      author_name: t.englishName,
-      slug: t.identifier,
-      language_name: capitalize(t.language),
-    }));
-
-    // Merge and Override with PREFERRED_TRANSLATIONS to get correct Persian names
-    const merged = [...apiTranslations];
-
-    PREFERRED_TRANSLATIONS.forEach((pref) => {
-      const index = merged.findIndex((m) => m.id === pref.id);
-      if (index !== -1) {
-        merged[index] = { ...merged[index], ...pref };
-      }
+    const translations: TranslationResource[] = all.map((meta) => {
+      // Override with preferred names for Persian translations
+      const preferred = PREFERRED_TRANSLATIONS.find((p) => p.id === meta.id);
+      return {
+        id: meta.id,
+        name: preferred?.name || meta.name,
+        author_name: preferred?.author_name || meta.author_name,
+        slug: preferred?.slug || meta.slug,
+        language_name: preferred?.language_name || meta.language_name,
+      };
     });
 
-    // Move Preferred translations to top for visibility or sort by language
-    return merged.sort((a, b) => a.language_name.localeCompare(b.language_name));
+    return translations.sort((a, b) => a.language_name.localeCompare(b.language_name));
   } catch (error) {
-    console.error("Error fetching translations:", error);
+    console.error("Error loading translations:", error);
     return PREFERRED_TRANSLATIONS as TranslationResource[];
   }
 };
@@ -381,58 +333,38 @@ export const getVerses = async (
   translationIds: string[] = ["en.sahih"]
 ): Promise<Verse[]> => {
   try {
-    // We fetch Uthmani text + Simple text + requested translations
-    // 'quran-simple' provides the standard arabic script (الْحَمْدُ لِلَّهِ)
-    // 'quran-uthmani' provides the uthmani script (ٱلْحَمْدُ لِلَّهِ)
-    const ids = ["quran-uthmani", "quran-simple", ...translationIds].join(",");
-    const response = await fetch(`${BASE_URL}/surah/${chapterId}/editions/${ids}`);
-
-    if (!response.ok) throw new Error("Failed to fetch verses");
-    const data = await response.json();
-
-    // data.data is an array of editions
-    const editions: EditionResponse[] = Array.isArray(data.data) ? data.data : [data.data];
-
-    const uthmani = editions.find((e) => e.edition?.identifier === "quran-uthmani");
-    const simple = editions.find((e) => e.edition?.identifier === "quran-simple");
-
-    if (!uthmani) throw new Error("Uthmani text missing");
-
-    // Fallback to uthmani if simple text is somehow missing
-    const simpleEdition = simple || uthmani;
-
-    const translationEditions = editions.filter(
-      (e) => e.edition?.identifier !== "quran-uthmani" && e.edition?.identifier !== "quran-simple"
-    );
-
+    const surahText = await loadSurahText(chapterId);
     const hasPrefixedBismillah = chapterId !== 1 && chapterId !== 9;
 
-    const mapped = uthmani.ayahs.map((ayah: AyahResponse, index: number) => {
+    // Load each requested translation in parallel
+    const translations = await Promise.all(translationIds.map((id) => loadTranslation(id)));
+    const loadedTranslations = translations.filter((t): t is TranslationData => t !== null);
+
+    const mapped = surahText.verses.map((ayah, index) => {
       const rawUthmani =
-        hasPrefixedBismillah && index === 0 ? stripLeadingBismillah(ayah.text) : ayah.text;
+        hasPrefixedBismillah && index === 0
+          ? stripLeadingBismillah(ayah.text_uthmani)
+          : ayah.text_uthmani;
       const rawSimple =
         hasPrefixedBismillah && index === 0
-          ? stripLeadingBismillah(simpleEdition.ayahs[index].text)
-          : simpleEdition.ayahs[index].text;
+          ? stripLeadingBismillah(ayah.text_simple)
+          : ayah.text_simple;
+
+      const verseKey = `${chapterId}:${ayah.numberInSurah}`;
 
       return {
-        id: ayah.number, // Global ayah number
-        verse_key: `${chapterId}:${ayah.numberInSurah}`,
-        text_uthmani: sanitizeQuranText(rawUthmani),
-        text_simple: sanitizeQuranText(rawSimple),
-        translations: translationEditions.map((edition) => {
-          // Lookup preferred name logic
-          const preferred = PREFERRED_TRANSLATIONS.find(
-            (p) => p.id === edition.edition?.identifier
-          );
-          const resourceName = preferred?.name || edition.edition?.name;
-
+        id: ayah.id,
+        verse_key: verseKey,
+        text_uthmani: rawUthmani,
+        text_simple: rawSimple,
+        translations: loadedTranslations.map((t) => {
+          const preferred = PREFERRED_TRANSLATIONS.find((p) => p.id === t._meta.id);
           return {
-            id: edition.edition?.identifier,
-            resource_id: edition.edition?.identifier,
-            text: edition.ayahs[index].text,
-            direction: edition.edition?.direction, // Capture direction (rtl/ltr)
-            resource_name: resourceName, // Use preferred name if available
+            id: t._meta.id,
+            resource_id: t._meta.id,
+            text: t.verses[verseKey] || "",
+            direction: t._meta.direction,
+            resource_name: preferred?.name || t._meta.name,
           };
         }),
       };
@@ -440,14 +372,14 @@ export const getVerses = async (
 
     return mapped.length > 0 ? mapped : FALLBACK_VERSES;
   } catch (error) {
-    console.error(error);
+    console.error("Error loading verses:", error);
     return FALLBACK_VERSES;
   }
 };
 
 const verseByKeyCache = new Map<string, Verse>();
 
-/** Fetch a single verse by key (e.g. "27:40") with translations. */
+/** Load a single verse by key (e.g. "27:40") with translations. */
 export const getVerseByKey = async (
   verseKey: string,
   translationIds: string[] = ["en.sahih"]
@@ -456,40 +388,31 @@ export const getVerseByKey = async (
   if (verseByKeyCache.has(cacheKey)) return verseByKeyCache.get(cacheKey)!;
 
   try {
-    // API expects global ayah number or "surah:ayah" format
-    const ids = ["quran-uthmani", "quran-simple", ...translationIds].join(",");
-    const response = await fetch(`${BASE_URL}/ayah/${verseKey}/editions/${ids}`);
-    if (!response.ok) return null;
+    const [surahStr, ayahStr] = verseKey.split(":");
+    const surahId = parseInt(surahStr, 10);
+    const ayahNum = parseInt(ayahStr, 10);
+    if (isNaN(surahId) || isNaN(ayahNum)) return null;
 
-    const data = await response.json();
-    const editions: {
-      edition?: { identifier: string; name: string; direction?: string };
-      text: string;
-      numberInSurah: number;
-      number: number;
-    }[] = Array.isArray(data.data) ? data.data : [data.data];
+    const surahText = await loadSurahText(surahId);
+    const ayahData = surahText.verses.find((v) => v.numberInSurah === ayahNum);
+    if (!ayahData) return null;
 
-    const uthmani = editions.find((e) => e.edition?.identifier === "quran-uthmani");
-    const simple = editions.find((e) => e.edition?.identifier === "quran-simple");
-    if (!uthmani) return null;
-
-    const translationEditions = editions.filter(
-      (e) => e.edition?.identifier !== "quran-uthmani" && e.edition?.identifier !== "quran-simple"
-    );
+    const translations = await Promise.all(translationIds.map((id) => loadTranslation(id)));
+    const loadedTranslations = translations.filter((t): t is TranslationData => t !== null);
 
     const verse: Verse = {
-      id: uthmani.number,
+      id: ayahData.id,
       verse_key: verseKey,
-      text_uthmani: sanitizeQuranText(uthmani.text),
-      text_simple: sanitizeQuranText((simple || uthmani).text),
-      translations: translationEditions.map((e) => {
-        const preferred = PREFERRED_TRANSLATIONS.find((p) => p.id === e.edition?.identifier);
+      text_uthmani: ayahData.text_uthmani,
+      text_simple: ayahData.text_simple,
+      translations: loadedTranslations.map((t) => {
+        const preferred = PREFERRED_TRANSLATIONS.find((p) => p.id === t._meta.id);
         return {
-          id: e.edition?.identifier || "",
-          resource_id: e.edition?.identifier || "",
-          text: e.text,
-          direction: e.edition?.direction,
-          resource_name: preferred?.name || e.edition?.name,
+          id: t._meta.id,
+          resource_id: t._meta.id,
+          text: t.verses[verseKey] || "",
+          direction: t._meta.direction,
+          resource_name: preferred?.name || t._meta.name,
         };
       }),
     };
@@ -497,7 +420,7 @@ export const getVerseByKey = async (
     verseByKeyCache.set(cacheKey, verse);
     return verse;
   } catch (error) {
-    console.error(`Error fetching verse ${verseKey}:`, error);
+    console.error(`Error loading verse ${verseKey}:`, error);
     return null;
   }
 };
@@ -594,22 +517,3 @@ export const getAudioUrl = (reciterId: string, chapterId: number, verseNumber: n
   const pad = (num: number) => num.toString().padStart(3, "0");
   return `https://everyayah.com/data/${reciter.subfolder}/${pad(chapterId)}${pad(verseNumber)}.mp3`;
 };
-
-// Helper to capitalize language codes
-function capitalize(s: string) {
-  // Map common codes
-  const map: Record<string, string> = {
-    en: "English",
-    fa: "Persian",
-    fr: "French",
-    de: "German",
-    es: "Spanish",
-    tr: "Turkish",
-    ur: "Urdu",
-    id: "Indonesian",
-    ru: "Russian",
-    zh: "Chinese",
-    bn: "Bengali",
-  };
-  return map[s] || s.charAt(0).toUpperCase() + s.slice(1);
-}

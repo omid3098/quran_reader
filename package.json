@@ -22,7 +22,8 @@
     "prepare": "husky",
     "sync": "bun run scripts/sync.ts",
     "generate-phrases": "bun run scripts/generate-phrases.ts all",
-    "generate-root-phrases": "bun run scripts/generate-phrases.ts root"
+    "generate-root-phrases": "bun run scripts/generate-phrases.ts root",
+    "generate-quran-data": "bun run scripts/generate-quran-data.ts"
   },
   "dependencies": {
     "@blocknote/core": "^0.42.3",

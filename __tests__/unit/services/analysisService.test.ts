@@ -11,9 +11,42 @@ import {
 } from "@/services/analysisService";
 import type { QuranWord } from "@/types";
 
-// Mock fetch globally
+// Mock fetch globally (used by loadLocalRootData and loadSurahText)
 const mockFetch = vi.fn();
 global.fetch = mockFetch;
+
+// Mock localDataService's loadSurahText (used by batchFetchVerseTexts)
+vi.mock("@/services/localDataService", () => ({
+  loadSurahText: vi.fn().mockResolvedValue({
+    surahId: 1,
+    verses: [
+      {
+        id: 1,
+        numberInSurah: 1,
+        text_uthmani: "بِسْمِ ٱللَّهِ ٱلرَّحْمَٰنِ ٱلرَّحِيمِ",
+        text_simple: "بسم الله الرحمن الرحيم",
+      },
+      {
+        id: 2,
+        numberInSurah: 2,
+        text_uthmani: "ٱلْحَمْدُ لِلَّهِ رَبِّ ٱلْعَٰلَمِينَ",
+        text_simple: "الحمد لله رب العالمين",
+      },
+    ],
+  }),
+  loadTranslation: vi.fn().mockResolvedValue(null),
+  loadChapters: vi.fn().mockResolvedValue([]),
+  loadTranslationRegistry: vi.fn().mockResolvedValue({ _meta: {}, bundled: [], downloadable: [] }),
+  evictTranslationCache: vi.fn(),
+}));
+
+// Mock translationStorageService
+vi.mock("@/services/translationStorageService", () => ({
+  getTranslation: vi.fn().mockResolvedValue(null),
+  saveTranslation: vi.fn(),
+  deleteTranslation: vi.fn(),
+  getDownloadedTranslationIds: vi.fn().mockResolvedValue([]),
+}));
 
 describe("analysisService", () => {
   beforeEach(() => {
@@ -201,23 +234,22 @@ describe("analysisService", () => {
   });
 
   describe("searchPhrase", () => {
-    it("should search for exact phrase in Quran", async () => {
-      const mockResponse = {
+    it("should search for exact phrase in local data", async () => {
+      const mockRootData = {
         data: {
-          count: 1,
-          matches: [
-            {
-              surah: { number: 1 },
-              numberInSurah: 1,
-              text: "بسم الله الرحمن الرحيم",
-            },
+          "1:1": [
+            { r: "سمو", l: "اسم", t: "بسم" },
+            { r: "اله", l: "الله", t: "الله" },
+            { r: "رحم", l: "رحمن", t: "الرحمن" },
+            { r: "رحم", l: "رحيم", t: "الرحيم" },
           ],
+          "2:1": [{ r: "الم", l: "الم", t: "الم" }],
         },
       };
 
       mockFetch.mockResolvedValueOnce({
         ok: true,
-        json: () => Promise.resolve(mockResponse),
+        json: () => Promise.resolve(mockRootData),
       });
 
       const result = await searchPhrase("بسم الله");
@@ -230,9 +262,8 @@ describe("analysisService", () => {
       expect(result).toEqual({ count: 0, verses: [] });
     });
 
-    it("should handle API error gracefully", async () => {
-      mockFetch.mockRejectedValueOnce(new Error("Network error"));
-
+    it("should handle errors gracefully", async () => {
+      // searchPhrase with non-Arabic text that gets cleaned to empty
       const result = await searchPhrase("test");
       expect(result).toEqual({ count: 0, verses: [] });
     });
