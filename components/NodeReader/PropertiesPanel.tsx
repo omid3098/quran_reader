@@ -66,6 +66,10 @@ function PropertiesPanelComponent({
 
   const hasSelection = selection && selection.type !== "verse";
 
+  // Derived font sizes for panel content (scaled from user's fontSize setting)
+  const panelArabicSize = fontSize ? Math.round(fontSize * 0.55 * 1.4) : undefined;
+  const panelContentSize = fontSize ? Math.round(fontSize * 0.55 * 1.2) : undefined;
+
   // Build dynamic header content based on selection
   const connectionCount = verseFamiliarity?.connections.length ?? 0;
   const backlinkCount = noteBacklinks?.length ?? 0;
@@ -76,7 +80,7 @@ function PropertiesPanelComponent({
       className="w-80 md:w-96 border-r border-slate-800 bg-slate-900/50 flex flex-col"
     >
       {/* Header — dynamic based on selection */}
-      <div className="px-4 py-3 border-b border-slate-800 flex items-center gap-2 bg-slate-900/50 min-h-[48px]">
+      <div className="px-3 py-2 border-b border-slate-800 flex items-center gap-2 bg-slate-900/50 min-h-[48px]">
         <Info size={16} className="flex-shrink-0 text-emerald-500" />
         {selection?.type === "word" ? (
           <>
@@ -113,7 +117,7 @@ function PropertiesPanelComponent({
 
       {/* Properties content (resizable top section) */}
       <div
-        className="overflow-y-auto custom-scrollbar p-5 space-y-4"
+        className="overflow-y-auto custom-scrollbar p-3 space-y-3"
         style={{ height: `${propertiesPercent}%` }}
       >
         {!hasSelection && verseFamiliarity?.hasConnections && (
@@ -128,7 +132,7 @@ function PropertiesPanelComponent({
               return (
                 <div
                   key={i}
-                  className="border border-yellow-700/50 rounded-lg p-3 bg-yellow-950/10"
+                  className="border border-yellow-700/50 rounded-lg p-2.5 bg-yellow-950/10"
                 >
                   <button
                     onClick={() =>
@@ -139,7 +143,11 @@ function PropertiesPanelComponent({
                     <Link2 size={12} />
                     {otherVerse}
                   </button>
-                  <p className="text-sm text-yellow-200/80 font-vazir leading-relaxed" dir="rtl">
+                  <p
+                    className="text-yellow-200/80 font-vazir leading-relaxed"
+                    style={{ fontSize: panelContentSize ? `${panelContentSize}px` : "0.875rem" }}
+                    dir="rtl"
+                  >
                     {conn.reason}
                   </p>
                 </div>
@@ -157,7 +165,7 @@ function PropertiesPanelComponent({
               return (
                 <div
                   key={i}
-                  className="border border-yellow-700/50 rounded-lg p-3 bg-yellow-950/10"
+                  className="border border-yellow-700/50 rounded-lg p-2.5 bg-yellow-950/10"
                 >
                   <button
                     onClick={() =>
@@ -168,7 +176,11 @@ function PropertiesPanelComponent({
                     <Link2 size={12} />
                     {backlink.sourceVerseKey}
                   </button>
-                  <p className="text-sm text-yellow-200/60 font-vazir leading-relaxed" dir="rtl">
+                  <p
+                    className="text-yellow-200/60 font-vazir leading-relaxed"
+                    style={{ fontSize: panelContentSize ? `${panelContentSize}px` : "0.875rem" }}
+                    dir="rtl"
+                  >
                     {backlink.excerpt}
                   </p>
                 </div>
@@ -200,6 +212,8 @@ function PropertiesPanelComponent({
             onTogglePhraseOnCanvas={onTogglePhraseOnCanvas}
             onNavigateToVerse={onNavigateToVerse}
             onKBNoteChanged={onKBNoteChanged}
+            panelArabicSize={panelArabicSize}
+            panelContentSize={panelContentSize}
           />
         )}
         {selection?.type === "phraseVerse" && (
@@ -211,6 +225,8 @@ function PropertiesPanelComponent({
             translationIds={verse.translations.map((t) => t.resource_id)}
             onNavigateToVerse={onNavigateToVerse}
             fontSize={fontSize}
+            panelArabicSize={panelArabicSize}
+            panelContentSize={panelContentSize}
           />
         )}
       </div>
@@ -237,6 +253,8 @@ function PhraseVerseInfo({
   translationIds,
   onNavigateToVerse,
   fontSize,
+  panelArabicSize,
+  panelContentSize,
 }: {
   verseKey: string;
   currentVerseKey: string;
@@ -245,6 +263,8 @@ function PhraseVerseInfo({
   translationIds: string[];
   onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
   fontSize?: number;
+  panelArabicSize?: number;
+  panelContentSize?: number;
 }) {
   const [verse, setVerse] = useState<Verse | null>(null);
   const [loading, setLoading] = useState(true);
@@ -267,7 +287,7 @@ function PhraseVerseInfo({
   return (
     <>
       {/* Header badge */}
-      <div className={`border ${s.border} rounded-lg p-3 ${s.bg} flex items-center gap-2`}>
+      <div className={`border ${s.border} rounded-lg p-2.5 ${s.bg} flex items-center gap-2`}>
         <button
           onClick={handleNavigate}
           className={`text-xs ${s.icon} tracking-wider hover:underline flex items-center gap-1`}
@@ -288,8 +308,12 @@ function PhraseVerseInfo({
         </div>
       ) : verse ? (
         <>
-          <div className="border border-slate-700/50 rounded-lg p-4">
-            <p className="font-quran text-lg text-slate-200 leading-[2]" dir="rtl">
+          <div className="border border-slate-700/50 rounded-lg p-3">
+            <p
+              className="font-quran text-slate-200 leading-[2]"
+              style={{ fontSize: panelArabicSize ? `${panelArabicSize}px` : "1.125rem" }}
+              dir="rtl"
+            >
               {verse.text_uthmani}
             </p>
           </div>
@@ -307,6 +331,7 @@ function PhraseVerseInfo({
         targetVerseKey={verseKey}
         matchType={matchType}
         patternKeys={patternKeys}
+        contentFontSize={panelContentSize}
       />
     </>
   );
@@ -317,11 +342,13 @@ function ConnectionSaveField({
   targetVerseKey,
   matchType,
   patternKeys,
+  contentFontSize,
 }: {
   currentVerseKey: string;
   targetVerseKey: string;
   matchType: PhraseMatchType;
   patternKeys: string[];
+  contentFontSize?: number;
 }) {
   const [status, setStatus] = useState<"loading" | "none" | "exists" | "editing">("loading");
   const [reason, setReason] = useState("");
@@ -392,7 +419,8 @@ function ConnectionSaveField({
         <textarea
           value={reason}
           onChange={(e) => setReason(e.target.value)}
-          className="w-full rounded border border-yellow-700/50 bg-yellow-950/20 text-sm text-yellow-100 font-vazir p-2 focus:outline-none focus:border-yellow-500 resize-y min-h-[60px]"
+          className="w-full rounded border border-yellow-700/50 bg-yellow-950/20 text-yellow-100 font-vazir p-2 focus:outline-none focus:border-yellow-500 resize-y min-h-[60px]"
+          style={{ fontSize: contentFontSize ? `${contentFontSize}px` : "0.875rem" }}
           dir="rtl"
           placeholder="Connection reason..."
           autoFocus
@@ -430,7 +458,11 @@ function ConnectionSaveField({
             <Trash2 size={12} />
           </button>
         </div>
-        <p className="text-sm text-yellow-200/80 font-vazir leading-relaxed" dir="rtl">
+        <p
+          className="text-yellow-200/80 font-vazir leading-relaxed"
+          style={{ fontSize: contentFontSize ? `${contentFontSize}px` : "0.875rem" }}
+          dir="rtl"
+        >
           {existingConn?.reason}
         </p>
       </div>
@@ -459,6 +491,8 @@ function WordInfo({
   onTogglePhraseOnCanvas,
   onNavigateToVerse,
   onKBNoteChanged,
+  panelArabicSize,
+  panelContentSize,
 }: {
   data: NonNullable<Extract<PropertiesPanelSelection, { type: "word" }>["data"]>;
   phraseMatches?: PhraseMatch[];
@@ -470,6 +504,8 @@ function WordInfo({
   onTogglePhraseOnCanvas?: (match: PhraseMatch, show: boolean) => void;
   onNavigateToVerse: (surahId: number, verseNumber?: number) => void;
   onKBNoteChanged?: () => void;
+  panelArabicSize?: number;
+  panelContentSize?: number;
 }) {
   const handleSaveRootNote = useCallback(
     (note: string) => {
@@ -498,13 +534,19 @@ function WordInfo({
   return (
     <>
       {data.root && (
-        <div className="border border-slate-700/50 rounded-lg p-4">
+        <div className="border border-slate-700/50 rounded-lg p-3">
           <div className="text-xs text-slate-500 tracking-wider mb-1">Root</div>
-          <div className="font-quran text-xl text-indigo-300">{data.root.split("").join(" ")}</div>
+          <div
+            className="font-quran text-indigo-300"
+            style={{ fontSize: panelArabicSize ? `${panelArabicSize}px` : "1.25rem" }}
+          >
+            {data.root.split("").join(" ")}
+          </div>
           <KBNoteField
             label="Root note"
             initialNote={initialRootNote}
             onSave={handleSaveRootNote}
+            contentFontSize={panelContentSize}
           />
           {rootAnalysis && (
             <RootAnalysisMore
@@ -516,24 +558,36 @@ function WordInfo({
         </div>
       )}
       {data.lemma && (
-        <div className="border border-slate-700/50 rounded-lg p-4">
+        <div className="border border-slate-700/50 rounded-lg p-3">
           <div className="text-xs text-slate-500 tracking-wider mb-1">Lemma</div>
-          <div className="font-quran text-lg text-slate-300">{data.lemma}</div>
+          <div
+            className="font-quran text-slate-300"
+            style={{ fontSize: panelArabicSize ? `${panelArabicSize}px` : "1.125rem" }}
+          >
+            {data.lemma}
+          </div>
           <KBNoteField
             label="Lemma note"
             initialNote={initialLemmaNote}
             onSave={handleSaveLemmaNote}
+            contentFontSize={panelContentSize}
           />
         </div>
       )}
       {!data.root && !data.lemma && (
-        <div className="border border-slate-700/50 rounded-lg p-4">
+        <div className="border border-slate-700/50 rounded-lg p-3">
           <div className="text-xs text-slate-500 tracking-wider mb-1">Word</div>
-          <div className="font-quran text-lg text-slate-300">{data.word}</div>
+          <div
+            className="font-quran text-slate-300"
+            style={{ fontSize: panelArabicSize ? `${panelArabicSize}px` : "1.125rem" }}
+          >
+            {data.word}
+          </div>
           <KBNoteField
             label="Word note"
             initialNote={initialWordNote}
             onSave={handleSaveWordNote}
+            contentFontSize={panelContentSize}
           />
         </div>
       )}
@@ -562,10 +616,12 @@ function KBNoteField({
   label,
   initialNote,
   onSave,
+  contentFontSize,
 }: {
   label: string;
   initialNote?: string;
   onSave: (note: string) => void;
+  contentFontSize?: number;
 }) {
   const [editing, setEditing] = useState(false);
   const [draft, setDraft] = useState(initialNote || "");
@@ -596,7 +652,8 @@ function KBNoteField({
         <textarea
           value={draft}
           onChange={(e) => setDraft(e.target.value)}
-          className="w-full rounded border border-yellow-700/50 bg-yellow-950/20 text-sm text-yellow-100 font-vazir p-2 focus:outline-none focus:border-yellow-500 resize-y min-h-[60px]"
+          className="w-full rounded border border-yellow-700/50 bg-yellow-950/20 text-yellow-100 font-vazir p-2 focus:outline-none focus:border-yellow-500 resize-y min-h-[60px]"
+          style={{ fontSize: contentFontSize ? `${contentFontSize}px` : "0.875rem" }}
           dir="rtl"
           placeholder={`${label}...`}
           autoFocus
@@ -623,7 +680,11 @@ function KBNoteField({
     return (
       <div className="mt-2 group">
         <div className="flex items-start gap-1.5">
-          <p className="text-sm text-yellow-200/80 font-vazir leading-relaxed flex-1" dir="rtl">
+          <p
+            className="text-yellow-200/80 font-vazir leading-relaxed flex-1"
+            style={{ fontSize: contentFontSize ? `${contentFontSize}px` : "0.875rem" }}
+            dir="rtl"
+          >
             {noteToShow}
           </p>
           <button

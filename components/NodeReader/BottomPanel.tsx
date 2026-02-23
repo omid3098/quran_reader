@@ -43,6 +43,9 @@ function BottomPanelComponent({
   const [isOpen, setIsOpen] = useState(true);
   const [activeTab, setActiveTab] = useState<BottomPanelTab>("translations");
 
+  // Scale note editor font to match translation size
+  const scaledFontSize = fontSize ? Math.round(fontSize * 0.55 * 1.8) : undefined;
+
   // Height resize — percentage is "how much of the canvas the panel takes from the bottom"
   // We invert it: the handle position from top = (100 - panelHeight)%
   const { percentage: handlePosition, startResizing } = useResizablePanel({
@@ -183,6 +186,24 @@ function BottomPanelComponent({
         </button>
       </div>
 
+      {/* Scaled font for note editors */}
+      {scaledFontSize && (
+        <style>{`
+          .node-reader-notes .bn-block-content,
+          .node-reader-notes .tiptap p {
+            font-size: ${scaledFontSize}px !important;
+            line-height: 1.6 !important;
+          }
+          .node-reader-notes .bn-editor {
+            font-size: ${scaledFontSize}px !important;
+          }
+          .node-reader-notes .quran-link {
+            border-radius: 9999px !important;
+            padding: 0.25em 0.6em !important;
+          }
+        `}</style>
+      )}
+
       {/* Tab content */}
       <div className="flex-1 overflow-y-auto custom-scrollbar min-h-0">
         {activeTab === "translations" && translations.length > 0 && (
@@ -196,7 +217,7 @@ function BottomPanelComponent({
           </div>
         )}
         {activeTab === "verseNotes" && (
-          <div className="p-4 h-full">
+          <div className="p-4 h-full node-reader-notes">
             <Suspense
               fallback={
                 <div className="flex items-center justify-center py-8 text-slate-500 text-sm">
@@ -216,7 +237,7 @@ function BottomPanelComponent({
           </div>
         )}
         {activeTab === "surahNotes" && (
-          <div className="p-4 h-full">
+          <div className="p-4 h-full node-reader-notes">
             <Suspense
               fallback={
                 <div className="flex items-center justify-center py-8 text-slate-500 text-sm">
