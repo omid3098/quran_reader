@@ -26,6 +26,7 @@ import {
 } from "../../services/verseFamiliarityService";
 import { CanvasLegend } from "./CanvasLegend";
 import { getBacklinksForVerse } from "../../services/noteBacklinksService";
+import { alignSimpleToUthmani } from "../../services/textAlignmentService";
 import type { NoteBacklink } from "../../types";
 
 interface NodeReaderProps {
@@ -90,9 +91,12 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
     setLoading(true);
     Promise.all([loadLocalRootData(), loadKnowledgeBase()]).then(([rootData, kb]) => {
       if (cancelled) return;
-      // Split the actual verse text — this is the authoritative word list
+      // Split the actual verse text — uthmani is the authoritative word list
+      // (quran-roots.json indices align with uthmani tokenisation).
+      // Simple script may have more tokens (e.g. "يا أيّها" vs merged "يَٰٓأَيُّهَا"),
+      // so we align simple words to uthmani positions.
       const uthmaniWords = verse.text_uthmani.split(" ");
-      const simpleWords = verse.text_simple.split(" ");
+      const simpleWords = alignSimpleToUthmani(uthmaniWords, verse.text_simple.split(" "));
       // Raw root entries (may contain nulls for particles)
       const rawEntries = rootData?.[verse.verse_key] || [];
       const builtWords: QuranWord[] = uthmaniWords.map((word, i) => ({

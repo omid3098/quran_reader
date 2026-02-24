@@ -4,6 +4,7 @@ import { NotebookPen, Bookmark } from "lucide-react";
 import { NotePreview } from "./NotePreview";
 import { ShareButton } from "./ShareButton";
 import { PartialBlock } from "@blocknote/core";
+import { alignSimpleToUthmani } from "../services/textAlignmentService";
 
 // Grouped stable configuration props
 export interface AyahCardConfig {
@@ -60,11 +61,16 @@ const AyahCardComponent: React.FC<AyahCardProps> = ({
   // Calculate translation font size relative to Arabic font size
   const translationFontSize = Math.max(14, Math.round(fontSize * 0.55));
 
-  // Select correct text based on setting
-  const displayText = scriptType === "simple" ? verse.text_simple : verse.text_uthmani;
-
-  // Memoize word splitting to avoid re-computation on every render
-  const words = useMemo(() => (displayText ? displayText.split(" ") : []), [displayText]);
+  // Always split by uthmani for consistent word indexing (root data is uthmani-aligned).
+  // When simple script is selected, align the simple words to uthmani positions so merged
+  // tokens (e.g. "يَٰٓأَيُّهَا" → "يَا أَيُّهَا") don't shift all subsequent indices.
+  const words = useMemo(() => {
+    const uthmaniWords = verse.text_uthmani.split(" ");
+    if (scriptType === "simple") {
+      return alignSimpleToUthmani(uthmaniWords, verse.text_simple.split(" "));
+    }
+    return uthmaniWords;
+  }, [verse.text_uthmani, verse.text_simple, scriptType]);
 
   // Memoize cleaned translations to avoid regex processing on every render
   const cleanedTranslations = useMemo(
@@ -126,8 +132,8 @@ const AyahCardComponent: React.FC<AyahCardProps> = ({
     const targetSpan = (e.target as HTMLElement).closest("[data-word-index]");
     if (targetSpan) return;
 
-    if (onWordClick && displayText) {
-      const firstWord = displayText.split(" ").filter(Boolean)[0];
+    if (onWordClick && words.length > 0) {
+      const firstWord = words[0];
       if (!firstWord) return;
       const rect = e.currentTarget.getBoundingClientRect();
       onWordClick(firstWord, 0, verse.verse_key, rect);
