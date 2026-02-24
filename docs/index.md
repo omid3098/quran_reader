@@ -9,7 +9,7 @@ This folder contains all design decisions, workflows, and architectural context 
 **Recently completed:**
 
 - ~~**Local-first data architecture**~~ — Done. Quran text, chapter metadata, and 16 bundled translations (13 Persian + 3 English) served as static JSON from `public/data/`. Other translations downloadable on-demand to IndexedDB. No runtime API calls for core reading data. See [data-architecture.md](data-architecture.md) for details.
-- ~~**NodeReader foundation + features**~~ — All done. Layout, KB, connections, familiarity, backlinks, prompt builder, color palette.
+- ~~**NodeReader foundation + features**~~ — All done. Layout, KB, connections, familiarity, backlinks, prompt builder, color palette, view mode persistence (reopens NodeReader on reload).
 
 **What to do next:**
 

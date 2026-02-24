@@ -48,7 +48,7 @@ Root analysis (`findVersesByRoot()`) and phrase matching (`findPhrasesForWord()`
 
 ### 6. Ephemeral session state
 
-Closing NodeReader destroys all canvas state. No persistence across sessions.
+Closing NodeReader destroys all canvas state. No persistence across sessions. **Partial fix:** View mode (NodeReader vs default) is now persisted to `localStorage.lastViewMode` — reopening the site restores NodeReader at the last surah/ayah. Canvas node state (positions, expanded nodes, selected word) is still ephemeral.
 
 ## Data Placement Decisions (Bottom-Up Review)
 
@@ -175,4 +175,4 @@ The review produced a clear three-zone layout:
 ## Open Questions
 
 1. **Bottom panel tabs interaction**: When switching verses, should the bottom panel remember which tab was active? Should translations auto-open on verse change?
-2. **Canvas state persistence**: Problem #6 (ephemeral state) also wasn't directly addressed. What should be saved and restored between sessions?
+2. **Canvas state persistence**: View mode is now persisted (`lastViewMode` in localStorage — reopening the site restores NodeReader at the correct surah/ayah). Remaining question: should canvas-level state (selected word, expanded nodes, node positions) also be saved and restored?

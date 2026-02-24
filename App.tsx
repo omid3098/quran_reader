@@ -92,6 +92,7 @@ const App: React.FC = () => {
   const [scrollContainer, setScrollContainer] = useState<HTMLElement | null>(null);
   const virtualizerRef = useRef<Virtualizer<HTMLElement, Element> | null>(null);
   const scrollContainerRef = useRef<HTMLElement>(null);
+  const pendingViewModeRef = useRef<"node" | null>(null);
   const isHeaderHidden = useHideOnScroll(scrollContainer);
 
   // --- Analysis & Context Menu State ---
@@ -255,6 +256,11 @@ const App: React.FC = () => {
     localStorage.setItem("lastVerseKey", verse.verse_key);
   }, [currentChapter, currentVerseIndex, verses]);
 
+  // Persist view mode so we can restore it on reload
+  useEffect(() => {
+    localStorage.setItem("lastViewMode", nodeReaderData ? "node" : "default");
+  }, [nodeReaderData]);
+
   // Sync URL with current verse position
   useEffect(() => {
     if (!currentChapter || !verses[currentVerseIndex] || loadingVerses) return;
@@ -396,6 +402,8 @@ const App: React.FC = () => {
         let targetVerseKey: string | null = null;
         let initialId = 1;
 
+        let viewMode: "default" | "node" = "default";
+
         if (urlParams.isValid && urlParams.surahId) {
           const surahExists = chaptersData.some((c) => c.id === urlParams.surahId);
           if (surahExists) {
@@ -404,6 +412,7 @@ const App: React.FC = () => {
               targetVerseKey = `${urlParams.surahId}:${urlParams.verseNumber}`;
             }
           }
+          viewMode = urlParams.viewMode ?? "default";
         } else {
           // PRIORITY 2: Check localStorage (existing logic)
           const savedVerseKey = localStorage.getItem("lastVerseKey");
@@ -441,14 +450,34 @@ const App: React.FC = () => {
             const surahId = parseInt(savedSurahId, 10);
             initialId = chaptersData.some((c) => c.id === surahId) ? surahId : 1;
           }
+
+          const savedViewMode = localStorage.getItem("lastViewMode");
+          if (savedViewMode === "node") viewMode = "node";
         }
 
+        if (viewMode === "node") pendingViewModeRef.current = "node";
         handleChapterSelect(initialId, chaptersData, targetVerseKey || undefined);
       }
     };
     init();
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
+
+  // Activate NodeReader after initial verses load if it was the last view mode
+  useEffect(() => {
+    if (
+      pendingViewModeRef.current === "node" &&
+      currentChapter &&
+      verses.length > 0 &&
+      !loadingVerses
+    ) {
+      const verse = verses[currentVerseIndex];
+      if (verse) {
+        setNodeReaderData({ verse, chapter: currentChapter });
+      }
+      pendingViewModeRef.current = null;
+    }
+  }, [currentChapter, verses, currentVerseIndex, loadingVerses]);
 
   // --- Audio Logic ---
   useEffect(() => {
