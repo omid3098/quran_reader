@@ -628,6 +628,12 @@ function KBNoteField({
   const [savedNote, setSavedNote] = useState(initialNote);
 
   // Sync with new props when a different word is clicked
+  useEffect(() => {
+    setSavedNote(initialNote);
+    setDraft(initialNote || "");
+    setEditing(false);
+  }, [initialNote]);
+
   const noteToShow = editing ? undefined : (savedNote ?? initialNote);
 
   const handleEdit = useCallback(() => {
