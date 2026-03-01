@@ -1,6 +1,16 @@
 import React, { useState, useEffect, useCallback, useRef, Suspense, lazy } from "react";
 import { ReactFlowProvider } from "@xyflow/react";
-import { X, Play, Pause, SkipBack, SkipForward, Repeat, Sparkles } from "lucide-react";
+import {
+  X,
+  Play,
+  Pause,
+  SkipBack,
+  SkipForward,
+  Repeat,
+  Sparkles,
+  Bookmark,
+  ChevronRight,
+} from "lucide-react";
 import { NodeReaderCanvas, type TogglePhraseOnCanvas } from "./NodeReaderCanvas";
 import { PropertiesPanel } from "./PropertiesPanel";
 import { BottomPanel } from "./BottomPanel";
@@ -15,6 +25,8 @@ import type {
   PropertiesPanelSelection,
   VerseNote,
   SurahNote,
+  BreadcrumbEntry,
+  VerseRef,
 } from "../../types";
 import type { PartialBlock } from "@blocknote/core";
 import { loadLocalRootData } from "../../services/analysisService";
@@ -48,6 +60,11 @@ interface NodeReaderProps {
   theme: "light" | "dark";
   fontSize?: number;
   scriptType: "uthmani" | "simple";
+  breadcrumbs?: BreadcrumbEntry[];
+  bookmarkedVerse?: VerseRef | null;
+  onNavigateToBookmark?: () => void;
+  onBreadcrumbClick?: (index: number) => void;
+  onBookmark?: (verseKey: string) => void;
 }
 
 export const NodeReader: React.FC<NodeReaderProps> = ({
@@ -69,6 +86,11 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
   theme,
   fontSize,
   scriptType,
+  breadcrumbs = [],
+  bookmarkedVerse,
+  onNavigateToBookmark,
+  onBreadcrumbClick,
+  onBookmark,
 }) => {
   const [words, setWords] = useState<QuranWord[]>([]);
   const [loading, setLoading] = useState(true);
@@ -185,6 +207,29 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
             <span className="text-sm font-vazir text-slate-400">{chapter.name_arabic}</span>
           </div>
           <button
+            onClick={() => onBookmark?.(verse.verse_key)}
+            className={`p-2 rounded-full transition-colors ${
+              bookmarkedVerse?.verseKey === verse.verse_key
+                ? "bg-amber-900/30 text-amber-400"
+                : "hover:bg-slate-800 text-slate-500 hover:text-slate-300"
+            }`}
+            aria-label={
+              bookmarkedVerse?.verseKey === verse.verse_key
+                ? "Reading Position"
+                : "Bookmark this Verse"
+            }
+            title={
+              bookmarkedVerse?.verseKey === verse.verse_key
+                ? "Reading Position"
+                : "Bookmark this Verse"
+            }
+          >
+            <Bookmark
+              size={18}
+              fill={bookmarkedVerse?.verseKey === verse.verse_key ? "currentColor" : "none"}
+            />
+          </button>
+          <button
             onClick={() => setPromptModalOpen(true)}
             className="p-2 rounded-full hover:bg-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
             aria-label="Build prompt"
@@ -192,6 +237,39 @@ export const NodeReader: React.FC<NodeReaderProps> = ({
             <Sparkles size={18} />
           </button>
         </div>
+
+        {/* Breadcrumb strip */}
+        {(breadcrumbs.length > 0 ||
+          (bookmarkedVerse && bookmarkedVerse.verseKey !== verse.verse_key)) && (
+          <div className="flex items-center gap-1 px-4 py-1.5 bg-slate-900/60 border-b border-slate-800/50 overflow-x-auto custom-scrollbar-hide">
+            {bookmarkedVerse && (
+              <button
+                onClick={onNavigateToBookmark}
+                className="flex items-center gap-1 px-2 py-0.5 rounded-full bg-amber-900/20 text-amber-400 text-xs font-medium hover:bg-amber-900/40 transition-colors whitespace-nowrap flex-shrink-0"
+                title="Return to bookmark"
+              >
+                <Bookmark size={12} fill="currentColor" />
+                <span>{bookmarkedVerse.verseKey}</span>
+              </button>
+            )}
+            {breadcrumbs.map((entry, idx) => (
+              <React.Fragment key={`${entry.verseRef.verseKey}-${entry.timestamp}`}>
+                <ChevronRight size={12} className="text-slate-600 flex-shrink-0" />
+                <button
+                  onClick={() => onBreadcrumbClick?.(idx)}
+                  className="px-2 py-0.5 rounded-full text-slate-400 text-xs hover:bg-slate-800 transition-colors whitespace-nowrap flex-shrink-0"
+                  title={`Go to ${entry.verseRef.verseKey}`}
+                >
+                  {entry.verseRef.verseKey}
+                </button>
+              </React.Fragment>
+            ))}
+            <ChevronRight size={12} className="text-slate-600 flex-shrink-0" />
+            <span className="px-2 py-0.5 text-emerald-400 text-xs font-medium whitespace-nowrap flex-shrink-0">
+              {verse.verse_key}
+            </span>
+          </div>
+        )}
 
         {/* Canvas + Bottom Panel */}
         <div ref={canvasAreaRef} className="flex-1 flex flex-col min-h-0">

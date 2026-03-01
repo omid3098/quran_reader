@@ -1641,6 +1641,11 @@ const App: React.FC = () => {
             theme={settings.theme}
             fontSize={settings.fontSize}
             scriptType={settings.scriptType}
+            breadcrumbs={breadcrumbs}
+            bookmarkedVerse={bookmarkedVerse}
+            onNavigateToBookmark={handleNavigateToBookmark}
+            onBreadcrumbClick={handleBreadcrumbClick}
+            onBookmark={handleBookmarkByKey}
           />
         </Suspense>
       )}
